@@ -1,0 +1,16 @@
+{
+  "name": "mattserwinowski-website",
+  "type": "module",
+  "version": "0.0.1",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "deploy": "./deploy.sh"
+  },
+  "dependencies": {
+    "@tailwindcss/vite": "^4.0.0",
+    "astro": "^6.4.4",
+    "tailwindcss": "^4.0.0"
+  }
+}
