@@ -1,14 +1,25 @@
-import { describe, it, expect } from 'vitest';
-import { execSync } from 'node:child_process';
-import { existsSync } from 'node:fs';
-import { resolve } from 'node:path';
+/**
+ * Build Verification Tests
+ *
+ * Ensures that `astro build` completes without errors and produces
+ * the expected output files in dist/. This is the most basic safety
+ * net — if imports are broken, config is invalid, or syntax errors
+ * exist, this test will catch it.
+ */
 
-const distDir = resolve(import.meta.dirname, '..', 'dist');
+import { describe, it, expect } from 'vitest';
+import { execSync } from 'child_process';
+import { existsSync } from 'fs';
+import { dirname, resolve } from 'path';
+import { fileURLToPath } from 'url';
+
+const projectDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const distDir = resolve(projectDir, 'dist');
 
 describe('Build verification', () => {
   it('astro build completes successfully', () => {
     execSync('npm run build', {
-      cwd: resolve(import.meta.dirname, '..'),
+      cwd: projectDir,
       stdio: 'pipe',
     });
   });

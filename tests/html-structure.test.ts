@@ -1,3 +1,12 @@
+/**
+ * HTML Structure Tests
+ *
+ * Reads the built HTML files from dist/ and verifies that key
+ * structural elements are present and correct. Catches regressions
+ * like missing meta tags, wrong page titles, or removed headings —
+ * especially useful as a guardrail for automated/agentic changes.
+ */
+
 import { describe, it, expect, beforeAll } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
