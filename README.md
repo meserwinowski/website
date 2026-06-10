@@ -33,6 +33,19 @@ This runs `deploy.sh`, which:
 2. Rsyncs the `dist/` directory to `/path/to/webserver/dist` on the NAS
 3. nginx (running in Docker) serves the files automatically
 
+## Testing
+
+```bash
+npm test  # Builds the site, then runs all tests
+```
+
+Tests run against the built `dist/` output (static HTML files) using [Vitest](https://vitest.dev/). This makes `npm test` a reliable gate before deploying — if the build breaks or the HTML structure regresses, tests fail.
+
+| Test file | What it checks |
+|-----------|----------------|
+| `tests/build.test.ts` | `astro build` exits successfully and `dist/index.html` exists |
+| `tests/html-structure.test.ts` | Key HTML elements are present: title, meta tags, headings, lang attribute |
+
 ## Project Structure
 
 | Path | Purpose |
@@ -46,6 +59,7 @@ This runs `deploy.sh`, which:
 | `tsconfig.json` | TypeScript configuration |
 | `package.json` | Dependencies and npm scripts |
 | `compose.yaml` | Docker Compose config for the nginx container on the NAS |
+| `tests/` | Vitest test files (build verification + HTML assertions) |
 | `deploy.sh` | Build + rsync deployment script |
 | `dist/` | Build output (gitignored) |
 | `.astro/` | Generated types and cache (gitignored) |
