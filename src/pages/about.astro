@@ -1,0 +1,25 @@
+---
+import { getCollection, render } from 'astro:content';
+import Layout from '../layouts/Base.astro';
+
+// Get the "about" page content from the pages collection (sourced from Obsidian vault)
+const allPages = await getCollection('pages');
+const aboutPage = allPages.find((p) => p.id === 'about');
+const Content = aboutPage ? (await render(aboutPage)).Content : null;
+---
+
+<!-- About page: content managed in the Obsidian vault, synced at build time -->
+<Layout title="About - Matt Serwinowski" description="About Matt Serwinowski — software engineer, builder of things.">
+  <section class="space-y-6">
+    <h1 class="text-4xl font-bold">About</h1>
+
+    <!-- Render markdown content from the Obsidian vault if available -->
+    {Content ? (
+      <div class="prose">
+        <Content />
+      </div>
+    ) : (
+      <p class="text-[var(--color-muted)] italic">Coming soon.</p>
+    )}
+  </section>
+</Layout>

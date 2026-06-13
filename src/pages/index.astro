@@ -1,12 +1,28 @@
 ---
+// Frontmatter: this code runs at BUILD TIME (on your computer), not in the browser.
+// It imports the Layout component and fetches page content from the collection.
+import { getCollection, render } from 'astro:content';
 import Layout from '../layouts/Base.astro';
+
+// Get the "home" page content from the pages collection (sourced from Obsidian vault)
+const allPages = await getCollection('pages');
+const homePage = allPages.find((p) => p.id === 'home');
+const Content = homePage ? (await render(homePage)).Content : null;
 ---
 
+<!-- Layout component adds <head>, header nav, and footer around this content -->
+<!-- The title prop becomes the <title> tag in the browser tab -->
 <Layout title="Matt Serwinowski">
-  <main class="min-h-screen flex items-center justify-center bg-zinc-900 text-white">
-    <div class="text-center space-y-4">
-      <h1 class="text-5xl font-bold">Matt Serwinowski</h1>
-      <p class="text-xl text-zinc-400">Portfolio coming soon.</p>
-    </div>
-  </main>
+  <section class="space-y-6">
+    <h1 class="text-4xl font-bold">Matt Serwinowski</h1>
+
+    <!-- Render markdown content from the Obsidian vault if available -->
+    {Content ? (
+      <div class="prose">
+        <Content />
+      </div>
+    ) : (
+      <p class="text-[var(--color-muted)] italic">Content coming soon.</p>
+    )}
+  </section>
 </Layout>

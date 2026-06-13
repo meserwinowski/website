@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- Placeholder favicon — replace with Spark design -->
+  <rect width="64" height="64" rx="12" fill="#60a5fa"/>
+  <text x="32" y="42" text-anchor="middle" fill="#181a24" font-family="monospace" font-weight="bold" font-size="28">MS</text>
+</svg>

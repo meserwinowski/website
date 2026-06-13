@@ -1,0 +1,15 @@
+<!-- Footer: copyright bar pinned to the bottom of every page -->
+---
+// This runs at build time — calculates the current year for the copyright notice
+const year = new Date().getFullYear();
+---
+
+<!-- <footer> is semantic HTML telling browsers "this is the page footer" -->
+<!-- border-t adds a subtle line above the footer to separate it from content -->
+<footer class="border-t border-[var(--color-border)] py-8">
+  <!-- text-center centers the text. text-sm makes it smaller. text-[var(...)] uses our theme color -->
+  <div class="mx-auto max-w-3xl px-6 text-center text-sm text-[var(--color-muted)]">
+    <!-- &copy; renders the © symbol. {year} is the dynamic value from the frontmatter -->
+    <p>&copy; {year} Matt Serwinowski</p>
+  </div>
+</footer>

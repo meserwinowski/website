@@ -1,23 +1,153 @@
+<!-- Base layout: wraps all pages with head, header, content area, and footer -->
 ---
 import '../styles/global.css';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import { ClientRouter } from 'astro:transitions';
 
+// Props interface: defines what data this component expects from its parent.
 interface Props {
   title: string;
+  description?: string;
 }
 
-const { title } = Astro.props;
+// Destructure props with a default description for SEO
+const { title, description = 'Matt Serwinowski — software engineer, builder of things.' } = Astro.props;
+
+// Build the full URL for this page (used in Open Graph tags)
+const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 ---
 
+<!-- DOCTYPE tells the browser this is a modern HTML5 document -->
 <!doctype html>
-<html lang="en">
+<!-- lang="en" helps screen readers and search engines know this is English -->
+<!-- data-theme="dark" sets the default color scheme (our CSS reads this attribute) -->
+<html lang="en" data-theme="dark">
+  <!-- <head> contains metadata — not visible on the page itself -->
   <head>
+    <!-- charset: tells the browser what character encoding to use (UTF-8 = all languages) -->
     <meta charset="UTF-8" />
+    <!-- color-scheme tells browsers and extensions (like Dark Reader) this site handles its own dark mode -->
+    <meta name="color-scheme" content="dark light" />
+
+    <!-- Inline script runs BEFORE the page paints — prevents a "flash" of wrong theme -->
+    <!-- is:inline tells Astro to leave this script as-is (not bundle it) -->
+    <!-- Also re-applies theme after View Transitions swap to prevent reset -->
+    <script is:inline>
+      (function() {
+        var theme = localStorage.getItem('theme') || 'dark';
+        document.documentElement.setAttribute('data-theme', theme);
+      })();
+      document.addEventListener('astro:after-swap', function() {
+        var theme = localStorage.getItem('theme') || 'dark';
+        document.documentElement.setAttribute('data-theme', theme);
+      });
+    </script>
+
+    <!-- viewport: makes the page responsive on mobile (scales to device width) -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Matt Serwinowski - Portfolio" />
+    <!-- description: shown in search engine results under the page title -->
+    <meta name="description" content={description} />
+    <!-- canonical URL: tells search engines the "official" URL for this page -->
+    <link rel="canonical" href={canonicalURL.href} />
+    <!-- favicon: the small icon shown in the browser tab -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
+    <!-- Open Graph: controls how the page looks when shared on social media -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={canonicalURL.href} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:site_name" content="Matt Serwinowski" />
+
+    <!-- Twitter card: controls how the page looks when shared on X/Twitter -->
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+
+    <!-- Preconnect: opens a connection to Google Fonts early so fonts load faster -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- Load Inter (body text) and JetBrains Mono (code/header) from Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+
+    <!-- {title} is a dynamic value — Astro replaces it with the prop passed to this layout -->
     <title>{title}</title>
+
+    <!-- ClientRouter enables View Transitions: smooth crossfade animations between pages -->
+    <!-- Instead of full page reloads, the browser morphs one page into the next -->
+    <!-- This eliminates the "flash" on navigation and makes the site feel like an app -->
+    <ClientRouter />
   </head>
-  <body>
-    <slot />
+
+  <!-- flex + min-h-screen + flex-col makes footer stick to the bottom even on short pages -->
+  <body class="flex min-h-screen flex-col">
+    <!-- Header component: nav bar with logo, links, theme toggle -->
+    <Header />
+
+    <!-- <main> is the primary content area. flex-1 makes it expand to fill available space -->
+    <!-- max-w-3xl caps the width for readability. mx-auto centers it horizontally -->
+    <!-- transition:name="main" gives this element a unique identity for the View Transitions API -->
+    <main class="mx-auto w-full max-w-3xl flex-1 px-6 py-12" transition:name="main">
+      <!-- <slot /> is where child content gets injected.
+           When a page does <Layout><h1>Hello</h1></Layout>,
+           the <h1>Hello</h1> appears here -->
+      <slot />
+    </main>
+
+    <!-- Footer component: copyright bar -->
+    <Footer />
+
+    <!-- Directional navigation script: determines slide direction before each transition -->
+    <!-- This runs client-side and sets a data-transition attribute that CSS reads -->
+    <script>
+      // Nav link order — used to determine "left vs right" for same-depth navigation
+      const NAV_ORDER: Record<string, number> = {
+        '/': 0,
+        '/projects': 1,
+        '/posts': 2,    // Keep position reserved for when posts are enabled
+        '/about': 3,
+      };
+
+      // How many segments deep a path is (e.g., "/" = 0, "/projects" = 1, "/projects/foo" = 2)
+      function getDepth(path: string): number {
+        return path.replace(/\/$/, '').split('/').filter(Boolean).length;
+      }
+
+      // Get the nav index for a path (falls back to its parent if it's a detail page)
+      function getNavIndex(path: string): number {
+        const clean = path.replace(/\/$/, '') || '/';
+        if (clean in NAV_ORDER) return NAV_ORDER[clean];
+        // For nested pages like /projects/mech-keyboard, use parent's index
+        const parent = '/' + clean.split('/').filter(Boolean)[0];
+        return NAV_ORDER[parent] ?? 0;
+      }
+
+      // Before each navigation, figure out direction and set the CSS attribute
+      document.addEventListener('astro:before-preparation', (event: any) => {
+        const from = event.from.pathname;
+        const to = event.to.pathname;
+
+        const fromDepth = getDepth(from);
+        const toDepth = getDepth(to);
+
+        let direction: string;
+
+        if (toDepth > fromDepth) {
+          // Going deeper (e.g., /projects → /projects/keyboard): slide right
+          direction = 'slide-right';
+        } else if (toDepth < fromDepth) {
+          // Going shallower (e.g., /projects/keyboard → /projects): slide left
+          direction = 'slide-left';
+        } else {
+          // Same depth — use nav order (Home=0, Projects=1, Posts=2, About=3)
+          const fromIndex = getNavIndex(from);
+          const toIndex = getNavIndex(to);
+          direction = toIndex >= fromIndex ? 'slide-right' : 'slide-left';
+        }
+
+        document.documentElement.setAttribute('data-transition', direction);
+      });
+    </script>
   </body>
 </html>
