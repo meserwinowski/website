@@ -6,6 +6,10 @@ NAS_HOST="your-nas-host"
 DEPLOY_TARGET="/path/to/webserver/dist"
 SOURCE_DIR="./dist/"
 
+# Sync content from Obsidian vault
+echo "📥 Syncing content from vault..."
+./scripts/sync-content.sh
+
 # Build the site
 echo "🔨 Building site..."
 npm run build

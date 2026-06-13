@@ -1,0 +1,55 @@
+<!-- ThemeToggle: button that switches between light and dark color themes -->
+<!-- This component has NO frontmatter (no --- block) because it doesn't need server-side logic -->
+
+<button
+  id="theme-toggle"
+  class="text-[var(--color-muted)] hover:text-[var(--color-text)]"
+  aria-label="Toggle theme"
+>
+  <!-- Sun icon: visible when in dark mode (click to switch to light) -->
+  <!-- The "d" attribute in <path> is a series of drawing commands (like a pen on paper) -->
+  <svg id="icon-sun" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+    <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+  </svg>
+  <!-- Moon icon: visible when in light mode (click to switch to dark) -->
+  <!-- Starts with "hidden" class — JavaScript below toggles this -->
+  <svg id="icon-moon" xmlns="http://www.w3.org/2000/svg" class="hidden h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+    <path stroke-linecap="round" stroke-linejoin="round" d="M21 12.79A9 9 0 1111.21 3a7 7 0 009.79 9.79z" />
+  </svg>
+</button>
+
+<!-- Client-side script: handles the toggle click and icon visibility -->
+<!-- Uses astro:page-load so it re-binds after View Transition navigations -->
+<script>
+  function setupThemeToggle() {
+    // Get references to the button and both icon elements
+    const toggle = document.getElementById('theme-toggle');
+    const sunIcon = document.getElementById('icon-sun');
+    const moonIcon = document.getElementById('icon-moon');
+
+    // Show the correct icon based on current theme
+    function updateIcons() {
+      const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+      // classList.toggle('hidden', condition) — adds 'hidden' if condition is true, removes if false
+      sunIcon?.classList.toggle('hidden', !isDark);  // sun visible in dark mode
+      moonIcon?.classList.toggle('hidden', isDark);  // moon visible in light mode
+    }
+
+    // When button is clicked: flip the theme, save to localStorage, update icons
+    toggle?.addEventListener('click', () => {
+      const current = document.documentElement.getAttribute('data-theme');
+      const next = current === 'light' ? 'dark' : 'light';
+      // setAttribute changes the data-theme on <html>, which triggers CSS color changes
+      document.documentElement.setAttribute('data-theme', next);
+      // localStorage persists the choice so it survives page refreshes
+      localStorage.setItem('theme', next);
+      updateIcons();
+    });
+
+    // Run on page load to set the correct icon
+    updateIcons();
+  }
+
+  // Run on initial load AND after every View Transition navigation
+  document.addEventListener('astro:page-load', setupThemeToggle);
+</script>

@@ -3,16 +3,18 @@
   "type": "module",
   "version": "0.0.1",
   "scripts": {
-    "dev": "astro dev",
-    "build": "astro build",
-    "preview": "astro preview",
+    "dev": "node --disable-warning=DEP0205 ./node_modules/.bin/astro dev",
+    "build": "node --disable-warning=DEP0205 ./node_modules/.bin/astro build",
+    "preview": "node --disable-warning=DEP0205 ./node_modules/.bin/astro preview",
+    "sync": "./scripts/sync-content.sh",
     "test": "npm run build && vitest run",
-    "deploy": "./deploy.sh"
+    "deploy": "./scripts/deploy.sh"
   },
   "overrides": {
     "vite": "^7"
   },
   "dependencies": {
+    "@astrojs/sitemap": "^3.7.3",
     "@tailwindcss/vite": "^4.0.0",
     "astro": "^6.4.4",
     "tailwindcss": "^4.0.0"

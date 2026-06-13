@@ -1,0 +1,112 @@
+<!-- Header: site-wide navigation bar with responsive mobile menu -->
+---
+import SocialLinks from './SocialLinks.astro';
+import ThemeToggle from './ThemeToggle.astro';
+
+// Array of navigation links — adding an item here automatically adds it to both
+// the desktop nav AND the mobile menu (because both loop over this same array)
+const navLinks = [
+  { href: '/', label: 'Home' },
+  { href: '/projects', label: 'Projects' },
+  // { href: '/posts', label: 'Posts' },  // Uncomment when posts content is ready
+  { href: '/about', label: 'About' },
+];
+
+// Astro.url.pathname gives us the current page's path (e.g., "/projects")
+// We use it to highlight the active nav link
+const currentPath = Astro.url.pathname;
+---
+
+<!-- <header> is a semantic HTML element that tells browsers/screen readers "this is the site header" -->
+<header class="border-b border-[var(--color-border)]">
+  <!-- <nav> tells assistive tech "this contains navigation links" -->
+  <!-- flex + justify-between puts logo on left, nav links on right -->
+  <nav class="mx-auto flex max-w-3xl items-center justify-between px-6 py-4">
+
+    <!-- Left side: Logo + social icons + theme toggle grouped together -->
+    <div class="flex items-center gap-4">
+      <!-- Logo link — "no-underline" removes the default link underline -->
+      <a href="/" class="font-mono text-2xl font-semibold text-[var(--color-text)] no-underline hover:text-[var(--color-accent)]">
+        MS
+      </a>
+      <!-- Social icons component (GitHub, LinkedIn) -->
+      <SocialLinks />
+      <!-- Light/dark theme toggle button -->
+      <ThemeToggle />
+    </div>
+
+    <!-- Desktop nav: hidden on mobile (hidden), shown on small screens and up (sm:flex) -->
+    <!-- "sm:" is a Tailwind responsive prefix meaning "at 640px width and above" -->
+    <ul class="hidden gap-6 sm:flex">
+      <!-- .map() loops over navLinks array and creates one <li> per link -->
+      {navLinks.map(({ href, label }) => (
+        <li>
+          <!-- class:list is Astro's way to conditionally apply CSS classes -->
+          <!-- If this link matches the current page, it gets the accent color -->
+          <!-- "inline-block" is needed so CSS transform (hover scale) works on links -->
+          <a
+            href={href}
+            class:list={[
+              'inline-block text-xl no-underline',
+              currentPath === href
+                ? 'text-[var(--color-accent)]'
+                : 'text-[var(--color-muted)] hover:text-[var(--color-text)]',
+            ]}
+          >
+            {label}
+          </a>
+        </li>
+      ))}
+    </ul>
+
+    <!-- Mobile hamburger button: only visible below sm (640px) breakpoint -->
+    <!-- aria-label provides an accessible name since the button has no visible text -->
+    <button
+      id="mobile-nav-toggle"
+      class="text-[var(--color-muted)] hover:text-[var(--color-text)] sm:hidden"
+      aria-label="Toggle navigation"
+    >
+      <!-- SVG hamburger icon (three horizontal lines) -->
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+      </svg>
+    </button>
+  </nav>
+
+  <!-- Mobile dropdown menu: starts hidden, toggled by the hamburger button's script below -->
+  <ul id="mobile-nav" class="hidden flex-col gap-2 border-t border-[var(--color-border)] px-6 py-4 sm:hidden">
+    {navLinks.map(({ href, label }) => (
+      <li>
+        <a
+          href={href}
+          class:list={[
+            'block text-base no-underline',
+            currentPath === href
+              ? 'text-[var(--color-accent)]'
+              : 'text-[var(--color-muted)] hover:text-[var(--color-text)]',
+          ]}
+        >
+          {label}
+        </a>
+      </li>
+    ))}
+  </ul>
+</header>
+
+<!-- Client-side JavaScript: toggles the mobile menu open/closed when hamburger is clicked -->
+<!-- This <script> runs in the browser (not at build time like the --- frontmatter above) -->
+<!-- With View Transitions enabled, we use astro:page-load to re-bind after navigation -->
+<script>
+  function setupMobileNav() {
+    const toggle = document.getElementById('mobile-nav-toggle');
+    const menu = document.getElementById('mobile-nav');
+    // When the button is clicked, swap between 'hidden' and 'flex' CSS classes
+    toggle?.addEventListener('click', () => {
+      menu?.classList.toggle('hidden');
+      menu?.classList.toggle('flex');
+    });
+  }
+
+  // Run on initial load AND after every View Transition navigation
+  document.addEventListener('astro:page-load', setupMobileNav);
+</script>

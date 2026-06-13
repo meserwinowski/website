@@ -27,4 +27,32 @@ describe('Build verification', () => {
   it('dist/index.html exists after build', () => {
     expect(existsSync(resolve(distDir, 'index.html'))).toBe(true);
   });
+
+  it('dist/projects/index.html exists after build', () => {
+    expect(existsSync(resolve(distDir, 'projects', 'index.html'))).toBe(true);
+  });
+
+  it('dist/posts/index.html exists after build', () => {
+    expect(existsSync(resolve(distDir, 'posts', 'index.html'))).toBe(true);
+  });
+
+  it('dist/about/index.html exists after build', () => {
+    expect(existsSync(resolve(distDir, 'about', 'index.html'))).toBe(true);
+  });
+
+  it('dist/projects/personal-website/index.html exists after build', () => {
+    expect(existsSync(resolve(distDir, 'projects', 'personal-website', 'index.html'))).toBe(true);
+  });
+
+  it('dist/projects/home-lab/index.html exists after build', () => {
+    expect(existsSync(resolve(distDir, 'projects', 'home-lab', 'index.html'))).toBe(true);
+  });
+
+  it('dist/404.html exists after build', () => {
+    expect(existsSync(resolve(distDir, '404.html'))).toBe(true);
+  });
+
+  it('sitemap-index.xml exists after build', () => {
+    expect(existsSync(resolve(distDir, 'sitemap-index.xml'))).toBe(true);
+  });
 });

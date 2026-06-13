@@ -1,0 +1,20 @@
+---
+import Layout from '../layouts/Base.astro';
+---
+
+<!-- 404 page: shown when a visitor hits a URL that doesn't exist -->
+<!-- Astro automatically uses src/pages/404.astro for missing routes -->
+<Layout title="404 - Page Not Found" description="The page you're looking for doesn't exist.">
+  <section class="flex flex-col items-center justify-center space-y-6 py-16 text-center">
+    <!-- Large "404" display -->
+    <h1 class="text-6xl font-bold text-[var(--color-muted)]">404</h1>
+    <p class="text-xl text-[var(--color-text)]">Page not found</p>
+    <p class="text-[var(--color-muted)]">
+      The page you're looking for doesn't exist or has been moved.
+    </p>
+    <!-- Link back to home — uses a bordered style instead of filled for reliable contrast -->
+    <a href="/" class="inline-block rounded-lg border-2 border-[var(--color-accent)] px-6 py-2 text-sm font-medium text-[var(--color-accent)] no-underline hover:bg-[var(--color-accent)] hover:text-white">
+      ← Back to Home
+    </a>
+  </section>
+</Layout>

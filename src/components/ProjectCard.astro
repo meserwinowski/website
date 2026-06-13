@@ -1,0 +1,86 @@
+---
+/**
+ * ProjectCard.astro — A clickable card that previews a project.
+ * Used on the /projects index page, one card per project.
+ */
+
+// TypeScript interface: defines the "shape" of data this component needs.
+// The parent page must pass all these values as attributes.
+interface Props {
+  slug: string;         // URL-friendly ID (e.g., "mech-keyboard")
+  title: string;        // Display name
+  description: string;  // Short blurb for the card
+  status: 'done' | 'ongoing' | 'planning' | 'idea';  // Union type = only these 4 values allowed
+  tags: string[];       // Array of category labels
+  thumbnail: string;    // Path to preview image
+}
+
+// Destructure: pull each named prop out of the Astro.props object
+const { slug, title, description, status, tags, thumbnail } = Astro.props;
+
+// Maps each status to Tailwind color classes for the badge
+// "bg-green-500/20" = green background at 20% opacity
+const statusColors: Record<string, string> = {
+  'done': 'bg-green-500/20 text-green-400',
+  'ongoing': 'bg-blue-500/20 text-blue-400',
+  'planning': 'bg-yellow-500/20 text-yellow-400',
+  'idea': 'bg-purple-500/20 text-purple-400',
+};
+
+// Human-readable labels for each status
+const statusLabels: Record<string, string> = {
+  'done': 'Done',
+  'ongoing': 'Ongoing',
+  'planning': 'Planning',
+  'idea': 'Idea',
+};
+---
+
+<!-- The entire card is one big <a> link — clicking anywhere navigates to the project detail page -->
+<!-- "group" class lets child elements react to the PARENT being hovered (see "group-hover:" below) -->
+<!-- Template literal `backticks` let us embed the ${slug} variable into the URL string -->
+<a href={`/projects/${slug}/`} class="group block rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden hover:border-[var(--color-accent)] no-underline">
+
+  <!-- Thumbnail image area -->
+  <!-- aspect-video = 16:9 ratio. overflow-hidden clips the image when it scales up on hover -->
+  <div class="aspect-video overflow-hidden">
+    <!-- object-cover: image fills the container, cropping if needed (like background-size: cover) -->
+    <!-- group-hover:scale-105 = when the parent <a> is hovered, zoom this image to 105% -->
+    <img
+      src={thumbnail}
+      alt={`${title} thumbnail`}
+      class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+    />
+  </div>
+
+  <!-- Text content below the thumbnail -->
+  <!-- space-y-2 adds vertical spacing between child elements (like margin-top on each) -->
+  <div class="p-4 space-y-2">
+
+    <!-- Status badge: colored pill showing project state -->
+    <div class="flex items-center gap-2">
+      <!-- Dynamic class: uses the statusColors map to pick colors based on project status -->
+      <span class={`text-xs px-2 py-0.5 rounded-full font-medium ${statusColors[status]}`}>
+        {statusLabels[status]}
+      </span>
+    </div>
+
+    <!-- Project title — changes color on hover via group-hover -->
+    <h3 class="text-lg font-semibold text-[var(--color-text)] group-hover:text-[var(--color-accent)]">
+      {title}
+    </h3>
+
+    <!-- Description: line-clamp-2 truncates text to max 2 lines with "..." -->
+    <p class="text-sm text-[var(--color-muted)] line-clamp-2">{description}</p>
+
+    <!-- Tags: flex-wrap lets them flow to the next line if there are too many -->
+    <div class="flex flex-wrap gap-1 pt-1">
+      <!-- .map() creates one <span> badge for each tag in the array -->
+      {tags.map((tag) => (
+        <span class="text-xs px-2 py-0.5 rounded bg-[var(--color-bg)] text-[var(--color-muted)]">
+          {tag}
+        </span>
+      ))}
+    </div>
+  </div>
+</a>

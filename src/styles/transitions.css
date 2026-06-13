@@ -1,0 +1,75 @@
+/* Directional page transition animations for View Transitions API */
+
+/* Default: crossfade (used as a fallback) */
+::view-transition-old(main) {
+  animation: fade-out 0.2s ease-in forwards;
+}
+
+::view-transition-new(main) {
+  animation: fade-in 0.2s ease-out 0.1s forwards;
+  opacity: 0;
+}
+
+/* Slide RIGHT: new page enters from the right (navigating "forward" / deeper) */
+html[data-transition="slide-right"] ::view-transition-old(main) {
+  animation: slide-out-left 0.25s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+html[data-transition="slide-right"] ::view-transition-new(main) {
+  animation: slide-in-right 0.25s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* Slide LEFT: new page enters from the left (navigating "back" / shallower) */
+html[data-transition="slide-left"] ::view-transition-old(main) {
+  animation: slide-out-right 0.25s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+html[data-transition="slide-left"] ::view-transition-new(main) {
+  animation: slide-in-left 0.25s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* Keyframes */
+@keyframes fade-out {
+  to { opacity: 0; }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slide-out-left {
+  to {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+}
+
+@keyframes slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slide-out-right {
+  to {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+}
+
+@keyframes slide-in-left {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}

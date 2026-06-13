@@ -1,1 +1,87 @@
+/* Design system: Tailwind v4 theme tokens and base styles */
 @import "tailwindcss";
+@import "./prose.css";
+@import "./transitions.css";
+
+/* Custom theme tokens — use via var(--color-*) in Tailwind arbitrary values */
+@theme {
+  /* Fonts */
+  --font-sans: "Inter", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+
+  /* Type scale: golden ratio (φ=1.618) up from base, minor third (1.2) down */
+  --font-size-xs: 0.75rem;     /* 12px — base / 1.2² */
+  --font-size-sm: 0.875rem;    /* 14px — base / 1.2  */
+  --font-size-base: 1rem;      /* 16px */
+  --font-size-lg: 1.272rem;    /* ~20px — base × φ^0.5 */
+  --font-size-xl: 1.618rem;    /* ~26px — base × φ   */
+  --font-size-2xl: 2.058rem;   /* ~33px — base × φ^1.5 */
+  --font-size-3xl: 2.618rem;   /* ~42px — base × φ²  */
+  --font-size-4xl: 4.236rem;   /* ~68px — base × φ³  */
+
+  /* 8-point spacing grid */
+  --spacing-1: 0.25rem;   /*  4px */
+  --spacing-2: 0.5rem;    /*  8px */
+  --spacing-3: 0.75rem;   /* 12px */
+  --spacing-4: 1rem;      /* 16px */
+  --spacing-6: 1.5rem;    /* 24px */
+  --spacing-8: 2rem;      /* 32px */
+  --spacing-12: 3rem;     /* 48px */
+  --spacing-16: 4rem;     /* 64px */
+  --spacing-24: 6rem;     /* 96px */
+
+  /* Color palette (dark theme — default) */
+  --color-bg: #181a24;
+  --color-surface: #1e2130;
+  --color-border: #2d3348;
+  --color-text: #e4e4e7;
+  --color-muted: #9ca3af;
+  --color-accent: #60a5fa;
+  --color-accent-hover: #93c5fd;
+}
+
+/* Light theme overrides */
+[data-theme="light"] {
+  --color-bg: #f5f5f5;
+  --color-surface: #ebebed;
+  --color-border: #d4d4d8;
+  --color-text: #18181b;
+  --color-muted: #71717a;
+  --color-accent: #2563eb;
+  --color-accent-hover: #1d4ed8;
+}
+
+/* Base element styles */
+body {
+  font-family: var(--font-sans);
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  line-height: 1.7;
+}
+
+/* Header uses monospace font and semibold */
+header {
+  font-family: var(--font-mono);
+  font-weight: 600;
+}
+
+a {
+  color: var(--color-accent);
+}
+
+a:hover {
+  color: var(--color-accent-hover);
+}
+
+/* Interactive elements: subtle spring scale on hover */
+button, a {
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.2s ease;
+}
+
+button:hover, a:hover {
+  transform: scale(1.08);
+}
+
+button:active, a:active {
+  transform: scale(0.92);
+}

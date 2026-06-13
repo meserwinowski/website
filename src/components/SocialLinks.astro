@@ -1,0 +1,48 @@
+<!-- SocialLinks: row of icon links to external profiles -->
+---
+// Each entry defines a link with its URL, accessible label, and SVG path data.
+// These are "Feather-style" icons: outline/stroke-based SVGs (not filled).
+const links = [
+  {
+    href: 'https://github.com/meserwinowski',
+    label: 'GitHub',
+    icon: `<path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/>`,
+  },
+  {
+    href: 'https://www.linkedin.com/in/matthewserwinowski/',
+    label: 'LinkedIn',
+    icon: `<path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-4 0v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/>`,
+  },
+  {
+    href: 'https://www.instagram.com/mattserwinowski/',
+    label: 'Instagram',
+    icon: `<rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/>`,
+  },
+];
+---
+
+<!-- <nav> with aria-label gives screen readers a name for this navigation region -->
+<!-- flex + gap-4 places icons side by side with consistent spacing -->
+<nav class="flex gap-4" aria-label="Social links">
+  {links.map(({ href, label, icon }) => (
+    <!-- target="_blank" opens link in a new tab -->
+    <!-- rel="noopener noreferrer" is a security best practice for external links -->
+    <!-- aria-label provides accessible text since these links have no visible text, only icons -->
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label={label}
+      class="text-[var(--color-muted)] hover:text-[var(--color-accent)]"
+    >
+      <!-- SVG: Scalable Vector Graphics — resolution-independent icons -->
+      <!-- viewBox="0 0 24 24" means the internal coordinate system is 24x24 -->
+      <!-- stroke="currentColor" makes the icon color match the text color (set by parent) -->
+      <!-- aria-hidden="true" hides this decorative image from screen readers -->
+      <svg viewBox="0 0 24 24" class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <!-- set:html injects raw SVG path data from our links array -->
+        <Fragment set:html={icon} />
+      </svg>
+    </a>
+  ))}
+</nav>
