@@ -4,7 +4,7 @@
 set -e
 
 # Source: Obsidian vault content folder
-VAULT_DIR="$HOME/Library/CloudStorage/OneDrive-Personal/obsidian/vault/Projects/Website"
+VAULT_DIR="$HOME/obsidian/vault/Projects/Website"
 
 # Destinations
 PROJECTS_DIR="./src/content/projects"
