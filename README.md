@@ -40,7 +40,7 @@ This runs `deploy.sh`, which:
 npm run sync   # Pull latest content from Obsidian vault
 ```
 
-Content lives in your Obsidian vault at `~/Library/CloudStorage/OneDrive-Personal/obsidian/vault/Projects/Website/`:
+Content lives in your Obsidian vault at `~/obsidian/vault/Projects/Website/`:
 
 | Vault folder | Destination | Purpose |
 |--------------|-------------|---------|
