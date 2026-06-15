@@ -122,7 +122,7 @@ Defined in `src/styles/global.css` using Tailwind v4's `@theme` directive:
 
 - **Colors:** Dark/light themes with custom properties (`--color-bg`, `--color-surface`, `--color-border`, `--color-text`, `--color-muted`, `--color-accent`)
 - **Fonts:** Inter (body) + JetBrains Mono (header/code) via Google Fonts
-- **Layout:** Centered content column (`max-w-3xl` / 720px)
+- **Layout:** Per-content widths via a shared `--container` var on `<body>`. Reading pages use `--width-prose` (45rem / 720px — the readable measure); structural/grid pages opt into `--width-wide` (72rem / 1152px ≈ prose × φ) by passing `width="wide"` to `Base.astro`. Containers stay fluid below the cap, and `.prose` is capped at the measure so body text never stretches inside a wide shell.
 - **Animations:** Spring easing (`cubic-bezier(0.34, 1.56, 0.64, 1)`) on interactive elements
 
 ## Adding Projects

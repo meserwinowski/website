@@ -20,15 +20,16 @@ const projects = allProjects
 ---
 
 <!-- Layout wraps this page with the site header, footer, and <head> tags -->
-<Layout title="Projects - Matt Serwinowski" description="A curated collection of software, hardware, and music projects by Matt Serwinowski.">
+<Layout title="Projects - Matt Serwinowski" width="wide" description="A curated collection of software, hardware, and music projects by Matt Serwinowski.">
   <!-- <section> groups related content together semantically -->
   <!-- space-y-6 adds 1.5rem (24px) vertical gap between children -->
   <section class="space-y-6">
     <h1 class="text-4xl font-bold">Projects</h1>
 
-    <!-- Responsive grid: 1 column on mobile, 2 columns on sm (640px+) screens -->
-    <!-- gap-6 adds spacing between grid cells -->
-    <div class="grid gap-6 sm:grid-cols-2">
+    <!-- Auto-filling grid: cards hold a ~18rem minimum and the column count grows with the -->
+    <!-- viewport (1 col on mobile → more on wide screens) instead of stretching to fill. -->
+    <!-- min(18rem,100%) prevents overflow on screens narrower than the card minimum. -->
+    <div class="grid gap-6 grid-cols-[repeat(auto-fill,minmax(min(18rem,100%),1fr))]">
       <!-- .map() loops over the projects array and renders one ProjectCard per project -->
       <!-- Each attribute (slug, title, etc.) is a "prop" passed to the ProjectCard component -->
       {projects.map((project) => (
