@@ -1,5 +1,7 @@
 # Matt Serwinowski - Personal Website
 
+[![Deploy](https://github.com/meserwinowski/website/actions/workflows/deploy.yml/badge.svg?branch=main)](https://github.com/meserwinowski/website/actions/workflows/deploy.yml)
+
 A personal portfolio and posts site built with [Astro](https://astro.build/) and [Tailwind CSS v4](https://tailwindcss.com/), served via nginx on a Synology NAS.
 
 ## Build & Deployment
