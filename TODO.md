@@ -37,8 +37,8 @@ Common threads: content-first, excellent typography, dark aesthetic, purposeful 
 
 ## Phase 3: Polish & Content
 
-- [x] Home page — renders Markdown content from Obsidian vault (pages collection)
-- [x] About page — renders Markdown content from Obsidian vault (pages collection)
+- [x] Home page — template-driven recent feed (newest projects from the projects collection; not vault-driven)
+- [x] About page — hardcoded name/tagline hero + Markdown bio from Obsidian vault (pages collection)
 - [x] SEO: Open Graph meta tags, Twitter cards, canonical URLs, sitemap (`@astrojs/sitemap`)
 - [x] 404 page (custom styled, with link back to home)
 - [x] Content sync script (`sync-content.sh`) — pulls from Obsidian vault before build
@@ -53,6 +53,9 @@ Common threads: content-first, excellent typography, dark aesthetic, purposeful 
 - [ ] Analytics (privacy-friendly, e.g. Plausible or Umami)
 - [x] CI/CD — auto-deploy on push (GitHub Actions → Tailscale → rsync to NAS, test-gated)
 - [ ] Additional tests (Playwright e2e, Lighthouse CI, visual regression)
+- [ ] Home: "Now" line — pinned current-focus status above the recent feed
+- [ ] Home: "Load more" / pagination when the feed outgrows its item cap
+- [ ] Recommendations page — things I've read or watched online worth sharing (books, articles, videos, talks)
 
 ## Phase 5: Posts (when content is ready)
 
@@ -60,6 +63,7 @@ Common threads: content-first, excellent typography, dark aesthetic, purposeful 
 - [ ] Posts index page with post list (title, date, description)
 - [ ] Individual post layout with good typography
 - [ ] Code syntax highlighting (Shiki — built into Astro)
+- [ ] Interleave posts + projects into one date-sorted Home feed with type labels (`index.astro` already structured for this)
 - [ ] RSS feed (`@astrojs/rss`)
 
 ## Phase 6: Background Effects & Micro-animations

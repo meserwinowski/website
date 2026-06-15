@@ -59,11 +59,12 @@ describe('HTML structure - index.html', () => {
   });
 
   it('has an <h1> with expected text', () => {
-    expect(indexHtml).toMatch(/<h1[^>]*>Matt Serwinowski<\/h1>/);
+    expect(indexHtml).toMatch(/<h1[^>]*>Recent<\/h1>/);
   });
 
-  it('renders home page content from collection', () => {
-    expect(indexHtml).toContain('Software engineer');
+  it('renders recent projects from the collection', () => {
+    expect(indexHtml).toContain('Personal Website');
+    expect(indexHtml).toMatch(/href="\/projects\/personal-website\/"/);
   });
 });
 

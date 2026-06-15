@@ -12,7 +12,7 @@ const projects = defineCollection({
     description: z.string(),
     status: z.enum(['done', 'ongoing', 'planning', 'idea']),
     tags: z.array(z.string()),
-    thumbnail: z.string(),
+    thumbnail: z.string().nullish(),
     date: z.coerce.date(),
     repo: z.string().url().optional(),
   }),
