@@ -1,5 +1,10 @@
 /* Typography styles for rendered Markdown content */
 
+/* Cap reading text at the measure so it stays legible even inside a wide container */
+.prose {
+  max-width: var(--width-prose);
+}
+
 .prose h2 {
   font-size: var(--font-size-xl);
   font-weight: 700;
