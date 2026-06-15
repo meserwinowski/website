@@ -1,0 +1,82 @@
+# CI/CD Pipeline: Build, test, and deploy to Synology NAS
+# Triggers on push to main branch
+#
+# Required GitHub Secrets:
+#   NAS_SSH_KEY          - Private SSH key for NAS access (nas_deploy_key)
+#   NAS_HOST             - NAS hostname (with Tailscale: just "your-nas-host")
+#   NAS_USER             - SSH username on NAS
+#   NAS_DEPLOY_PATH      - Deployment path (e.g., /path/to/webserver/dist)
+#   TS_OAUTH_CLIENT_ID   - Tailscale OAuth client ID (lets the runner join your tailnet)
+#   TS_OAUTH_SECRET      - Tailscale OAuth client secret
+
+name: Deploy Website
+
+on:
+  push:
+    branches: [main]
+
+  # Allow manual trigger from GitHub UI
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Check out the repository (includes committed content)
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 2. Set up Node.js with dependency caching for faster installs
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # 3. Install dependencies
+      - name: Install dependencies
+        run: npm ci
+
+      # 4. Build the Astro site
+      - name: Build site
+        run: npm run build
+
+      # 5. Run tests against the built output
+      - name: Run tests
+        run: npm test
+
+      # 6. Join the tailnet so the runner can reach the NAS over Tailscale
+      - name: Connect to Tailscale
+        uses: tailscale/github-action@v2
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+
+      # 7. Deploy to NAS via rsync over SSH
+      - name: Deploy to NAS
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+          NAS_HOST: ${{ secrets.NAS_HOST }}
+          NAS_USER: ${{ secrets.NAS_USER }}
+          NAS_DEPLOY_PATH: ${{ secrets.NAS_DEPLOY_PATH }}
+        run: |
+          # Write the SSH private key to a temp file
+          mkdir -p ~/.ssh
+          echo "$NAS_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+
+          # Disable strict host key checking (NAS is on private network)
+          echo "Host *" > ~/.ssh/config
+          echo "  StrictHostKeyChecking no" >> ~/.ssh/config
+          echo "  UserKnownHostsFile=/dev/null" >> ~/.ssh/config
+
+          # Deploy with rsync
+          rsync -avz --delete \
+            --exclude='.DS_Store' \
+            -e "ssh -i ~/.ssh/deploy_key -o RemoteCommand=none -o RequestTTY=no" \
+            ./dist/ "$NAS_USER@$NAS_HOST:$NAS_DEPLOY_PATH/"
+
+          # Clean up
+          rm -f ~/.ssh/deploy_key
