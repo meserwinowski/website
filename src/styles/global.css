@@ -56,6 +56,12 @@
 }
 
 /* Base element styles */
+/* html carries the background too, so view-transition snapshots never reveal
+   the browser's (white) canvas mid-crossfade — this prevents a flash on navigation */
+html {
+  background-color: var(--color-bg);
+}
+
 body {
   font-family: var(--font-sans);
   background-color: var(--color-bg);
