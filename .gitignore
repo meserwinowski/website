@@ -7,7 +7,3 @@ node_modules
 # Build output
 dist
 .astro
-
-# Content (synced from Obsidian vault via sync-content.sh)
-src/content/projects
-src/content/pages
