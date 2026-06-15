@@ -60,6 +60,20 @@ latest content.
 | `TS_OAUTH_CLIENT_ID` | Tailscale OAuth client ID (scoped to `tag:ci`) |
 | `TS_OAUTH_SECRET` | Tailscale OAuth client secret |
 
+**Hardened deploy key:** on the NAS, the deploy key is locked down in `~/.ssh/authorized_keys`
+with a forced command + `restrict`:
+
+```
+command="/var/services/homes/youruser/bin/deploy-rsync-only.sh",restrict ssh-ed25519 AAAA... github-actions-deploy
+```
+
+The wrapper (`~/bin/deploy-rsync-only.sh`) permits **only** an `rsync` push and forces the
+destination to `/path/to/webserver/dist/` — no shell, no other paths, no downloads. If a
+leaked key is the worst case, it can do exactly one thing: rsync into `dist`. The personal key
+stays unrestricted for admin/recovery. If you ever change the rsync flags in `deploy.yml`
+(e.g. add `--rsync-path`), re-test the deploy, since the wrapper only passes through standard
+`rsync --server` invocations.
+
 ### Content Sync
 
 ```bash
