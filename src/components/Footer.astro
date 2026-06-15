@@ -1,15 +1,23 @@
 <!-- Footer: copyright bar pinned to the bottom of every page -->
 ---
-// This runs at build time — calculates the current year for the copyright notice
+// This runs at build time — calculates values shown in the footer.
 const year = new Date().getFullYear();
+
+// Build timestamp: when this site was last generated/deployed.
+// Format the text in UTC so it always agrees with the UTC-based datetime attribute below.
+const buildDate = new Date();
+const formattedBuildDate = buildDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' });
+const buildDateISO = buildDate.toISOString().split('T')[0];
 ---
 
 <!-- <footer> is semantic HTML telling browsers "this is the page footer" -->
 <!-- border-t adds a subtle line above the footer to separate it from content -->
 <footer class="border-t border-[var(--color-border)] py-8">
-  <!-- text-center centers the text. text-sm makes it smaller. text-[var(...)] uses our theme color -->
+  <!-- text-center centers the text. text-sm makes it smaller. The text color comes from our theme via a CSS custom property (--color-muted). -->
   <div class="mx-auto max-w-[var(--width-prose)] px-6 text-center text-sm text-[var(--color-muted)]">
     <!-- &copy; renders the © symbol. {year} is the dynamic value from the frontmatter -->
     <p>&copy; {year} Matt Serwinowski</p>
+    <!-- Build date signals the site is actively maintained -->
+    <p class="mt-1 text-xs">Last updated <time datetime={buildDateISO}>{formattedBuildDate}</time></p>
   </div>
 </footer>

@@ -1,28 +1,41 @@
 ---
-title: "About"
-description: "About Matt Serwinowski"
+title: About
+description: About Matt Serwinowski
+tags:
+  - website
 ---
 
-## Hey, I'm Matt 👋
-
-I'm a software engineer who likes building things — from web apps to mechanical keyboards to home servers.
-
+This is my personal site for showcasing things I have / am currently working on. Its also a place to link together my digital footprint.
 ## What I'm Into
+### **Music**
+	- Instruments
+		- Guitar - primary; writing and performing
+		- Vocals
+		- Bass
+		- Drums - programming
+		- Synthesizers
 
-- **Software** — Full-stack development, developer tools, automation
-- **Hardware** — Custom keyboards, home lab, embedded systems
-- **Music** — Guitar, production, synthesizers
+	- Audio Engineering
+		- Recording
+		- Production
+		- Mixing
+		- Mastering
+### **Software**
+	- Full-Time - currently working on power management for the Windows kernel
+	- Lately been getting into web development (this website is a project)
+### **Hardware**
+	- PCB Design
+	- Embedded Programming
+	- Soldering
+	- Assembling new devices
+	- Networking
+### **Snowboarding**
+	- Most recently went to Niseko in Japan
+	- Would like to ski in Austria or Norway!
+### Exercise
+	- Calisthenics - Newbie
+	- Weightlifting
+### Cats
+	- I have two: Circuit and Pixel!
 
-## This Site
-
-Built from scratch as a learning exercise. The stack:
-
-- [Astro](https://astro.build/) for static site generation
-- [Tailwind CSS](https://tailwindcss.com/) for styling
-- Self-hosted on a Synology NAS with nginx + Docker
-- Source on [GitHub](https://github.com/meserwinowski/website)
-
-## Find Me
-
-- [GitHub](https://github.com/meserwinowski)
-- [LinkedIn](https://www.linkedin.com/in/matthewserwinowski/)
+Thanks for checking out my website!

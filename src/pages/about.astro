@@ -10,8 +10,12 @@ const Content = aboutPage ? (await render(aboutPage)).Content : null;
 
 <!-- About page: content managed in the Obsidian vault, synced at build time -->
 <Layout title="About - Matt Serwinowski" description="About Matt Serwinowski — software engineer, builder of things.">
-  <section class="space-y-6">
-    <h1 class="text-4xl font-bold">About</h1>
+  <section class="space-y-8">
+    <!-- Hero: hardcoded name + tagline (Brittany Chiang-inspired), distinct from the Home landing -->
+    <div class="space-y-2">
+      <h1 class="text-5xl font-bold tracking-tight">Matthew Serwinowski</h1>
+      <p class="text-xl font-medium text-[var(--color-accent)]">Engineer / Musician</p>
+    </div>
 
     <!-- Render markdown content from the Obsidian vault if available -->
     {Content ? (

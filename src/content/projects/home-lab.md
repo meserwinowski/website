@@ -1,9 +1,12 @@
 ---
-title: "Home Lab Server"
-description: "Self-hosted services on a Synology NAS with Docker and Tailscale networking."
-status: "ongoing"
-tags: ["hardware", "networking"]
-thumbnail: "/images/projects/home-lab.svg"
+title: Home Lab Server
+description: Self-hosted services on a Synology NAS with Docker and Tailscale networking.
+status: ongoing
+tags:
+  - hardware
+  - networking
+  - website
+thumbnail: /images/projects/home-lab.svg
 date: 2026-05-15
 ---
 

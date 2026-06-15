@@ -1,28 +1,52 @@
 ---
-// Frontmatter: this code runs at BUILD TIME (on your computer), not in the browser.
-// It imports the Layout component and fetches page content from the collection.
-import { getCollection, render } from 'astro:content';
+// Home page — a "recent activity" feed built entirely from content collections.
+// No vault/markdown content: the page is template-driven so it stays fresh on its own.
+// Posts will join this feed once a posts collection exists (see posts.astro / README roadmap).
+import { getCollection } from 'astro:content';
 import Layout from '../layouts/Base.astro';
+import ProjectCard from '../components/ProjectCard.astro';
 
-// Get the "home" page content from the pages collection (sourced from Obsidian vault)
-const allPages = await getCollection('pages');
-const homePage = allPages.find((p) => p.id === 'home');
-const Content = homePage ? (await render(homePage)).Content : null;
+// How many recent items to surface on the landing page.
+const RECENT_LIMIT = 3;
+
+// Only public projects (done/ongoing), newest first, capped to the recent limit.
+const allProjects = await getCollection('projects');
+const recentProjects = allProjects
+  .filter((p) => ['done', 'ongoing'].includes(p.data.status))
+  .sort((a, b) => b.data.date.getTime() - a.data.date.getTime())
+  .slice(0, RECENT_LIMIT);
 ---
 
-<!-- Layout component adds <head>, header nav, and footer around this content -->
-<!-- The title prop becomes the <title> tag in the browser tab -->
-<Layout title="Matt Serwinowski">
-  <section class="space-y-6">
-    <h1 class="text-4xl font-bold">Matt Serwinowski</h1>
+<Layout title="Matt Serwinowski" description="Recent projects and writing by Matt Serwinowski.">
+  <section class="space-y-8">
+    <!-- Feed header: section title + escape hatch to the full projects index -->
+    <div class="flex items-baseline justify-between">
+      <h1 class="text-3xl font-bold">Recent</h1>
+      <a
+        href="/projects"
+        class="text-sm text-[var(--color-muted)] hover:text-[var(--color-accent)] no-underline"
+      >
+        View all projects &rarr;
+      </a>
+    </div>
 
-    <!-- Render markdown content from the Obsidian vault if available -->
-    {Content ? (
-      <div class="prose">
-        <Content />
+    {recentProjects.length > 0 ? (
+      <!-- Auto-filling grid: 1 column on mobile, more as the viewport grows -->
+      <div class="grid gap-6 grid-cols-[repeat(auto-fill,minmax(min(18rem,100%),1fr))]">
+        {recentProjects.map((project) => (
+          <ProjectCard
+            slug={project.id}
+            title={project.data.title}
+            description={project.data.description}
+            status={project.data.status}
+            tags={project.data.tags}
+            thumbnail={project.data.thumbnail}
+            date={project.data.date}
+          />
+        ))}
       </div>
     ) : (
-      <p class="text-[var(--color-muted)] italic">Content coming soon.</p>
+      <p class="text-[var(--color-muted)] italic">Nothing here yet.</p>
     )}
   </section>
 </Layout>

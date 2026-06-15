@@ -12,11 +12,17 @@ interface Props {
   description: string;  // Short blurb for the card
   status: 'done' | 'ongoing' | 'planning' | 'idea';  // Union type = only these 4 values allowed
   tags: string[];       // Array of category labels
-  thumbnail: string;    // Path to preview image
+  thumbnail?: string | null;  // Path to preview image (optional — falls back to a placeholder)
+  date: Date;           // Project date (used for the card timestamp + sorting)
 }
 
 // Destructure: pull each named prop out of the Astro.props object
-const { slug, title, description, status, tags, thumbnail } = Astro.props;
+const { slug, title, description, status, tags, thumbnail, date } = Astro.props;
+
+// Human-readable date (e.g. "Jun 7, 2026") plus a machine-readable ISO value for <time datetime>.
+// Format in UTC so the displayed day matches the frontmatter date regardless of the build machine's timezone.
+const formattedDate = date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' });
+const dateISO = date.toISOString().split('T')[0];
 
 // Maps each status to Tailwind color classes for the badge
 // "bg-green-500/20" = green background at 20% opacity
@@ -44,25 +50,34 @@ const statusLabels: Record<string, string> = {
   <!-- Thumbnail image area -->
   <!-- aspect-video = 16:9 ratio. overflow-hidden clips the image when it scales up on hover -->
   <div class="aspect-video overflow-hidden">
-    <!-- object-cover: image fills the container, cropping if needed (like background-size: cover) -->
-    <!-- group-hover:scale-105 = when the parent <a> is hovered, zoom this image to 105% -->
-    <img
-      src={thumbnail}
-      alt={`${title} thumbnail`}
-      class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-    />
+    {thumbnail ? (
+      <!-- object-cover: image fills the container, cropping if needed (like background-size: cover) -->
+      <!-- group-hover:scale-105 = when the parent <a> is hovered, zoom this image to 105% -->
+      <img
+        src={thumbnail}
+        alt={`${title} thumbnail`}
+        class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+      />
+    ) : (
+      <!-- Fallback placeholder for projects without a thumbnail: surface block with the title in mono -->
+      <div class="w-full h-full flex items-center justify-center bg-[var(--color-surface)] border-b border-[var(--color-border)]">
+        <span class="px-4 text-center font-mono text-sm text-[var(--color-muted)]">{title}</span>
+      </div>
+    )}
   </div>
 
   <!-- Text content below the thumbnail -->
   <!-- space-y-2 adds vertical spacing between child elements (like margin-top on each) -->
   <div class="p-4 space-y-2">
 
-    <!-- Status badge: colored pill showing project state -->
-    <div class="flex items-center gap-2">
+    <!-- Status badge + project date on one row -->
+    <div class="flex items-center justify-between gap-2">
       <!-- Dynamic class: uses the statusColors map to pick colors based on project status -->
       <span class={`text-xs px-2 py-0.5 rounded-full font-medium ${statusColors[status]}`}>
         {statusLabels[status]}
       </span>
+      <!-- <time> is semantic: datetime holds the machine-readable date, the text is human-readable -->
+      <time datetime={dateISO} class="text-xs text-[var(--color-muted)]">{formattedDate}</time>
     </div>
 
     <!-- Project title — changes color on hover via group-hover -->

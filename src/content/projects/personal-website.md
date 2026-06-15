@@ -1,11 +1,13 @@
 ---
-title: "Personal Website"
-description: "Portfolio and blog built with Astro, Tailwind CSS, and deployed to a home server."
-status: "ongoing"
-tags: ["software", "web"]
-thumbnail: "/images/projects/personal-website.svg"
+title: Personal Website
+description: Portfolio and blog built with Astro, Tailwind CSS, and deployed to a home server.
+status: ongoing
+tags:
+  - software
+  - website
+thumbnail: /images/projects/personal-website.svg
 date: 2026-06-07
-repo: "https://github.com/meserwinowski/website"
+repo: https://github.com/meserwinowski/website
 ---
 
 ## Overview
