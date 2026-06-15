@@ -51,7 +51,7 @@ Common threads: content-first, excellent typography, dark aesthetic, purposeful 
 - [ ] Sidenotes or margin notes (gwern-style)
 - [ ] Search functionality
 - [ ] Analytics (privacy-friendly, e.g. Plausible or Umami)
-- [ ] CI/CD — auto-deploy on push (GitHub Actions → SSH to NAS)
+- [x] CI/CD — auto-deploy on push (GitHub Actions → Tailscale → rsync to NAS, test-gated)
 - [ ] Additional tests (Playwright e2e, Lighthouse CI, visual regression)
 
 ## Phase 5: Posts (when content is ready)
