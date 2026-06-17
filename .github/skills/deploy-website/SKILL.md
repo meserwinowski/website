@@ -42,5 +42,5 @@ Ship the Astro site to production (nginx in Docker on the Synology NAS, reachabl
 
 ## Notes
 
-- `compose.yaml` is the nginx config running **on the NAS**, not locally — never run it here.
+- The nginx container's `compose.yaml` is managed by the separate `nasctl` toolkit (in OneDrive), not this repo. This repo only ships `dist/` + `nginx/default.conf`; `deploy.sh` reloads nginx via `nasctl`. Never run Docker/compose here.
 - Tailwind is wired through `@tailwindcss/vite` (v4). Do not add `@astrojs/tailwind`.

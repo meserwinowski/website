@@ -9,7 +9,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { execSync } from 'child_process';
-import { existsSync } from 'fs';
+import { existsSync, readFileSync } from 'fs';
 import { dirname, resolve } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -54,5 +54,16 @@ describe('Build verification', () => {
 
   it('sitemap-index.xml exists after build', () => {
     expect(existsSync(resolve(distDir, 'sitemap-index.xml'))).toBe(true);
+  });
+
+  it('robots.txt exists after build', () => {
+    expect(existsSync(resolve(distDir, 'robots.txt'))).toBe(true);
+  });
+
+  it('robots.txt references the sitemap and disallows AI crawlers', () => {
+    const robots = readFileSync(resolve(distDir, 'robots.txt'), 'utf-8');
+    expect(robots).toContain('Sitemap: https://www.mattserwinowski.com/sitemap-index.xml');
+    expect(robots).toContain('User-agent: GPTBot');
+    expect(robots).toContain('Disallow: /');
   });
 });
