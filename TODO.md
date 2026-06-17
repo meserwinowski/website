@@ -40,6 +40,7 @@ Common threads: content-first, excellent typography, dark aesthetic, purposeful 
 - [x] Home page — template-driven recent feed (newest projects from the projects collection; not vault-driven)
 - [x] About page — hardcoded name/tagline hero + Markdown bio from Obsidian vault (pages collection)
 - [x] SEO: Open Graph meta tags, Twitter cards, canonical URLs, sitemap (`@astrojs/sitemap`)
+- [x] Crawler/AI control — `robots.txt` (AI opt-out) + nginx User-Agent blocking & rate limiting
 - [x] 404 page (custom styled, with link back to home)
 - [x] Content sync script (`sync-content.sh`) — pulls from Obsidian vault before build
 - [x] Deploy script updated to auto-sync before building
@@ -119,19 +120,23 @@ server {
 }
 ```
 
-### Updated `compose.yaml`
+### Compose change (in the `nasctl` toolkit, not this repo)
+
+The `webserver` stack's `compose.yaml` now lives in the `nasctl` toolkit
+(`path/to/compose.yaml`). Add the gifts volume there, then
+apply with `nasctl stack webserver recreate`:
 
 ```yaml
 volumes:
   - /path/to/webserver/dist:/usr/share/nginx/html:rw
   - /path/to/webserver/gifts:/usr/share/nginx/gifts:rw
-  - /path/to/webserver/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+  - /path/to/webserver/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
 ```
 
 ### Steps
 
-- [ ] Create custom `nginx.conf` with both server blocks
-- [ ] Update `compose.yaml` to mount the config and gifts volume
+- [ ] Create custom nginx server blocks in `nginx/default.conf` (this repo)
+- [ ] Add the gifts volume to the `webserver` compose in the `nasctl` toolkit, then `nasctl stack webserver recreate`
 - [ ] Add DNS record for `gifts.mattserwinowski.com` in Cloudflare (A or CNAME, proxied)
 - [ ] Gate access with Cloudflare Access (Zero Trust → Applications, email-based one-time codes)
 - [ ] Build/deploy the gifts page (convert Obsidian markdown to static HTML)

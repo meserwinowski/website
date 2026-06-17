@@ -17,7 +17,7 @@ Static site built with **Astro 6** + **Tailwind CSS v4**, deployed to a Synology
 - Tailwind is integrated via the `@tailwindcss/vite` plugin (not `@astrojs/tailwind` — that's for Tailwind v3)
 - All pages use `src/layouts/Base.astro` which provides `<Header />`, `<main>`, and `<Footer />`
 - Tests run against the built `dist/` output (static HTML), not the source — always build before testing
-- Deployment is rsync over SSH to `your-nas-host` (Tailscale hostname). The `compose.yaml` in this repo is the Docker config running _on the NAS_, not locally.
+- Deployment is rsync over SSH to `your-nas-host` (Tailscale hostname). The nginx container and its `compose.yaml` are **not** in this repo — they're managed by the separate `nasctl` toolkit (in OneDrive). This repo only ships `dist/` + `nginx/default.conf`; `deploy.sh` reloads nginx via `nasctl`.
 
 ## Design System
 

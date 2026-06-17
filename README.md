@@ -90,6 +90,59 @@ Content lives in your Obsidian vault at `~/obsidian/vault/Projects/Website/`:
 Edit markdown in Obsidian → run `npm run deploy` to ship directly, **or** `npm run sync`,
 commit, and push to deploy via CI.
 
+## Crawlers & AI Bots
+
+Two layers handle web crawlers and AI scrapers:
+
+1. **`public/robots.txt`** (the polite request) — copied verbatim to `dist/robots.txt`
+   on build. Allows normal search engines (Googlebot, Bingbot, etc.) and points them at
+   the sitemap, while disallowing AI training/scraping crawlers (`GPTBot`, `ClaudeBot`,
+   `Google-Extended`, `CCBot`, `PerplexityBot`, `Bytespider`, …). `robots.txt` is
+   voluntary — well-behaved bots honor it; bad actors ignore it.
+
+2. **`nginx/default.conf`** (the enforcement) — mounted into the nginx container at
+   `/etc/nginx/conf.d/default.conf`. Returns `403` for AI/scraper User-Agents that ignore
+   `robots.txt` and rate-limits aggressive clients (10 req/s per IP, burst 20 → `429`).
+
+`scripts/deploy.sh` rsyncs `nginx/default.conf` to the NAS and asks nginx to
+`nginx -t && nginx -s reload` via the [`nasctl`](#nas-container-management) toolkit on every
+deploy (best-effort; it never fails the site deploy).
+
+**One-time activation** (the bind mount must exist before a reload can pick up the file). The
+`webserver` stack's `compose.yaml` (which carries the `nginx/default.conf` mount) lives in the
+`nasctl` toolkit, not in this repo. After the first deploy has placed the config on the NAS,
+recreate the container once so the mount takes effect:
+
+```bash
+nasctl stack webserver recreate
+```
+
+After that, routine deploys reload nginx in place — no recreate needed.
+
+If scraping ever gets bad despite this, put Cloudflare (free tier) in front and enable
+its "Block AI Scrapers and Crawlers" managed rule to catch User-Agent spoofers.
+
+## NAS container management
+
+The nginx container (and every other Docker stack on the NAS) is managed by a separate,
+generic toolkit — **`nasctl`** — that lives outside this repo (in OneDrive, the source of
+truth) and isn't site-specific. It rsyncs compose files + a dispatcher to the NAS and runs
+Docker lifecycle commands over SSH, so there's no manual SSHing or DSM Container Manager
+fiddling. The `webserver` stack's `compose.yaml` (with the `nginx/default.conf` bind mount)
+lives there, not here.
+
+Common commands:
+
+```bash
+nasctl ls                            # list stacks + running containers
+nasctl stack webserver ps            # status of the website stack
+nasctl stack webserver recreate      # rebuild the container (e.g. after a compose/mount change)
+nasctl ctl webserver_nginx exec nginx -s reload   # hot-reload nginx config
+```
+
+`scripts/deploy.sh` uses `nasctl` automatically to reload nginx after pushing
+`nginx/default.conf`. Run `nasctl bootstrap` once to set up passwordless operation.
+
 ## Testing
 
 ```bash
@@ -101,7 +154,7 @@ Tests run against the built `dist/` output (static HTML files) using [Vitest](ht
 
 | Test file | What it checks |
 |-----------|----------------|
-| `tests/build.test.ts` | `astro build` exits successfully, all page HTML files exist, 404 + sitemap generated |
+| `tests/build.test.ts` | `astro build` exits successfully, all page HTML files exist, 404 + sitemap + robots.txt generated |
 | `tests/html-structure.test.ts` | Key HTML elements: titles, meta tags, OG tags, navigation, headings, footer, project cards, detail content |
 
 ## Features
@@ -114,6 +167,7 @@ Tests run against the built `dist/` output (static HTML files) using [Vitest](ht
 - **Obsidian vault sync** — edit content in Obsidian, sync to site at deploy time
 - **CI/CD** — push to `main` auto-builds, tests, and deploys to the NAS via GitHub Actions + Tailscale
 - **SEO** — Open Graph, Twitter cards, canonical URLs, auto-generated sitemap
+- **Crawler & AI control** — `robots.txt` opt-out plus nginx User-Agent blocking + rate limiting
 - **404 page** — custom styled error page
 
 ## Design System
@@ -159,11 +213,11 @@ Only `done` and `ongoing` projects are shown publicly. Place thumbnail images in
 | `src/content/pages/` | Page content files (synced from Obsidian, committed so CI can build) |
 | `public/` | Static assets served as-is (images, favicon) |
 | `.github/workflows/deploy.yml` | CI/CD pipeline — build, test, and deploy to the NAS on push |
-| `tests/` | Vitest test files (39 tests: build verification + HTML assertions) |
+| `tests/` | Vitest test files (41 tests: build verification + HTML assertions) |
 | `astro.config.mjs` | Astro framework configuration (Vite + Tailwind plugin + sitemap) |
 | `tsconfig.json` | TypeScript configuration |
 | `package.json` | Dependencies and npm scripts |
-| `compose.yaml` | Docker Compose config for the nginx container on the NAS |
+| `nginx/default.conf` | nginx config (AI/scraper UA blocking + rate limiting); rsynced to the NAS by `deploy.sh` |
 | `scripts/sync-content.sh` | Pulls markdown content from Obsidian vault |
 | `scripts/deploy.sh` | Sync + build + rsync deployment script |
 | `dist/` | Build output (gitignored) |
