@@ -90,7 +90,7 @@ Content lives in your Obsidian vault at `~/obsidian/vault/Projects/Website/`:
 Edit markdown in Obsidian → run `npm run deploy` to ship directly, **or** `npm run sync`,
 commit, and push to deploy via CI.
 
-## Crawlers & AI Bots
+## Crawlers, AI Bots, and Security Metadata
 
 Two layers handle web crawlers and AI scrapers:
 
@@ -121,6 +121,11 @@ After that, routine deploys reload nginx in place — no recreate needed.
 
 If scraping ever gets bad despite this, put Cloudflare (free tier) in front and enable
 its "Block AI Scrapers and Crawlers" managed rule to catch User-Agent spoofers.
+
+`public/.well-known/security.txt` is copied verbatim to
+`dist/.well-known/security.txt` on build. This gives scanners and security
+researchers a standard contact record for the site, including the canonical URL
+that Cloudflare and other checks expect.
 
 ## NAS container management
 
@@ -154,7 +159,7 @@ Tests run against the built `dist/` output (static HTML files) using [Vitest](ht
 
 | Test file | What it checks |
 |-----------|----------------|
-| `tests/build.test.ts` | `astro build` exits successfully, all page HTML files exist, 404 + sitemap + robots.txt generated |
+| `tests/build.test.ts` | `astro build` exits successfully, all page HTML files exist, 404 + sitemap + robots.txt + security.txt generated |
 | `tests/html-structure.test.ts` | Key HTML elements: titles, meta tags, OG tags, navigation, headings, footer, project cards, detail content |
 
 ## Features
@@ -211,9 +216,9 @@ Only `done` and `ongoing` projects are shown publicly. Place thumbnail images in
 | `src/content.config.ts` | Content collection schema definition (projects + pages) |
 | `src/content/projects/` | Project Markdown files (synced from Obsidian, committed so CI can build) |
 | `src/content/pages/` | Page content files (synced from Obsidian, committed so CI can build) |
-| `public/` | Static assets served as-is (images, favicon) |
+| `public/` | Static assets served as-is, including images, favicon, robots.txt, and `.well-known/security.txt` |
 | `.github/workflows/deploy.yml` | CI/CD pipeline — build, test, and deploy to the NAS on push |
-| `tests/` | Vitest test files (41 tests: build verification + HTML assertions) |
+| `tests/` | Vitest test files (43 tests: build verification + HTML assertions) |
 | `astro.config.mjs` | Astro framework configuration (Vite + Tailwind plugin + sitemap) |
 | `tsconfig.json` | TypeScript configuration |
 | `package.json` | Dependencies and npm scripts |

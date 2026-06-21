@@ -60,10 +60,23 @@ describe('Build verification', () => {
     expect(existsSync(resolve(distDir, 'robots.txt'))).toBe(true);
   });
 
+  it('.well-known/security.txt exists after build', () => {
+    expect(existsSync(resolve(distDir, '.well-known', 'security.txt'))).toBe(true);
+  });
+
   it('robots.txt references the sitemap and disallows AI crawlers', () => {
     const robots = readFileSync(resolve(distDir, 'robots.txt'), 'utf-8');
     expect(robots).toContain('Sitemap: https://www.mattserwinowski.com/sitemap-index.xml');
     expect(robots).toContain('User-agent: GPTBot');
     expect(robots).toContain('Disallow: /');
+  });
+
+  it('security.txt publishes contact metadata at the canonical well-known URL', () => {
+    const securityTxt = readFileSync(resolve(distDir, '.well-known', 'security.txt'), 'utf-8');
+    expect(securityTxt).toContain('Contact: https://github.com/meserwinowski');
+    expect(securityTxt).toContain('Expires: 2027-06-21T21:19:45Z');
+    expect(securityTxt).toContain(
+      'Canonical: https://www.mattserwinowski.com/.well-known/security.txt',
+    );
   });
 });
