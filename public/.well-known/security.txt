@@ -1,0 +1,4 @@
+Contact: https://github.com/meserwinowski
+Expires: 2027-06-21T21:19:45Z
+Preferred-Languages: en
+Canonical: https://www.mattserwinowski.com/.well-known/security.txt

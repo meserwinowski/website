@@ -33,7 +33,7 @@ Common threads: content-first, excellent typography, dark aesthetic, purposeful 
 - [x] Prose typography styles for rendered Markdown
 - [x] View Transitions with directional slide animations
 - [x] Educational HTML comments across all `.astro` files
-- [x] 35 tests passing (build verification + HTML structure assertions)
+- [x] 43 tests passing (build verification + HTML structure assertions, including static metadata files)
 
 ## Phase 3: Polish & Content
 
