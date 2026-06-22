@@ -7,14 +7,15 @@ import ThemeToggle from './ThemeToggle.astro';
 // the desktop nav AND the mobile menu (because both loop over this same array)
 const navLinks = [
   { href: '/', label: 'Home' },
-  { href: '/projects', label: 'Projects' },
+  { href: '/projects/', label: 'Projects' },
   // { href: '/posts', label: 'Posts' },  // Uncomment when posts content is ready
-  { href: '/about', label: 'About' },
+  { href: '/about/', label: 'About' },
 ];
 
 // Astro.url.pathname gives us the current page's path (e.g., "/projects")
 // We use it to highlight the active nav link
 const currentPath = Astro.url.pathname;
+const normalizedCurrentPath = currentPath === '/' ? '/' : `${currentPath.replace(/\/$/, '')}/`;
 ---
 
 <!-- <header> is a semantic HTML element that tells browsers/screen readers "this is the site header" -->
@@ -48,7 +49,7 @@ const currentPath = Astro.url.pathname;
             href={href}
             class:list={[
               'inline-block text-xl no-underline',
-              currentPath === href
+              normalizedCurrentPath === href
                 ? 'text-[var(--color-accent)]'
                 : 'text-[var(--color-muted)] hover:text-[var(--color-text)]',
             ]}
@@ -81,7 +82,7 @@ const currentPath = Astro.url.pathname;
           href={href}
           class:list={[
             'block text-base no-underline',
-            currentPath === href
+            normalizedCurrentPath === href
               ? 'text-[var(--color-accent)]'
               : 'text-[var(--color-muted)] hover:text-[var(--color-text)]',
           ]}
@@ -100,13 +101,25 @@ const currentPath = Astro.url.pathname;
   function setupMobileNav() {
     const toggle = document.getElementById('mobile-nav-toggle');
     const menu = document.getElementById('mobile-nav');
+
+    if (!toggle || toggle.dataset.mobileNavBound === 'true') {
+      return;
+    }
+
+    toggle.dataset.mobileNavBound = 'true';
+
     // When the button is clicked, swap between 'hidden' and 'flex' CSS classes
-    toggle?.addEventListener('click', () => {
+    toggle.addEventListener('click', () => {
       menu?.classList.toggle('hidden');
       menu?.classList.toggle('flex');
     });
   }
 
   // Run on initial load AND after every View Transition navigation
-  document.addEventListener('astro:page-load', setupMobileNav);
+  const headerWindow = window as Window & { __mobileNavPageLoadBound?: boolean };
+  if (!headerWindow.__mobileNavPageLoadBound) {
+    document.addEventListener('astro:page-load', setupMobileNav);
+    headerWindow.__mobileNavPageLoadBound = true;
+  }
+  setupMobileNav();
 </script>

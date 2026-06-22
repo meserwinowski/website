@@ -17,13 +17,13 @@ const recentProjects = allProjects
   .slice(0, RECENT_LIMIT);
 ---
 
-<Layout title="Matt Serwinowski" description="Recent projects and writing by Matt Serwinowski.">
+<Layout title="Matt Serwinowski" width="content" chrome="project-detail" description="Recent projects and writing by Matt Serwinowski.">
   <section class="space-y-8">
     <!-- Feed header: section title + escape hatch to the full projects index -->
     <div class="flex items-baseline justify-between">
       <h1 class="text-3xl font-bold">Recent</h1>
       <a
-        href="/projects"
+        href="/projects/"
         class="text-sm text-[var(--color-muted)] hover:text-[var(--color-accent)] no-underline"
       >
         View all projects &rarr;

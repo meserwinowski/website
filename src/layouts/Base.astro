@@ -10,9 +10,9 @@ import { ClientRouter } from 'astro:transitions';
 interface Props {
   title: string;
   description?: string;
-  // Container width: 'prose' = readable measure (default), 'wide' = roomier shell for grids
-  width?: 'prose' | 'wide';
-  // Header alignment: most pages use prose; project details align to the prose column beside the ToC rail.
+  // Container width: 'prose' = readable measure, 'content' = project-detail content rail, 'wide' = full grid shell.
+  width?: 'prose' | 'content' | 'wide';
+  // Header alignment: 'project-detail' aligns chrome to the same rail as project detail content.
   chrome?: 'prose' | 'project-detail';
 }
 
@@ -20,9 +20,15 @@ interface Props {
 const { title, description = 'Matt Serwinowski — software engineer, builder of things.', width = 'prose', chrome = 'prose' } = Astro.props;
 
 // Resolve the page container width to a CSS var, exposed to header/main/footer as --container
-const containerWidth = width === 'wide' ? 'var(--width-wide)' : 'var(--width-prose)';
+const contentRailWidth = 'calc(var(--width-prose) + ((var(--width-wide) - var(--width-prose)) / 4.236) + 14rem)';
+const containerWidths: Record<NonNullable<Props['width']>, string> = {
+  prose: 'var(--width-prose)',
+  content: contentRailWidth,
+  wide: 'var(--width-wide)',
+};
+const containerWidth = containerWidths[width];
 const chromeContainerWidth = chrome === 'project-detail'
-  ? 'calc(var(--width-prose) + ((var(--width-wide) - var(--width-prose)) / 4.236) + 14rem)'
+  ? contentRailWidth
   : 'var(--width-prose)';
 
 // Build the full URL for this page (used in Open Graph tags)
@@ -142,8 +148,7 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
         return NAV_ORDER[parent] ?? 0;
       }
 
-      // Before each navigation, figure out direction and set the CSS attribute
-      document.addEventListener('astro:before-preparation', (event: any) => {
+      function setNavigationDirection(event: any) {
         const from = event.from.pathname;
         const to = event.to.pathname;
 
@@ -166,7 +171,15 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
         }
 
         document.documentElement.setAttribute('data-transition', direction);
-      });
+      }
+
+      // Before each navigation, figure out direction and set the CSS attribute.
+      // Astro re-executes inline scripts across view-transition swaps, so bind once.
+      const navigationWindow = window as Window & { __directionalNavigationBound?: boolean };
+      if (!navigationWindow.__directionalNavigationBound) {
+        document.addEventListener('astro:before-preparation', setNavigationDirection);
+        navigationWindow.__directionalNavigationBound = true;
+      }
     </script>
   </body>
 </html>

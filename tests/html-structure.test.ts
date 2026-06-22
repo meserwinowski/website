@@ -65,15 +65,16 @@ describe('HTML structure - index.html', () => {
   it('renders recent projects from the collection', () => {
     expect(indexHtml).toContain('Personal Website');
     expect(indexHtml).toMatch(/href="\/projects\/personal-website\/"/);
+    expect(indexHtml).toMatch(/href="\/projects\/"/);
   });
 });
 
 describe('Navigation', () => {
   it('index has nav with links to all pages', () => {
     expect(indexHtml).toMatch(/href="\/"/);
-    expect(indexHtml).toMatch(/href="\/projects"/);
+    expect(indexHtml).toMatch(/href="\/projects\/"/);
     // Posts nav link is hidden until content exists
-    expect(indexHtml).toMatch(/href="\/about"/);
+    expect(indexHtml).toMatch(/href="\/about\/"/);
   });
 
   it('all pages have navigation', () => {
@@ -95,6 +96,13 @@ describe('HTML structure - subpages', () => {
 
   it('about page has correct title', () => {
     expect(aboutHtml).toMatch(/<title>About - Matt Serwinowski<\/title>/);
+  });
+
+  it('home, projects, and about use the same content-page alignment as project details', () => {
+    for (const html of [indexHtml, projectsHtml, aboutHtml]) {
+      expect(html).toContain('--container: calc(var(--width-prose) + ((var(--width-wide) - var(--width-prose)) / 4.236) + 14rem)');
+      expect(html).toContain('--chrome-container: calc(var(--width-prose) + ((var(--width-wide) - var(--width-prose)) / 4.236) + 14rem)');
+    }
   });
 
   it('all pages have footer', () => {
@@ -186,6 +194,11 @@ describe('Project detail pages', () => {
 
   it('has repo link when provided', () => {
     expect(projectDetailHtml).toMatch(/href="https:\/\/github\.com\/meserwinowski\/website"/);
+  });
+
+  it('shows estimated reading time near the top of the detail page', () => {
+    expect(projectDetailHtml).toMatch(/Estimated reading time: \d+ minutes?/);
+    expect(projectDetailHtml).toMatch(/data-reading-time/);
   });
 
   it('renders a table of contents with links to markdown sections', () => {

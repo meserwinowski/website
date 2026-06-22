@@ -4,9 +4,9 @@
  * Hidden near the top of the page, then fades in once there is useful distance to scroll.
  */
 interface Props {
-  // The page's layout width from Base.astro. Wide pages have a right rail for
-  // the ToC, so the widget needs different positioning than prose-only pages.
-  width?: 'prose' | 'wide';
+  // The page's layout width from Base.astro. Wide project detail pages have a
+  // right rail for the ToC, so the widget needs different positioning.
+  width?: 'prose' | 'content' | 'wide';
 }
 
 const { width = 'prose' }: Props = Astro.props;
@@ -172,6 +172,12 @@ const { width = 'prose' }: Props = Astro.props;
     event.stopImmediatePropagation();
   }
 
+  function cancelBackToTopMotion() {
+    activeAnimationFrame += 1;
+    isAnimatingScroll = false;
+    momentumGuardUntil = 0;
+  }
+
   // Shows/hides the button and keeps its accessibility state in sync.
   function updateBackToTopVisibility() {
     // If momentum sneaks in through a path we didn't prevent, immediately pin
@@ -218,6 +224,8 @@ const { width = 'prose' }: Props = Astro.props;
     document.addEventListener('wheel', blockScrollInput, { capture: true, passive: false });
     document.addEventListener('touchmove', blockScrollInput, { capture: true, passive: false });
     document.addEventListener('keydown', blockScrollInput, { capture: true });
+    document.addEventListener('astro:before-preparation', cancelBackToTopMotion);
+    document.addEventListener('astro:page-load', updateBackToTopVisibility);
     window.addEventListener('wheel', blockScrollInput, { capture: true, passive: false });
     window.addEventListener('touchmove', blockScrollInput, { capture: true, passive: false });
     window.addEventListener('scroll', updateBackToTopVisibility, { passive: true });
@@ -226,5 +234,5 @@ const { width = 'prose' }: Props = Astro.props;
 
   // Re-check visibility after each Astro navigation because the page content and
   // scroll position may have changed without a full browser reload.
-  document.addEventListener('astro:page-load', updateBackToTopVisibility);
+  updateBackToTopVisibility();
 </script>

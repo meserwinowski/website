@@ -46,6 +46,7 @@ Common threads: content-first, excellent typography, dark aesthetic, purposeful 
 - [x] 404 page (custom styled, with link back to home)
 - [x] Cross-platform content sync scripts (`sync-content.sh` / `sync-content.ps1`) — pull from Obsidian vault before build
 - [x] Obsidian Markdown pipeline — sync referenced image assets, render `![[...]]` embeds, and style callouts
+- [x] Reading-time metadata — Markdown detail pages estimate reading time from body word count and show it near the article header
 - [x] Deploy script updated to auto-sync before building
 - [ ] Favicon and social sharing image
 
