@@ -1,0 +1,69 @@
+---
+/**
+ * TableOfContents.astro — Section jump links for rendered Markdown pages.
+ * Uses Astro's heading metadata so links match the generated Markdown heading IDs.
+ */
+interface Heading {
+  depth: number;
+  slug: string;
+  text: string;
+}
+
+interface Props {
+  headings: Heading[];
+  variant?: 'desktop' | 'mobile';
+}
+
+const { headings, variant = 'desktop' }: Props = Astro.props;
+
+const depthClasses: Record<number, string> = {
+  1: 'pl-0 font-medium text-[var(--color-text)]',
+  2: 'pl-3',
+  3: 'pl-6 text-xs',
+};
+
+const linkBaseClasses = 'block rounded py-1 text-sm leading-snug text-[var(--color-muted)] no-underline hover:text-[var(--color-accent)]';
+const title = 'On this page';
+---
+
+{headings.length > 1 && (
+  variant === 'mobile' ? (
+    <details class="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-4 lg:hidden">
+      <summary class="cursor-pointer font-mono text-sm font-semibold text-[var(--color-text)]">
+        {title}
+      </summary>
+      <nav aria-label="Table of contents" class="mt-4">
+        <ol class="space-y-1 border-l border-[var(--color-border)] pl-4">
+          {headings.map((heading) => (
+            <li>
+              <a
+                href={`#${heading.slug}`}
+                class:list={[linkBaseClasses, depthClasses[heading.depth] ?? depthClasses[3]]}
+              >
+                {heading.text}
+              </a>
+            </li>
+          ))}
+        </ol>
+      </nav>
+    </details>
+  ) : (
+    <nav aria-label="Table of contents" class="hidden lg:block">
+      <p class="mb-3 font-mono text-xs font-semibold uppercase tracking-wide text-[var(--color-muted)]">
+        {title}
+      </p>
+      <ol class="space-y-1 border-l border-[var(--color-border)] pl-4">
+        {headings.map((heading) => (
+          <li>
+            <a
+              href={`#${heading.slug}`}
+              class:list={[linkBaseClasses, depthClasses[heading.depth] ?? depthClasses[3]]}
+            >
+              {heading.text}
+            </a>
+          </li>
+        ))}
+      </ol>
+    </nav>
+  )
+)}

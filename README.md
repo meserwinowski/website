@@ -165,7 +165,7 @@ Tests run against the built `dist/` output (static HTML files) using [Vitest](ht
 ## Features
 
 - **Dark/light theme** — toggle with localStorage persistence, no flash on load
-- **Projects portfolio** — Astro Content Collections with Markdown, status badges, tags
+- **Projects portfolio** — Astro Content Collections with Markdown, status badges, tags, and project-page tables of contents
 - **View Transitions** — directional slide animations between pages (no full reload)
 - **Spring easing** — subtle scale animations on hover/active for buttons and links
 - **Responsive design** — mobile hamburger menu, responsive grid layouts
@@ -211,14 +211,14 @@ Only `done` and `ongoing` projects are shown publicly. Place thumbnail images in
 | `src/pages/` | Astro page routes — Home, Projects, Posts, About, 404 |
 | `src/pages/projects/[slug].astro` | Dynamic project detail pages |
 | `src/layouts/` | Base page layout (header + content + footer + view transitions) |
-| `src/components/` | UI components (Header, Footer, ProjectCard, ThemeToggle, SocialLinks) |
+| `src/components/` | UI components (Header, Footer, ProjectCard, TableOfContents, ThemeToggle, SocialLinks) |
 | `src/styles/` | CSS files: `global.css` (theme), `prose.css` (markdown typography), `transitions.css` (page animations) |
 | `src/content.config.ts` | Content collection schema definition (projects + pages) |
 | `src/content/projects/` | Project Markdown files (synced from Obsidian, committed so CI can build) |
 | `src/content/pages/` | Page content files (synced from Obsidian, committed so CI can build) |
 | `public/` | Static assets served as-is, including images, favicon, robots.txt, and `.well-known/security.txt` |
 | `.github/workflows/deploy.yml` | CI/CD pipeline — build, test, and deploy to the NAS on push |
-| `tests/` | Vitest test files (43 tests: build verification + HTML assertions) |
+| `tests/` | Vitest test files (44 tests: build verification + HTML assertions) |
 | `astro.config.mjs` | Astro framework configuration (Vite + Tailwind plugin + sitemap) |
 | `tsconfig.json` | TypeScript configuration |
 | `package.json` | Dependencies and npm scripts |
