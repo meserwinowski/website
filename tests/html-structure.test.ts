@@ -187,3 +187,22 @@ describe('Project detail pages', () => {
     expect(projectDetailHtml).toMatch(/href="#tech-stack"/);
   });
 });
+
+describe('Stage mixer markdown rendering', () => {
+  let stageMixerHtml: string;
+
+  beforeAll(() => {
+    stageMixerHtml = readFileSync(resolve(distDir, 'projects', 'stage-mixer', 'index.html'), 'utf-8');
+  });
+
+  it('renders markdown hash headings as heading elements', () => {
+    expect(stageMixerHtml).toContain('<h1 id="additional-notes">Additional Notes</h1>');
+    expect(stageMixerHtml).toContain('<h2 id="mixers">Mixers</h2>');
+  });
+
+  it('includes h1-h3 headings in the table of contents without noisy deeper headings', () => {
+    expect(stageMixerHtml).toMatch(/href="#what-is-a-stage-mixer"/);
+    expect(stageMixerHtml).toMatch(/href="#inventory"/);
+    expect(stageMixerHtml).not.toMatch(/href="#requirements"/);
+  });
+});

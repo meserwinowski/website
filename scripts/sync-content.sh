@@ -43,6 +43,8 @@ else
   echo -e "  ${YELLOW}⚠${RESET}  Pages      ${DIM}no vault folder found${RESET}"
 fi
 
+node ./scripts/sync-obsidian-assets.mjs
+
 echo ""
 echo -e "  ${GREEN}Done${RESET}"
 echo ""
