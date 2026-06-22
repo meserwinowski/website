@@ -10,6 +10,7 @@
  *   /projects/mech-keyboard/index.html
  */
 import { getCollection, render } from 'astro:content';
+import TableOfContents from '../../components/TableOfContents.astro';
 import Layout from '../../layouts/Base.astro';
 
 // getStaticPaths() tells Astro which pages to generate at build time.
@@ -28,7 +29,13 @@ export async function getStaticPaths() {
 const { project } = Astro.props;
 
 // render() converts the Markdown body into a renderable <Content /> component
-const { Content } = await render(project);
+// and exposes heading metadata for the project-page table of contents.
+const { Content, headings } = await render(project);
+
+const tableOfContentsHeadings = headings.filter((heading) => (
+  heading.slug && heading.depth >= 1 && heading.depth <= 3
+));
+const showTableOfContents = tableOfContentsHeadings.length > 1;
 
 // Status badge styling (same as ProjectCard)
 const statusColors: Record<string, string> = {
@@ -42,51 +49,72 @@ const statusLabels: Record<string, string> = {
 };
 ---
 
-<Layout title={`${project.data.title} - Matt Serwinowski`}>
-  <!-- <article> is semantic HTML for a self-contained piece of content (like a blog post or project) -->
-  <article class="space-y-8">
+<Layout title={`${project.data.title} - Matt Serwinowski`} width="wide">
+  <div
+    class:list={[
+      'grid gap-8 lg:items-start',
+      showTableOfContents
+        ? 'lg:grid-cols-[minmax(0,var(--width-prose))_14rem] lg:justify-center'
+        : 'lg:grid-cols-[minmax(0,var(--width-prose))] lg:justify-center',
+    ]}
+  >
+    <!-- <article> is semantic HTML for a self-contained piece of content (like a blog post or project) -->
+    <article class="min-w-0 space-y-8">
 
-    <!-- Page header with back link, title, badges, and description -->
-    <header class="space-y-4">
-      <!-- Back navigation link -->
-      <a href="/projects/" class="text-sm text-[var(--color-muted)] hover:text-[var(--color-accent)] inline-block">
-        ← Back to Projects
-      </a>
+      <!-- Page header with back link, title, badges, and description -->
+      <header class="space-y-4">
+        <!-- Back navigation link -->
+        <a href="/projects/" class="text-sm text-[var(--color-muted)] hover:text-[var(--color-accent)] inline-block">
+          ← Back to Projects
+        </a>
 
-      <h1 class="text-4xl font-bold">{project.data.title}</h1>
+        <h1 class="text-4xl font-bold">{project.data.title}</h1>
 
-      <!-- Metadata row: status badge, tags, and optional GitHub link -->
-      <!-- flex-wrap allows items to flow to next line on small screens -->
-      <div class="flex flex-wrap items-center gap-3">
-        <!-- Status badge -->
-        <span class={`text-xs px-2 py-0.5 rounded-full font-medium ${statusColors[project.data.status]}`}>
-          {statusLabels[project.data.status]}
-        </span>
-
-        <!-- Tag badges — one per tag from the frontmatter array -->
-        {project.data.tags.map((tag) => (
-          <span class="text-xs px-2 py-0.5 rounded bg-[var(--color-surface)] text-[var(--color-muted)]">
-            {tag}
+        <!-- Metadata row: status badge, tags, and optional GitHub link -->
+        <!-- flex-wrap allows items to flow to next line on small screens -->
+        <div class="flex flex-wrap items-center gap-3">
+          <!-- Status badge -->
+          <span class={`text-xs px-2 py-0.5 rounded-full font-medium ${statusColors[project.data.status]}`}>
+            {statusLabels[project.data.status]}
           </span>
-        ))}
 
-        <!-- Conditional rendering: only show GitHub link if repo URL exists in frontmatter -->
-        <!-- The && pattern means "if left side is truthy, render right side" -->
-        {project.data.repo && (
-          <a href={project.data.repo} class="text-xs text-[var(--color-muted)] hover:text-[var(--color-accent)]" target="_blank" rel="noopener">
-            GitHub →
-          </a>
-        )}
+          <!-- Tag badges — one per tag from the frontmatter array -->
+          {project.data.tags.map((tag) => (
+            <span class="text-xs px-2 py-0.5 rounded bg-[var(--color-surface)] text-[var(--color-muted)]">
+              {tag}
+            </span>
+          ))}
+
+          <!-- Conditional rendering: only show GitHub link if repo URL exists in frontmatter -->
+          <!-- The && pattern means "if left side is truthy, render right side" -->
+          {project.data.repo && (
+            <a href={project.data.repo} class="text-xs text-[var(--color-muted)] hover:text-[var(--color-accent)]" target="_blank" rel="noopener">
+              GitHub →
+            </a>
+          )}
+        </div>
+
+        <p class="text-[var(--color-muted)]">{project.data.description}</p>
+      </header>
+
+      {showTableOfContents && (
+        <TableOfContents headings={tableOfContentsHeadings} variant="mobile" />
+      )}
+
+      <!-- Rendered Markdown content -->
+      <!-- "prose" class applies typography styles from prose.css (headings, lists, code, tables, etc.) -->
+      <!-- <Content /> is a special Astro component that renders the markdown body -->
+      <div class="prose">
+        <Content />
       </div>
+    </article>
 
-      <p class="text-[var(--color-muted)]">{project.data.description}</p>
-    </header>
-
-    <!-- Rendered Markdown content -->
-    <!-- "prose" class applies typography styles from prose.css (headings, lists, code, tables, etc.) -->
-    <!-- <Content /> is a special Astro component that renders the markdown body -->
-    <div class="prose">
-      <Content />
-    </div>
-  </article>
+    {showTableOfContents && (
+      <aside class="hidden lg:block">
+        <div class="sticky top-8">
+          <TableOfContents headings={tableOfContentsHeadings} />
+        </div>
+      </aside>
+    )}
+  </div>
 </Layout>

@@ -180,4 +180,10 @@ describe('Project detail pages', () => {
   it('has repo link when provided', () => {
     expect(projectDetailHtml).toMatch(/href="https:\/\/github\.com\/meserwinowski\/website"/);
   });
+
+  it('renders a table of contents with links to markdown sections', () => {
+    expect(projectDetailHtml).toMatch(/aria-label="Table of contents"/);
+    expect(projectDetailHtml).toMatch(/href="#overview"/);
+    expect(projectDetailHtml).toMatch(/href="#tech-stack"/);
+  });
 });

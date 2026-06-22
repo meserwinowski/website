@@ -31,9 +31,10 @@ Common threads: content-first, excellent typography, dark aesthetic, purposeful 
 - [x] Status filtering — only `done` and `ongoing` shown publicly
 - [x] Sorted by date (newest first)
 - [x] Prose typography styles for rendered Markdown
+- [x] Project detail table of contents — side navigation links generated from Markdown headings
 - [x] View Transitions with directional slide animations
 - [x] Educational HTML comments across all `.astro` files
-- [x] 43 tests passing (build verification + HTML structure assertions, including static metadata files)
+- [x] 44 tests passing (build verification + HTML structure assertions, including static metadata files)
 
 ## Phase 3: Polish & Content
 
