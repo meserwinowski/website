@@ -1,4 +1,4 @@
-import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { basename, dirname, extname, join, relative, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
@@ -31,7 +31,7 @@ export function syncObsidianAssets({
   vaultDir = defaultVaultDir,
   assetSearchDirs,
   contentDirs = [resolve(repoRoot, 'src', 'content', 'projects'), resolve(repoRoot, 'src', 'content', 'pages')],
-  assetsDir = resolve(repoRoot, 'public', 'obsidian-assets'),
+  assetsDir = resolve(repoRoot, 'public', 'images'),
 } = {}) {
   const searchDirs = normalizeAssetSearchDirs(assetSearchDirs ?? getDefaultAssetSearchDirs(vaultDir), vaultDir);
   const markdownFiles = contentDirs.flatMap((contentDir) => listFiles(contentDir, markdownExtensions));
@@ -39,11 +39,20 @@ export function syncObsidianAssets({
     markdownFiles.flatMap((filePath) => extractEmbedTargets(readFileSync(filePath, 'utf-8'))),
   );
 
-  rmSync(assetsDir, { recursive: true, force: true });
+  const manifestPath = resolve(assetsDir, '.embed-manifest.json');
+  let previousEmbedFiles = [];
+
+  try {
+    if (existsSync(manifestPath)) {
+      previousEmbedFiles = JSON.parse(readFileSync(manifestPath, 'utf-8'));
+    }
+  } catch {}
+
   mkdirSync(assetsDir, { recursive: true });
 
   let copied = 0;
   const missing = [];
+  const syncedPaths = [];
 
   for (const target of targets) {
     const asset = resolveAssetReference(searchDirs, target);
@@ -56,12 +65,46 @@ export function syncObsidianAssets({
     const destination = resolve(assetsDir, asset.publicPath);
     mkdirSync(dirname(destination), { recursive: true });
     copyFileSync(asset.sourcePath, destination);
+    syncedPaths.push(asset.publicPath);
     copied += 1;
+  }
+
+  // Write manifest so future syncs can clean up stale embed files
+  writeFileSync(manifestPath, JSON.stringify(syncedPaths.sort(), null, 2) + '\n');
+
+  // Remove embed files from previous sync that are no longer referenced
+  const currentSet = new Set(syncedPaths);
+  let staleRemoved = 0;
+
+  for (const oldPath of previousEmbedFiles) {
+    if (!currentSet.has(oldPath)) {
+      const staleFile = resolve(assetsDir, oldPath);
+
+      if (existsSync(staleFile)) {
+        rmSync(staleFile);
+        staleRemoved += 1;
+      }
+
+      // Clean up empty parent directories left behind
+      let parent = dirname(staleFile);
+
+      while (parent !== assetsDir && existsSync(parent)) {
+        const entries = readdirSync(parent);
+
+        if (entries.length === 0) {
+          rmSync(parent);
+          parent = dirname(parent);
+        } else {
+          break;
+        }
+      }
+    }
   }
 
   return {
     copied,
     missing,
+    staleRemoved,
     targets: [...targets],
     assetsDir,
     searchDirs,
@@ -190,6 +233,10 @@ function main() {
   const relativeAssetsDir = relative(repoRoot, result.assetsDir) || result.assetsDir;
 
   console.log(`  OK Assets     ${result.copied} files -> ${relativeAssetsDir}`);
+
+  if (result.staleRemoved > 0) {
+    console.log(`     ${result.staleRemoved} stale embed(s) removed`);
+  }
 
   if (result.missing.length > 0) {
     console.log('  !! Missing web exports for embeds:');

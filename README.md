@@ -89,7 +89,8 @@ Content lives in your Obsidian vault at `~/obsidian/vault/Projects/Website/`:
 |--------------|-------------|---------|
 | `projects/` | `src/content/projects/` | Project markdown files (with frontmatter) |
 | `pages/` | `src/content/pages/` | Page content (home, about) |
-| Referenced image embeds | `public/obsidian-assets/` | Web-renderable assets referenced by Obsidian embeds |
+| `images/` | `public/images/` | Thumbnails, photos, and other curated images |
+| Referenced image embeds | `public/images/` | Web-renderable assets referenced by Obsidian embeds |
 
 Edit markdown in Obsidian → run `npm run deploy` to ship directly, **or** `npm run sync`,
 commit, and push to deploy via CI.
@@ -97,7 +98,7 @@ commit, and push to deploy via CI.
 Obsidian image embeds are supported with the `![[...]]` syntax. During sync, the
 site scans committed Markdown for referenced embeds and copies only web-renderable
 asset exports (`.svg`, `.png`, `.webp`, `.jpg`, `.jpeg`, `.gif`) into
-`public/obsidian-assets/`; raw `.excalidraw` drawing files are intentionally not
+`public/images/`; raw `.excalidraw` drawing files are intentionally not
 published. The sync searches the website content folder and the shared
 `~/obsidian/vault/Excalidraw/` folder, so Excalidraw exports can live in the
 central drawing folder while page Markdown stays under `Projects/Website`.
@@ -110,7 +111,7 @@ the drawing normally:
 ```
 
 If an SVG export exists, that renders as
-`/obsidian-assets/Excalidraw/stage-mixer-diagram.svg`; otherwise the renderer
+`/images/Excalidraw/stage-mixer-diagram.svg`; otherwise the renderer
 uses another copied web export when available.
 
 Obsidian callouts are also supported. Markdown such as
@@ -235,7 +236,7 @@ repo: "https://github.com/..."  # optional
 Your markdown content here...
 ```
 
-Only `done` and `ongoing` projects are shown publicly. Place thumbnail images in `public/images/projects/`.
+Only `done` and `ongoing` projects are shown publicly. Place thumbnail images in `~/obsidian/vault/Projects/Website/images/projects/` — they sync to `public/images/projects/` automatically.
 
 ## Project Structure
 
@@ -260,7 +261,8 @@ Only `done` and `ongoing` projects are shown publicly. Place thumbnail images in
 | `package.json` | Dependencies and npm scripts |
 | `nginx/default.conf` | nginx config (AI/scraper UA blocking + rate limiting); rsynced to the NAS by `deploy.sh` |
 | `scripts/run-local-script.mjs` | Cross-platform npm dispatcher that chooses PowerShell on Windows and Bash elsewhere |
-| `scripts/sync-obsidian-assets.mjs` | Copies only web-renderable assets referenced by Obsidian embeds into `public/obsidian-assets/` |
+| `scripts/sync-obsidian-assets.mjs` | Copies only web-renderable assets referenced by Obsidian embeds into `public/images/`; uses a manifest to clean up stale files |
+| `scripts/strip-image-metadata.mjs` | Strips EXIF/GPS metadata from raster images in `public/images/` to prevent location data leakage |
 | `scripts/sync-content.sh` / `scripts/sync-content.ps1` | Pull markdown content from the Obsidian vault |
 | `scripts/deploy.sh` / `scripts/deploy.ps1` | Sync + build + rsync deployment scripts |
 | `dist/` | Build output (gitignored) |

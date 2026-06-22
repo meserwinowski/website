@@ -13,7 +13,7 @@ Pull the latest Markdown content from the Obsidian vault into the site source, t
    ```bash
    npm run sync
    ```
-   Source: `~/obsidian/vault/Projects/Website/` → `src/content/projects/` and `src/content/pages/` (see `scripts/sync-content.sh`).
+   Source: `~/obsidian/vault/Projects/Website/` → `src/content/projects/`, `src/content/pages/`, and `public/images/` (see `scripts/sync-content.sh`).
 2. Report what landed. The content dirs are gitignored, so `git status` won't show them — instead list the synced files and their modified times:
    ```bash
    ls -lt src/content/projects src/content/pages

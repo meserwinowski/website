@@ -27,7 +27,7 @@ describe('Obsidian embed rendering', () => {
     expect(tree.children[0]).toEqual({
       type: 'html',
       value:
-        '<img src="/obsidian-assets/Excalidraw/stage-mixer-diagram.svg" alt="stage mixer diagram" width="800" height="600" loading="lazy" decoding="async" />',
+        '<img src="/images/Excalidraw/stage-mixer-diagram.svg" alt="stage mixer diagram" width="800" height="600" loading="lazy" decoding="async" />',
     });
   });
 
@@ -49,7 +49,7 @@ describe('Obsidian embed rendering', () => {
 
       remarkObsidianEmbeds({ assetsDir })(tree);
 
-      expect(tree.children[0].value).toContain('src="/obsidian-assets/stage-mixer-view-front.png"');
+      expect(tree.children[0].value).toContain('src="/images/stage-mixer-view-front.png"');
       expect(tree.children[0].value).toContain('width="600"');
       expect(tree.children[0].value).toContain('height="400"');
     } finally {

@@ -17,10 +17,12 @@ $VaultDir = Join-Path $HOME 'obsidian\vault\Projects\Website'
 # Destinations
 $ProjectsDir = Join-Path $RepoRoot 'src\content\projects'
 $PagesDir    = Join-Path $RepoRoot 'src\content\pages'
+$ImagesDir   = Join-Path $RepoRoot 'public\images'
 
 # Ensure destination directories exist
 New-Item -ItemType Directory -Path $ProjectsDir -Force | Out-Null
 New-Item -ItemType Directory -Path $PagesDir    -Force | Out-Null
+New-Item -ItemType Directory -Path $ImagesDir   -Force | Out-Null
 
 function Invoke-MarkdownMirror {
     param(
@@ -68,7 +70,22 @@ if (Test-Path $VaultPages) {
     Write-Host "  !! Pages      no vault folder found" -ForegroundColor Yellow
 }
 
+# --- Sync images ---
+$VaultImages = Join-Path $VaultDir 'images'
+if (Test-Path $VaultImages) {
+    & robocopy $VaultImages $ImagesDir /E /NJH /NJS /NP /NFL /NDL *> $null
+    $exitCode = $LASTEXITCODE
+    if ($exitCode -ge 8) {
+        throw "Robocopy failed for images (exit code $exitCode)"
+    }
+    $count = (Get-ChildItem $ImagesDir -Recurse -File -Exclude '.embed-manifest.json' | Measure-Object).Count
+    Write-Host "  OK Images     $count files" -ForegroundColor Green
+} else {
+    Write-Host "  !! Images     no vault folder found" -ForegroundColor Yellow
+}
+
 node .\scripts\sync-obsidian-assets.mjs
+node .\scripts\strip-image-metadata.mjs
 
 Write-Host ''
 Write-Host '  Done' -ForegroundColor Green
