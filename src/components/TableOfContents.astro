@@ -4,44 +4,56 @@
  * Uses Astro's heading metadata so links match the generated Markdown heading IDs.
  */
 interface Heading {
+  // Markdown heading depth: 1 for h1, 2 for h2, etc.
   depth: number;
+  // The id Astro generated for the heading; used as the scroll target.
   slug: string;
+  // Plain text label shown in the ToC.
   text: string;
 }
 
 interface Props {
+  // Pre-filtered heading metadata from src/pages/projects/[slug].astro.
   headings: Heading[];
+  // Desktop renders as a sticky side nav; mobile renders as a collapsible block.
   variant?: 'desktop' | 'mobile';
 }
 
 const { headings, variant = 'desktop' }: Props = Astro.props;
 
+// Visual hierarchy for heading levels. Deeper sections are indented so readers
+// can tell which links are subsections of the headings above them.
 const depthClasses: Record<number, string> = {
   1: 'pl-0 font-medium text-[var(--color-text)]',
-  2: 'pl-3',
-  3: 'pl-6 text-xs',
+  2: 'pl-4 text-[color-mix(in_srgb,var(--color-text)_72%,var(--color-muted))]',
+  3: 'pl-8 text-xs text-[color-mix(in_srgb,var(--color-text)_42%,var(--color-muted))]',
 };
 
-const linkBaseClasses = 'block rounded py-1 text-sm leading-snug text-[var(--color-muted)] no-underline hover:text-[var(--color-accent)]';
-const title = 'On this page';
+// Buttons look like text links but avoid native hash navigation. That lets the
+// custom scroll handler fully control the movement without browser/router jumps.
+const linkBaseClasses = 'block w-full cursor-pointer rounded bg-transparent py-0.5 text-left text-sm leading-tight hover:text-[var(--color-accent)]';
+const title = 'On This Page';
 ---
 
 {headings.length > 1 && (
   variant === 'mobile' ? (
     <details class="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-4 lg:hidden">
+      <!-- Mobile ToC: collapsed by default so it does not take over the top of the page. -->
       <summary class="cursor-pointer font-mono text-sm font-semibold text-[var(--color-text)]">
         {title}
       </summary>
       <nav aria-label="Table of contents" class="mt-4">
-        <ol class="space-y-1 border-l border-[var(--color-border)] pl-4">
+        <ol class="border-l border-[var(--color-border)] pl-4">
           {headings.map((heading) => (
             <li>
-              <a
-                href={`#${heading.slug}`}
+              <!-- data-toc-target stores the heading id for the click handler below. -->
+              <button
+                type="button"
+                data-toc-target={heading.slug}
                 class:list={[linkBaseClasses, depthClasses[heading.depth] ?? depthClasses[3]]}
               >
                 {heading.text}
-              </a>
+              </button>
             </li>
           ))}
         </ol>
@@ -49,21 +61,110 @@ const title = 'On this page';
     </details>
   ) : (
     <nav aria-label="Table of contents" class="hidden lg:block">
-      <p class="mb-3 font-mono text-xs font-semibold uppercase tracking-wide text-[var(--color-muted)]">
+      <!-- Desktop ToC: hidden below lg; the project layout places it in the right rail. -->
+      <p class="mb-2 font-mono text-sm font-semibold leading-5 text-[var(--color-accent)]">
         {title}
       </p>
-      <ol class="space-y-1 border-l border-[var(--color-border)] pl-4">
+      <ol class="border-l border-[var(--color-border)] pl-4">
         {headings.map((heading) => (
           <li>
-            <a
-              href={`#${heading.slug}`}
+            <!-- Buttons keep the URL hash/browser router from interrupting smooth scroll. -->
+            <button
+              type="button"
+              data-toc-target={heading.slug}
               class:list={[linkBaseClasses, depthClasses[heading.depth] ?? depthClasses[3]]}
             >
               {heading.text}
-            </a>
+            </button>
           </li>
         ))}
       </ol>
     </nav>
   )
 )}
+
+<script>
+  // Slightly slower than native smooth scrolling so long project pages feel deliberate.
+  const scrollDurationMs = 900;
+  // Incremented for each new click so repeated clicks cancel older animations.
+  let activeAnimationFrame = 0;
+
+  // Same easing curve as BackToTop: gentle start/end, faster middle.
+  function easeInOutCubic(progress: number) {
+    return progress < 0.5
+      ? 4 * progress * progress * progress
+      : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+  }
+
+  // Respect the CSS scroll-margin-top set on prose headings so the target
+  // heading lands with a little breathing room instead of flush to the viewport.
+  function getScrollMarginTop(target: HTMLElement) {
+    const margin = Number.parseFloat(window.getComputedStyle(target).scrollMarginTop);
+    return Number.isNaN(margin) ? 0 : margin;
+  }
+
+  function animateScrollTo(targetY: number) {
+    // Snapshot start and distance so the animation always moves from the user's
+    // current position to the target, regardless of direction.
+    const startY = window.scrollY;
+    const distance = targetY - startY;
+    const startTime = performance.now();
+    const animationFrame = activeAnimationFrame + 1;
+    activeAnimationFrame = animationFrame;
+
+    function step(now: number) {
+      // A newer click cancels this animation loop.
+      if (animationFrame !== activeAnimationFrame) {
+        return;
+      }
+
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / scrollDurationMs, 1);
+
+      window.scrollTo(0, startY + distance * easeInOutCubic(progress));
+
+      if (progress < 1) {
+        window.requestAnimationFrame(step);
+      }
+    }
+
+    window.requestAnimationFrame(step);
+  }
+
+  // Delegated handler for both mobile and desktop ToC buttons.
+  function handleTableOfContentsClick(event: MouseEvent) {
+    // Let modified clicks behave normally if the browser ever receives them.
+    if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+      return;
+    }
+
+    const button = (event.target as Element | null)?.closest<HTMLButtonElement>('[data-toc-target]');
+    const targetId = button?.dataset.tocTarget;
+
+    if (!button || !targetId) {
+      return;
+    }
+
+    const target = document.getElementById(targetId);
+
+    if (!target) {
+      return;
+    }
+
+    // Prevent native click/routing behavior so there is no instant jump or snap-back.
+    event.preventDefault();
+    event.stopImmediatePropagation();
+
+    const targetY = target.getBoundingClientRect().top + window.scrollY - getScrollMarginTop(target);
+    animateScrollTo(targetY);
+  }
+
+  // Astro view transitions can re-run scripts. Store a window-level flag so the
+  // global delegated listener is installed only once.
+  const tocWindow = window as Window & { __tableOfContentsScrollBound?: boolean };
+
+  if (!tocWindow.__tableOfContentsScrollBound) {
+    document.addEventListener('click', handleTableOfContentsClick, { capture: true });
+    tocWindow.__tableOfContentsScrollBound = true;
+  }
+</script>

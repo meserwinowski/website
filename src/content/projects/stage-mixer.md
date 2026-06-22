@@ -40,7 +40,7 @@ A stage mixer gives you more control over your sound, and a central interface fo
 ## What goes into a stage mixer rig?
 Most of the modern rigs I've seen have some or all of these components (in order of what I would consider necessary):
 - A mixer unit
-- A power supply
+- A power conditioner / supply
 - A router
 - Patch bays / splitters
 - Effects / modelers
@@ -60,7 +60,7 @@ It is a bit of a project, and if you'd prefer not to undertake it there are peop
 
 # My Rig
 
-Here are some diagrams of my rig! The rest of this post is all about building up to these diagrams.
+Here are some diagrams of my rig! The rest of this post is all about explaining the decisions and details that lead up to these designs.
 
 ## Graph View
 
@@ -90,12 +90,12 @@ Like any good project the first things to identify are your **requirements** and
 ## Take inventory.  Pick a mixer.
 
 ### Inventory
-I mentioned I already had an **Axe-Fx 3 (AF3)** - a lovely graduation gift from my parents. Not a cheap piece of hardware and would have blown the budget by itself. 
+I mentioned I already had a **Fractal Axe-Fx 3 (3U)** - a lovely graduation gift from my parents. Not a cheap piece of hardware, and would have blown the budget by itself. 
 
 > [!info]- For the uninitiated
 > An AF3 is a all-in-one guitar rig built by Fractal Audio. It simulates a whole ton of guitar pedals, amplifiers, and speaker cabinets, and has a really versatile parameterization and routing system.
 
-**Power** - Part of playing with the AF3 (3U) I had already racked it in a smaller 6U case with a **Furman PL-PLUS DMC power conditioner (1U)**. 15 amps, surge protection, and AC filtering this power conditioner was already perfect for what I needed.
+**Power** - Due to playing with the Axe-FX 3 (AF3) I had already racked it in a smaller 6U case with a **Furman PL-PLUS DMC power conditioner (1U)**. 15 amps, surge protection, and AC filtering this power conditioner was already perfect for what I needed.
 
 >[!info]- Voltage and Current
 >You don’t need an engineering degree to understand that your equipment needs power, and power is dangerous. A good power conditioner can protect your equipment and filter out noise.
@@ -212,7 +212,7 @@ For the input bay I got the **ART S8 (1U)**. It’s a three-way mic splitter wit
 
 What I really like about this unit is that you get a front facing output, and the build quality is really nice too. The front facing output is key to forwarding the band’s signals to the FOH. The way that was most recommended to do this is with a *cable snake*.
 
-A cable snake is a bunch of individual cables all bound together expect for the ends. Each small cable is color coded so you know which connectors match from each end. The cable snake combined with labels is a great way to setup your rig and hand off those signals to the FOH. In my case these would be raw signals from an DI or microphone because the front face of the S8 is just a duplicate.
+A cable snake is a bunch of individual cables all bound together except for the ends. Each small cable is color coded so you know which connectors match from each end. The cable snake combined with labels is a great way to setup your rig and hand off those signals to the FOH. In my case these would be raw signals from an DI or microphone because the front face of the S8 is just a duplicate.
 
 Inside the rig, the S8 produces two more copies. I used a tiny internal cable snake to connect 8 internal outputs to the first 8 internal inputs of my mixer.
 

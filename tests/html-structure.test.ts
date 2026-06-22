@@ -102,6 +102,13 @@ describe('HTML structure - subpages', () => {
       expect(html).toMatch(/<footer/);
     }
   });
+
+  it('all pages have a back-to-top widget', () => {
+    for (const html of [indexHtml, projectsHtml, postsHtml, aboutHtml]) {
+      expect(html).toMatch(/id="back-to-top"/);
+      expect(html).toMatch(/aria-label="Back to top"/);
+    }
+  });
 });
 
 describe('Social links - index.html', () => {
@@ -183,8 +190,8 @@ describe('Project detail pages', () => {
 
   it('renders a table of contents with links to markdown sections', () => {
     expect(projectDetailHtml).toMatch(/aria-label="Table of contents"/);
-    expect(projectDetailHtml).toMatch(/href="#overview"/);
-    expect(projectDetailHtml).toMatch(/href="#tech-stack"/);
+    expect(projectDetailHtml).toMatch(/data-toc-target="overview"/);
+    expect(projectDetailHtml).toMatch(/data-toc-target="tech-stack"/);
   });
 });
 
@@ -201,8 +208,8 @@ describe('Stage mixer markdown rendering', () => {
   });
 
   it('includes h1-h3 headings in the table of contents without noisy deeper headings', () => {
-    expect(stageMixerHtml).toMatch(/href="#what-is-a-stage-mixer"/);
-    expect(stageMixerHtml).toMatch(/href="#inventory"/);
-    expect(stageMixerHtml).not.toMatch(/href="#requirements"/);
+    expect(stageMixerHtml).toMatch(/data-toc-target="what-is-a-stage-mixer"/);
+    expect(stageMixerHtml).toMatch(/data-toc-target="inventory"/);
+    expect(stageMixerHtml).not.toMatch(/data-toc-target="requirements"/);
   });
 });

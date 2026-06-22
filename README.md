@@ -197,6 +197,7 @@ Tests run against the built `dist/` output (static HTML files) using [Vitest](ht
 - **Dark/light theme** — toggle with localStorage persistence, no flash on load
 - **Projects portfolio** — Astro Content Collections with Markdown, status badges, tags, and project-page tables of contents
 - **View Transitions** — directional slide animations between pages (no full reload)
+- **Back-to-top widget** — fixed scroll helper for long pages
 - **Spring easing** — subtle scale animations on hover/active for buttons and links
 - **Responsive design** — mobile hamburger menu, responsive grid layouts
 - **Obsidian vault sync** — edit content in Obsidian, sync to site at deploy time
@@ -242,7 +243,7 @@ Only `done` and `ongoing` projects are shown publicly. Place thumbnail images in
 | `src/pages/` | Astro page routes — Home, Projects, Posts, About, 404 |
 | `src/pages/projects/[slug].astro` | Dynamic project detail pages |
 | `src/layouts/` | Base page layout (header + content + footer + view transitions) |
-| `src/components/` | UI components (Header, Footer, ProjectCard, TableOfContents, ThemeToggle, SocialLinks) |
+| `src/components/` | UI components (BackToTop, Header, Footer, ProjectCard, TableOfContents, ThemeToggle, SocialLinks) |
 | `src/styles/` | CSS files: `global.css` (theme), `prose.css` (markdown typography), `transitions.css` (page animations) |
 | `src/plugins/remark-obsidian-callouts.mjs` | Remark plugin that converts Obsidian callout blockquotes to styled callout elements |
 | `src/plugins/remark-obsidian-embeds.mjs` | Remark plugin that converts Obsidian image embeds to web image HTML during Astro builds |
@@ -251,7 +252,7 @@ Only `done` and `ongoing` projects are shown publicly. Place thumbnail images in
 | `src/content/pages/` | Page content files (synced from Obsidian, committed so CI can build) |
 | `public/` | Static assets served as-is, including images, favicon, robots.txt, and `.well-known/security.txt` |
 | `.github/workflows/deploy.yml` | CI/CD pipeline — build, test, and deploy to the NAS on push |
-| `tests/` | Vitest test files (52 tests: build verification + HTML assertions + Obsidian Markdown handling) |
+| `tests/` | Vitest test files (53 tests: build verification + HTML assertions + Obsidian Markdown handling) |
 | `astro.config.mjs` | Astro framework configuration (Vite + Tailwind plugin + sitemap) |
 | `tsconfig.json` | TypeScript configuration |
 | `package.json` | Dependencies and npm scripts |

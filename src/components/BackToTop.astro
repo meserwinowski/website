@@ -1,0 +1,222 @@
+---
+/**
+ * BackToTop.astro — A fixed scroll helper for long pages.
+ * Hidden near the top of the page, then fades in once there is useful distance to scroll.
+ */
+interface Props {
+  // The page's layout width from Base.astro. Wide pages have a right rail for
+  // the ToC, so the widget needs different positioning than prose-only pages.
+  width?: 'prose' | 'wide';
+}
+
+const { width = 'prose' }: Props = Astro.props;
+---
+
+<!--
+  Fixed-position button:
+  - starts hidden/inert so it doesn't distract near the top of the page
+  - becomes visible/focusable from JavaScript after the reader scrolls down
+  - carries data-container-width so CSS can align it with prose or wide layouts
+-->
+<button
+  id="back-to-top"
+  type="button"
+  data-container-width={width}
+  class="back-to-top pointer-events-none fixed bottom-4 z-50 flex h-12 w-12 items-center justify-center rounded-full border border-[var(--color-accent)]/60 bg-[var(--color-surface)] text-2xl font-semibold text-[var(--color-accent)] opacity-0 shadow-[0_0_24px_color-mix(in_srgb,var(--color-accent)_24%,transparent)] backdrop-blur transition-opacity duration-200 hover:border-[var(--color-accent)] hover:text-[var(--color-accent-hover)] sm:bottom-6"
+  aria-label="Back to top"
+  aria-hidden="true"
+  tabindex="-1"
+>
+  ↑
+</button>
+
+<style>
+  /* Mobile default: keep the widget in the safe lower-right corner. */
+  .back-to-top {
+    right: 1rem;
+  }
+
+  /* Small screens get a little more breathing room from the edge. */
+  @media (min-width: 640px) {
+    .back-to-top {
+      right: 1.5rem;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    /*
+      Prose pages: place the button just outside the readable text column.
+      The max() keeps it from touching the viewport edge on narrower desktops.
+    */
+    .back-to-top {
+      right: max(1.5rem, calc((100vw - var(--container, var(--width-prose))) / 2 - 3.5rem));
+    }
+
+    /*
+      Wide project pages: use the wider shell and push the button into the
+      right-side rail so it visually lines up near the Table of Contents.
+    */
+    .back-to-top[data-container-width="wide"] {
+      right: max(1.5rem, calc((100vw - var(--container, var(--width-wide))) / 2 + 9rem));
+    }
+  }
+</style>
+
+<script>
+  // Duration of the custom scroll animation. We avoid native smooth scrolling
+  // because hash/router behavior caused snap-back issues with Astro transitions.
+  const scrollDurationMs = 900;
+  // After reaching the top, block late wheel/trackpad momentum for a fixed
+  // amount of time. This is intentionally not extended by continued input so
+  // the page never feels "stuck" while the user is trying to scroll again.
+  const momentumGuardMs = 900;
+  // The button appears only after the reader has moved a meaningful distance.
+  const showAfterPx = 480;
+  // Keyboard keys that can scroll the page and should be blocked during the guard.
+  const scrollInputKeys = new Set([' ', 'ArrowDown', 'ArrowUp', 'End', 'Home', 'PageDown', 'PageUp']);
+  // Incremented for each animation so a newer click cancels an older animation.
+  let activeAnimationFrame = 0;
+  // True only while requestAnimationFrame is actively driving scroll-to-top.
+  let isAnimatingScroll = false;
+  // Timestamp until which post-animation momentum should be pinned at the top.
+  let momentumGuardUntil = 0;
+
+  // Smooth acceleration/deceleration: starts gently, moves fastest in the middle,
+  // then eases into the final position instead of stopping abruptly.
+  function easeInOutCubic(progress: number) {
+    return progress < 0.5
+      ? 4 * progress * progress * progress
+      : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+  }
+
+  function animateScrollToTop() {
+    // Snapshot the current scroll position so the animation can interpolate from
+    // "where the user is now" to 0 over scrollDurationMs.
+    const startY = window.scrollY;
+    const startTime = performance.now();
+    const animationFrame = activeAnimationFrame + 1;
+    activeAnimationFrame = animationFrame;
+    isAnimatingScroll = true;
+    momentumGuardUntil = 0;
+
+    function step(now: number) {
+      // If another click started a newer animation, stop this older frame loop.
+      if (animationFrame !== activeAnimationFrame) {
+        return;
+      }
+
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / scrollDurationMs, 1);
+
+      // Interpolate from startY to 0. Multiplying by (1 - easedProgress) avoids
+      // accumulating rounding error from frame to frame.
+      window.scrollTo(0, startY * (1 - easeInOutCubic(progress)));
+
+      if (progress < 1) {
+        window.requestAnimationFrame(step);
+      } else {
+        // Once the animation reaches the top, start a short adaptive guard.
+        // This catches leftover wheel/trackpad momentum that may still arrive.
+        isAnimatingScroll = false;
+        const now = performance.now();
+        momentumGuardUntil = now + momentumGuardMs;
+        window.scrollTo(0, 0);
+        window.requestAnimationFrame(guardAgainstMomentum);
+      }
+    }
+
+    window.requestAnimationFrame(step);
+  }
+
+  // Whether the post-animation lock is currently active.
+  function isGuardingAgainstMomentum() {
+    return performance.now() < momentumGuardUntil;
+  }
+
+  // Animation-frame loop that pins the page to the very top while the fixed
+  // momentum guard is active.
+  function guardAgainstMomentum() {
+    if (!isGuardingAgainstMomentum()) {
+      momentumGuardUntil = 0;
+      return;
+    }
+
+    if (window.scrollY !== 0) {
+      window.scrollTo(0, 0);
+    }
+
+    window.requestAnimationFrame(guardAgainstMomentum);
+  }
+
+  // Capture scroll inputs while the animation/guard is active so user-device
+  // momentum cannot fight the scripted scroll-to-top behavior.
+  function blockScrollInput(event: WheelEvent | TouchEvent | KeyboardEvent) {
+    if (!isAnimatingScroll && !isGuardingAgainstMomentum()) {
+      return;
+    }
+
+    // Non-scroll keyboard shortcuts should keep working.
+    if (event instanceof KeyboardEvent && !scrollInputKeys.has(event.key)) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopImmediatePropagation();
+  }
+
+  // Shows/hides the button and keeps its accessibility state in sync.
+  function updateBackToTopVisibility() {
+    // If momentum sneaks in through a path we didn't prevent, immediately pin
+    // back to top and keep the guard alive.
+    if (isGuardingAgainstMomentum() && window.scrollY !== 0) {
+      window.scrollTo(0, 0);
+      return;
+    }
+
+    const button = document.getElementById('back-to-top') as HTMLButtonElement | null;
+
+    if (!button) {
+      return;
+    }
+
+    const isVisible = window.scrollY > showAfterPx;
+    // Hidden state: visually transparent, not clickable, skipped by keyboard nav.
+    button.classList.toggle('opacity-0', !isVisible);
+    button.classList.toggle('pointer-events-none', !isVisible);
+    button.setAttribute('aria-hidden', String(!isVisible));
+    button.tabIndex = isVisible ? 0 : -1;
+  }
+
+  // Delegated click handler. Binding at document level keeps it working across
+  // Astro view-transition swaps without rebinding directly to replaced buttons.
+  function handleBackToTopClick(event: MouseEvent) {
+    const button = (event.target as Element | null)?.closest<HTMLButtonElement>('#back-to-top');
+
+    if (!button) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    animateScrollToTop();
+  }
+
+  // Astro can re-run component scripts after view transitions. Store a flag on
+  // window so global event listeners are attached only once.
+  const backToTopWindow = window as Window & { __backToTopBound?: boolean };
+
+  if (!backToTopWindow.__backToTopBound) {
+    document.addEventListener('click', handleBackToTopClick, { capture: true });
+    document.addEventListener('wheel', blockScrollInput, { capture: true, passive: false });
+    document.addEventListener('touchmove', blockScrollInput, { capture: true, passive: false });
+    document.addEventListener('keydown', blockScrollInput, { capture: true });
+    window.addEventListener('wheel', blockScrollInput, { capture: true, passive: false });
+    window.addEventListener('touchmove', blockScrollInput, { capture: true, passive: false });
+    window.addEventListener('scroll', updateBackToTopVisibility, { passive: true });
+    backToTopWindow.__backToTopBound = true;
+  }
+
+  // Re-check visibility after each Astro navigation because the page content and
+  // scroll position may have changed without a full browser reload.
+  document.addEventListener('astro:page-load', updateBackToTopVisibility);
+</script>
