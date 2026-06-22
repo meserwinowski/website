@@ -9,7 +9,9 @@ A personal portfolio and posts site built with [Astro](https://astro.build/) and
 ### Prerequisites
 
 - Node.js (with npm)
-- SSH access to the NAS (`your-nas-host` via Tailscale)
+- Windows PowerShell 5.1+ on Windows, or Bash on macOS/Linux, for local helper scripts
+- SSH access to the NAS (`your-nas-host` via Tailscale) for local deploys
+- `rsync` and `ssh` on `PATH` for local deploys
 
 ### Development
 
@@ -30,8 +32,9 @@ npm run build  # Generates static site in dist/
 npm run deploy  # Syncs content, builds, and deploys to the NAS
 ```
 
-This runs `deploy.sh`, which:
-1. Syncs content from the Obsidian vault (`sync-content.sh`)
+This runs `scripts/run-local-script.mjs`, which dispatches to PowerShell on
+Windows (`deploy.ps1`) or Bash on macOS/Linux (`deploy.sh`). The deploy script:
+1. Syncs content from the Obsidian vault (`sync-content.ps1` / `sync-content.sh`)
 2. Builds the site with `astro build`
 3. Rsyncs the `dist/` directory to `/path/to/webserver/dist` on the NAS
 4. nginx (running in Docker) serves the files automatically
@@ -86,9 +89,34 @@ Content lives in your Obsidian vault at `~/obsidian/vault/Projects/Website/`:
 |--------------|-------------|---------|
 | `projects/` | `src/content/projects/` | Project markdown files (with frontmatter) |
 | `pages/` | `src/content/pages/` | Page content (home, about) |
+| Referenced image embeds | `public/obsidian-assets/` | Web-renderable assets referenced by Obsidian embeds |
 
 Edit markdown in Obsidian → run `npm run deploy` to ship directly, **or** `npm run sync`,
 commit, and push to deploy via CI.
+
+Obsidian image embeds are supported with the `![[...]]` syntax. During sync, the
+site scans committed Markdown for referenced embeds and copies only web-renderable
+asset exports (`.svg`, `.png`, `.webp`, `.jpg`, `.jpeg`, `.gif`) into
+`public/obsidian-assets/`; raw `.excalidraw` drawing files are intentionally not
+published. The sync searches the website content folder and the shared
+`~/obsidian/vault/Excalidraw/` folder, so Excalidraw exports can live in the
+central drawing folder while page Markdown stays under `Projects/Website`.
+During build, `src/plugins/remark-obsidian-embeds.mjs` rewrites those embeds to
+normal `<img>` tags. For Excalidraw drawings, export an SVG or PNG, then embed
+the drawing normally:
+
+```md
+![[Excalidraw/stage-mixer-diagram.excalidraw|stage-mixer-diagram|800x600]]
+```
+
+If an SVG export exists, that renders as
+`/obsidian-assets/Excalidraw/stage-mixer-diagram.svg`; otherwise the renderer
+uses another copied web export when available.
+
+Obsidian callouts are also supported. Markdown such as
+`> [!tip] Takeaway` renders as a styled callout instead of a plain blockquote.
+Fold markers are preserved: `[!info]+` renders open by default, while `[!info]-`
+renders as a collapsed disclosure that readers can expand.
 
 ## Crawlers, AI Bots, and Security Metadata
 
@@ -161,6 +189,8 @@ Tests run against the built `dist/` output (static HTML files) using [Vitest](ht
 |-----------|----------------|
 | `tests/build.test.ts` | `astro build` exits successfully, all page HTML files exist, 404 + sitemap + robots.txt + security.txt generated |
 | `tests/html-structure.test.ts` | Key HTML elements: titles, meta tags, OG tags, navigation, headings, footer, project cards, detail content |
+| `tests/obsidian-callouts.test.mjs` | Obsidian callout rewriting for standard, expanded, and collapsed callout blockquotes |
+| `tests/obsidian-embeds.test.mjs` | Obsidian embed rewriting and asset-copy behavior for images and Excalidraw exports |
 
 ## Features
 
@@ -173,6 +203,7 @@ Tests run against the built `dist/` output (static HTML files) using [Vitest](ht
 - **CI/CD** — push to `main` auto-builds, tests, and deploys to the NAS via GitHub Actions + Tailscale
 - **SEO** — Open Graph, Twitter cards, canonical URLs, auto-generated sitemap
 - **Crawler & AI control** — `robots.txt` opt-out plus nginx User-Agent blocking + rate limiting
+- **Obsidian Markdown** — `![[...]]` image embeds and `[!type]` callouts render as web-native content
 - **404 page** — custom styled error page
 
 ## Design System
@@ -213,17 +244,21 @@ Only `done` and `ongoing` projects are shown publicly. Place thumbnail images in
 | `src/layouts/` | Base page layout (header + content + footer + view transitions) |
 | `src/components/` | UI components (Header, Footer, ProjectCard, TableOfContents, ThemeToggle, SocialLinks) |
 | `src/styles/` | CSS files: `global.css` (theme), `prose.css` (markdown typography), `transitions.css` (page animations) |
+| `src/plugins/remark-obsidian-callouts.mjs` | Remark plugin that converts Obsidian callout blockquotes to styled callout elements |
+| `src/plugins/remark-obsidian-embeds.mjs` | Remark plugin that converts Obsidian image embeds to web image HTML during Astro builds |
 | `src/content.config.ts` | Content collection schema definition (projects + pages) |
 | `src/content/projects/` | Project Markdown files (synced from Obsidian, committed so CI can build) |
 | `src/content/pages/` | Page content files (synced from Obsidian, committed so CI can build) |
 | `public/` | Static assets served as-is, including images, favicon, robots.txt, and `.well-known/security.txt` |
 | `.github/workflows/deploy.yml` | CI/CD pipeline — build, test, and deploy to the NAS on push |
-| `tests/` | Vitest test files (44 tests: build verification + HTML assertions) |
+| `tests/` | Vitest test files (52 tests: build verification + HTML assertions + Obsidian Markdown handling) |
 | `astro.config.mjs` | Astro framework configuration (Vite + Tailwind plugin + sitemap) |
 | `tsconfig.json` | TypeScript configuration |
 | `package.json` | Dependencies and npm scripts |
 | `nginx/default.conf` | nginx config (AI/scraper UA blocking + rate limiting); rsynced to the NAS by `deploy.sh` |
-| `scripts/sync-content.sh` | Pulls markdown content from Obsidian vault |
-| `scripts/deploy.sh` | Sync + build + rsync deployment script |
+| `scripts/run-local-script.mjs` | Cross-platform npm dispatcher that chooses PowerShell on Windows and Bash elsewhere |
+| `scripts/sync-obsidian-assets.mjs` | Copies only web-renderable assets referenced by Obsidian embeds into `public/obsidian-assets/` |
+| `scripts/sync-content.sh` / `scripts/sync-content.ps1` | Pull markdown content from the Obsidian vault |
+| `scripts/deploy.sh` / `scripts/deploy.ps1` | Sync + build + rsync deployment scripts |
 | `dist/` | Build output (gitignored) |
 | `.astro/` | Generated types and cache (gitignored) |

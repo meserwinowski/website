@@ -34,7 +34,7 @@ Common threads: content-first, excellent typography, dark aesthetic, purposeful 
 - [x] Project detail table of contents — side navigation links generated from Markdown headings
 - [x] View Transitions with directional slide animations
 - [x] Educational HTML comments across all `.astro` files
-- [x] 44 tests passing (build verification + HTML structure assertions, including static metadata files)
+- [x] 52 tests passing (build verification + HTML structure assertions, including static metadata files)
 
 ## Phase 3: Polish & Content
 
@@ -43,7 +43,8 @@ Common threads: content-first, excellent typography, dark aesthetic, purposeful 
 - [x] SEO: Open Graph meta tags, Twitter cards, canonical URLs, sitemap (`@astrojs/sitemap`)
 - [x] Crawler/AI control — `robots.txt` (AI opt-out) + nginx User-Agent blocking & rate limiting
 - [x] 404 page (custom styled, with link back to home)
-- [x] Content sync script (`sync-content.sh`) — pulls from Obsidian vault before build
+- [x] Cross-platform content sync scripts (`sync-content.sh` / `sync-content.ps1`) — pull from Obsidian vault before build
+- [x] Obsidian Markdown pipeline — sync referenced image assets, render `![[...]]` embeds, and style callouts
 - [x] Deploy script updated to auto-sync before building
 - [ ] Favicon and social sharing image
 
@@ -58,6 +59,7 @@ Common threads: content-first, excellent typography, dark aesthetic, purposeful 
 - [ ] Home: "Now" line — pinned current-focus status above the recent feed
 - [ ] Home: "Load more" / pagination when the feed outgrows its item cap
 - [ ] Recommendations page — things I've read or watched online worth sharing (books, articles, videos, talks)
+- [ ] Cloudflare Turnstile integration — add privacy-preserving bot protection if the site gains forms or other user-submitted actions
 
 ## Phase 5: Posts (when content is ready)
 

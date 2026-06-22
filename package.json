@@ -6,9 +6,9 @@
     "dev": "node --disable-warning=DEP0205 node_modules/astro/bin/astro.mjs dev",
     "build": "node --disable-warning=DEP0205 node_modules/astro/bin/astro.mjs build",
     "preview": "node --disable-warning=DEP0205 node_modules/astro/bin/astro.mjs preview",
-    "sync": "./scripts/sync-content.sh",
+    "sync": "node scripts/run-local-script.mjs sync",
     "test": "npm run build && vitest run",
-    "deploy": "./scripts/deploy.sh"
+    "deploy": "node scripts/run-local-script.mjs deploy"
   },
   "overrides": {
     "vite": "^7"
