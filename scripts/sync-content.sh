@@ -9,6 +9,7 @@ VAULT_DIR="$HOME/obsidian/vault/Projects/Website"
 # Destinations
 PROJECTS_DIR="./src/content/projects"
 PAGES_DIR="./src/content/pages"
+IMAGES_DIR="./public/images"
 
 # Colors
 DIM="\033[2m"
@@ -18,7 +19,7 @@ YELLOW="\033[33m"
 RESET="\033[0m"
 
 # Ensure destination directories exist
-mkdir -p "$PROJECTS_DIR" "$PAGES_DIR"
+mkdir -p "$PROJECTS_DIR" "$PAGES_DIR" "$IMAGES_DIR"
 
 echo ""
 echo -e "  ${BLUE}◆${RESET}  Syncing content from Obsidian vault"
@@ -43,7 +44,17 @@ else
   echo -e "  ${YELLOW}⚠${RESET}  Pages      ${DIM}no vault folder found${RESET}"
 fi
 
+# Sync images
+if [ -d "$VAULT_DIR/images" ]; then
+  rsync -a "$VAULT_DIR/images/" "$IMAGES_DIR/"
+  COUNT=$(find "$IMAGES_DIR" -type f ! -name '.embed-manifest.json' | wc -l | tr -d ' ')
+  echo -e "  ${GREEN}✓${RESET}  Images     ${DIM}${COUNT} files${RESET}"
+else
+  echo -e "  ${YELLOW}⚠${RESET}  Images     ${DIM}no vault folder found${RESET}"
+fi
+
 node ./scripts/sync-obsidian-assets.mjs
+node ./scripts/strip-image-metadata.mjs
 
 echo ""
 echo -e "  ${GREEN}Done${RESET}"

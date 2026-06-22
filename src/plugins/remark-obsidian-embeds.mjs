@@ -1,7 +1,7 @@
 import { existsSync } from 'node:fs';
 import { basename, extname, resolve } from 'node:path';
 
-const defaultAssetBaseUrl = '/obsidian-assets/';
+const defaultAssetBaseUrl = '/images/';
 const webImageExtensions = ['.svg', '.png', '.webp', '.jpg', '.jpeg', '.gif'];
 const directImageExtensions = new Set(webImageExtensions);
 const embedPattern = /!\[\[([^\]]+)\]\]/g;

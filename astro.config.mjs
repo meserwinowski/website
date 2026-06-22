@@ -19,7 +19,7 @@ export default defineConfig({
         [
           remarkObsidianEmbeds,
           {
-            assetsDir: resolve(projectDir, 'public', 'obsidian-assets'),
+            assetsDir: resolve(projectDir, 'public', 'images'),
           },
         ],
       ],
