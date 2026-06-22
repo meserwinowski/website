@@ -14,7 +14,6 @@ date: 2026-06-15
 > I ask myself stuff like this on occasion. I thought this would be a fun and silly hook to use for this project. I do think there's an argument to be made for either side.
 
 ---
-
 If you've ever wondered what's in the black boxes that live musicians tour around with, it is usually one of the following:
 - Instruments
 - Microphones / Amplifiers
@@ -24,7 +23,6 @@ If you've ever wondered what's in the black boxes that live musicians tour aroun
 Of all the audio engineering topics I have read about I think **stage mixers** have been discussed the least.
 
 ---
-
 # What is a stage mixer?
 The stage mixer is just that - a mixer that lives on the stage alongside the performers. Its primary job is to get audio signals from each performer and mix them together with settings that *the performer controls*. This is in contrast to the Front of House (FOH) which has settings for the venue's audio equipment that the FOH engineer controls.
 
@@ -57,7 +55,6 @@ I won't be able to tell you exactly how to build your own. Hopefully walking thr
 It is a bit of a project, and if you'd prefer not to undertake it there are people who do design and build stage rigs / audio systems for musicians, so that is also an option.
 
 ---
-
 # My Rig
 
 About two years ago I built an 8U rolling stage mixer around a Midas MR18, so a five-piece band could run wired stereo IEMs, send signals to FOH, and automatically set up my digital guitar rig. All while making setup and teardown a breeze.
@@ -127,7 +124,7 @@ After some research and browsing I purchased a **Midas MR18 (3U)**. The MR18 act
 **Inputs** - I ended up using 8 of the 16 inputs. The connectors are balanced mono XLR 1/4" combo inputs.
 
 > [!info]- [Balanced audio](https://en.wikipedia.org/wiki/Balanced_audio) is actually a really cool electrical engineering concept.
-> A balanced cable is one that one that leverages balanced lines and [differential signaling](https://en.wikipedia.org/wiki/Balanced_audio#Differential_signaling) to perfectly reject noise that the cable might pick up from the environment.
+> A balanced cable is one that leverages balanced lines and [differential signaling](https://en.wikipedia.org/wiki/Balanced_audio#Differential_signaling) to perfectly reject noise that the cable might pick up from the environment.
 
 **Outputs** - Probably my favorite little bit of this whole project was my solution for getting *five **stereo*** IEM mixes out of the MR18.
 
@@ -187,9 +184,8 @@ Now at this point if you wire up all the power you essentially have everything y
 
 Patch bays are essential. At least in my opinion.
 
-I actually saw a show once where a band was on a tour with some other famous bands. This opening band had to delay their set ~30 minutes because their stage rig was not working right. I know this because 1) I talked to the FOH engineer and 2) we could see them tinkering with it. Not going to pull any punches: that poor rig was a **rat's nest** of wires. This was a relatively big show - couple hundred people in a warehouse.
-
-They probably would have benefited from having a much better organized rig.
+> [!example]- I actually went to a show featuring a line up of some relatively famous pop punk/heavy pop bands.
+> One of the opening bands had to delay their set ~30 minutes because their stage rig was not working right. I know this because 1) I talked to the FOH engineer and 2) we could see them tinkering with it. Not going to pull any punches: that poor rig was a **rat's nest** of wires. This was a big show - couple hundred people in a warehouse. They probably would have benefited from having a properly organized rig.
 
 ### Patch Bays
 Patch bays are a rack component that are interfaces between your rig and the outside world.
@@ -268,7 +264,6 @@ A multimeter can also be useful for checking continuity if you've mixed up some 
 > Storage is convenient, wired IEMs work but are a hassle + a tripping hazard, and test your rig because the last thing you want is to have a problem on stage.
 
 ---
-
 # Final Thoughts
 
 A stage mixer is pretty punk rock, especially if you make it a DIY project.
@@ -280,7 +275,6 @@ If you found this article helpful, or you end up building your own stage mixer, 
 Thanks for reading!
 
 ---
-
 # Additional Notes
 
 ## Core Parts List
