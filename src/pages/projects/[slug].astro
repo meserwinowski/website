@@ -52,7 +52,7 @@ const statusLabels: Record<string, string> = {
 <Layout title={`${project.data.title} - Matt Serwinowski`} width="wide">
   <div
     class:list={[
-      'grid gap-8 lg:items-start',
+      'grid gap-8 lg:gap-x-[calc((var(--width-wide)-var(--width-prose))/4.236)] lg:items-start',
       showTableOfContents
         ? 'lg:grid-cols-[minmax(0,var(--width-prose))_14rem] lg:justify-center'
         : 'lg:grid-cols-[minmax(0,var(--width-prose))] lg:justify-center',

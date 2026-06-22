@@ -32,9 +32,10 @@ Common threads: content-first, excellent typography, dark aesthetic, purposeful 
 - [x] Sorted by date (newest first)
 - [x] Prose typography styles for rendered Markdown
 - [x] Project detail table of contents — side navigation links generated from Markdown headings
+- [x] Back-to-top widget — fixed scroll helper for long pages
 - [x] View Transitions with directional slide animations
 - [x] Educational HTML comments across all `.astro` files
-- [x] 52 tests passing (build verification + HTML structure assertions, including static metadata files)
+- [x] 53 tests passing (build verification + HTML structure assertions, including static metadata files)
 
 ## Phase 3: Polish & Content
 
