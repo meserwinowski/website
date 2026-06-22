@@ -22,7 +22,7 @@ const { width = 'prose' }: Props = Astro.props;
   id="back-to-top"
   type="button"
   data-container-width={width}
-  class="back-to-top pointer-events-none fixed bottom-4 z-50 flex h-12 w-12 items-center justify-center rounded-full border border-[var(--color-accent)]/60 bg-[var(--color-surface)] text-2xl font-semibold text-[var(--color-accent)] opacity-0 shadow-[0_0_24px_color-mix(in_srgb,var(--color-accent)_24%,transparent)] backdrop-blur transition-opacity duration-200 hover:border-[var(--color-accent)] hover:text-[var(--color-accent-hover)] sm:bottom-6"
+  class="back-to-top pointer-events-none fixed bottom-4 z-50 flex h-12 w-12 items-center justify-center rounded-full border border-[var(--color-accent)]/60 bg-[var(--color-surface)] text-2xl font-semibold text-[var(--color-accent)] opacity-0 backdrop-blur transition-opacity duration-200 hover:border-[var(--color-accent)] hover:text-[var(--color-accent-hover)] sm:bottom-6"
   aria-label="Back to top"
   aria-hidden="true"
   tabindex="-1"
@@ -34,6 +34,9 @@ const { width = 'prose' }: Props = Astro.props;
   /* Mobile default: keep the widget in the safe lower-right corner. */
   .back-to-top {
     right: 1rem;
+    box-shadow:
+      0 0 24px rgba(96, 165, 250, 0.28),
+      0 8px 24px rgba(0, 0, 0, 0.24);
   }
 
   /* Small screens get a little more breathing room from the edge. */
@@ -74,6 +77,9 @@ const { width = 'prose' }: Props = Astro.props;
   const showAfterPx = 480;
   // Keyboard keys that can scroll the page and should be blocked during the guard.
   const scrollInputKeys = new Set([' ', 'ArrowDown', 'ArrowUp', 'End', 'Home', 'PageDown', 'PageUp']);
+  // Mobile scrolling is direct finger input, so locking it feels intrusive. The
+  // momentum guard is only for desktop-style wheel/trackpad devices.
+  const guardMediaQuery = window.matchMedia('(min-width: 1024px) and (pointer: fine)');
   // Incremented for each animation so a newer click cancels an older animation.
   let activeAnimationFrame = 0;
   // True only while requestAnimationFrame is actively driving scroll-to-top.
@@ -118,10 +124,12 @@ const { width = 'prose' }: Props = Astro.props;
         // Once the animation reaches the top, start a short adaptive guard.
         // This catches leftover wheel/trackpad momentum that may still arrive.
         isAnimatingScroll = false;
-        const now = performance.now();
-        momentumGuardUntil = now + momentumGuardMs;
         window.scrollTo(0, 0);
-        window.requestAnimationFrame(guardAgainstMomentum);
+
+        if (guardMediaQuery.matches) {
+          momentumGuardUntil = performance.now() + momentumGuardMs;
+          window.requestAnimationFrame(guardAgainstMomentum);
+        }
       }
     }
 
@@ -130,7 +138,7 @@ const { width = 'prose' }: Props = Astro.props;
 
   // Whether the post-animation lock is currently active.
   function isGuardingAgainstMomentum() {
-    return performance.now() < momentumGuardUntil;
+    return guardMediaQuery.matches && performance.now() < momentumGuardUntil;
   }
 
   // Animation-frame loop that pins the page to the very top while the fixed
