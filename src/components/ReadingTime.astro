@@ -1,0 +1,15 @@
+---
+interface Props {
+  minutes: number;
+  class?: string;
+}
+
+const { minutes, class: className } = Astro.props;
+const minuteLabel = minutes === 1 ? 'minute' : 'minutes';
+---
+
+{minutes > 0 && (
+  <p class:list={['text-sm text-[var(--color-muted)]', className]} data-reading-time>
+    Estimated reading time: {minutes}{' '}{minuteLabel}
+  </p>
+)}

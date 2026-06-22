@@ -35,21 +35,30 @@
       moonIcon?.classList.toggle('hidden', isDark);  // moon visible in light mode
     }
 
-    // When button is clicked: flip the theme, save to localStorage, update icons
-    toggle?.addEventListener('click', () => {
-      const current = document.documentElement.getAttribute('data-theme');
-      const next = current === 'light' ? 'dark' : 'light';
-      // setAttribute changes the data-theme on <html>, which triggers CSS color changes
-      document.documentElement.setAttribute('data-theme', next);
-      // localStorage persists the choice so it survives page refreshes
-      localStorage.setItem('theme', next);
-      updateIcons();
-    });
+    if (toggle && toggle.dataset.themeToggleBound !== 'true') {
+      toggle.dataset.themeToggleBound = 'true';
+
+      // When button is clicked: flip the theme, save to localStorage, update icons
+      toggle.addEventListener('click', () => {
+        const current = document.documentElement.getAttribute('data-theme');
+        const next = current === 'light' ? 'dark' : 'light';
+        // setAttribute changes the data-theme on <html>, which triggers CSS color changes
+        document.documentElement.setAttribute('data-theme', next);
+        // localStorage persists the choice so it survives page refreshes
+        localStorage.setItem('theme', next);
+        updateIcons();
+      });
+    }
 
     // Run on page load to set the correct icon
     updateIcons();
   }
 
   // Run on initial load AND after every View Transition navigation
-  document.addEventListener('astro:page-load', setupThemeToggle);
+  const themeWindow = window as Window & { __themeTogglePageLoadBound?: boolean };
+  if (!themeWindow.__themeTogglePageLoadBound) {
+    document.addEventListener('astro:page-load', setupThemeToggle);
+    themeWindow.__themeTogglePageLoadBound = true;
+  }
+  setupThemeToggle();
 </script>

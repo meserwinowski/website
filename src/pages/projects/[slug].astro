@@ -10,8 +10,10 @@
  *   /projects/mech-keyboard/index.html
  */
 import { getCollection, render } from 'astro:content';
+import ReadingTime from '../../components/ReadingTime.astro';
 import TableOfContents from '../../components/TableOfContents.astro';
 import Layout from '../../layouts/Base.astro';
+import { estimateReadingTime } from '../../lib/readingTime';
 
 // getStaticPaths() tells Astro which pages to generate at build time.
 // It returns an array of { params, props } objects — one per page.
@@ -36,6 +38,7 @@ const tableOfContentsHeadings = headings.filter((heading) => (
   heading.slug && heading.depth >= 1 && heading.depth <= 3
 ));
 const showTableOfContents = tableOfContentsHeadings.length > 1;
+const readingTime = estimateReadingTime(project.body);
 
 // Status badge styling (same as ProjectCard)
 const statusColors: Record<string, string> = {
@@ -69,6 +72,8 @@ const statusLabels: Record<string, string> = {
         </a>
 
         <h1 class="text-4xl font-bold">{project.data.title}</h1>
+
+        <ReadingTime minutes={readingTime.minutes} />
 
         <!-- Metadata row: status badge, tags, and optional GitHub link -->
         <!-- flex-wrap allows items to flow to next line on small screens -->

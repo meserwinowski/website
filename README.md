@@ -196,6 +196,7 @@ Tests run against the built `dist/` output (static HTML files) using [Vitest](ht
 
 - **Dark/light theme** — toggle with localStorage persistence, no flash on load
 - **Projects portfolio** — Astro Content Collections with Markdown, status badges, tags, and project-page tables of contents
+- **Reading-time metadata** — Markdown detail pages estimate reading time from body word count and show it near the article header
 - **View Transitions** — directional slide animations between pages (no full reload)
 - **Back-to-top widget** — fixed scroll helper for long pages
 - **Spring easing** — subtle scale animations on hover/active for buttons and links
@@ -213,7 +214,7 @@ Defined in `src/styles/global.css` using Tailwind v4's `@theme` directive:
 
 - **Colors:** Dark/light themes with custom properties (`--color-bg`, `--color-surface`, `--color-border`, `--color-text`, `--color-muted`, `--color-accent`)
 - **Fonts:** Inter (body) + JetBrains Mono (header/code) via Google Fonts
-- **Layout:** Per-content widths via a shared `--container` var on `<body>`. Reading pages use `--width-prose` (45rem / 720px — the readable measure); structural/grid pages opt into `--width-wide` (72rem / 1152px ≈ prose × φ) by passing `width="wide"` to `Base.astro`. Containers stay fluid below the cap, and `.prose` is capped at the measure so body text never stretches inside a wide shell.
+- **Layout:** Per-content widths via a shared `--container` var on `<body>`. Reading pages use `--width-prose` (45rem / 720px — the readable measure); top-level content pages use `width="content"` plus `chrome="project-detail"` to align with the project-detail article rail; structural pages can still opt into the full `--width-wide` shell (72rem / 1152px ≈ prose × φ) with `width="wide"`. Containers stay fluid below the cap, and `.prose` is capped at the measure so body text never stretches inside a wider shell.
 - **Animations:** Spring easing (`cubic-bezier(0.34, 1.56, 0.64, 1)`) on interactive elements
 
 ## Adding Projects
@@ -243,7 +244,8 @@ Only `done` and `ongoing` projects are shown publicly. Place thumbnail images in
 | `src/pages/` | Astro page routes — Home, Projects, Posts, About, 404 |
 | `src/pages/projects/[slug].astro` | Dynamic project detail pages |
 | `src/layouts/` | Base page layout (header + content + footer + view transitions) |
-| `src/components/` | UI components (BackToTop, Header, Footer, ProjectCard, TableOfContents, ThemeToggle, SocialLinks) |
+| `src/components/` | UI components (BackToTop, Header, Footer, ProjectCard, ReadingTime, TableOfContents, ThemeToggle, SocialLinks) |
+| `src/lib/` | Shared TypeScript utilities, including Markdown reading-time estimation |
 | `src/styles/` | CSS files: `global.css` (theme), `prose.css` (markdown typography), `transitions.css` (page animations) |
 | `src/plugins/remark-obsidian-callouts.mjs` | Remark plugin that converts Obsidian callout blockquotes to styled callout elements |
 | `src/plugins/remark-obsidian-embeds.mjs` | Remark plugin that converts Obsidian image embeds to web image HTML during Astro builds |
@@ -252,7 +254,7 @@ Only `done` and `ongoing` projects are shown publicly. Place thumbnail images in
 | `src/content/pages/` | Page content files (synced from Obsidian, committed so CI can build) |
 | `public/` | Static assets served as-is, including images, favicon, robots.txt, and `.well-known/security.txt` |
 | `.github/workflows/deploy.yml` | CI/CD pipeline — build, test, and deploy to the NAS on push |
-| `tests/` | Vitest test files (54 tests: build verification + HTML assertions + Obsidian Markdown handling) |
+| `tests/` | Vitest test files (build verification + HTML assertions + Obsidian Markdown handling + reading-time utility coverage) |
 | `astro.config.mjs` | Astro framework configuration (Vite + Tailwind plugin + sitemap) |
 | `tsconfig.json` | TypeScript configuration |
 | `package.json` | Dependencies and npm scripts |
