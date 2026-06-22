@@ -12,13 +12,18 @@ interface Props {
   description?: string;
   // Container width: 'prose' = readable measure (default), 'wide' = roomier shell for grids
   width?: 'prose' | 'wide';
+  // Header alignment: most pages use prose; project details align to the prose column beside the ToC rail.
+  chrome?: 'prose' | 'project-detail';
 }
 
 // Destructure props with a default description for SEO
-const { title, description = 'Matt Serwinowski — software engineer, builder of things.', width = 'prose' } = Astro.props;
+const { title, description = 'Matt Serwinowski — software engineer, builder of things.', width = 'prose', chrome = 'prose' } = Astro.props;
 
 // Resolve the page container width to a CSS var, exposed to header/main/footer as --container
 const containerWidth = width === 'wide' ? 'var(--width-wide)' : 'var(--width-prose)';
+const chromeContainerWidth = chrome === 'project-detail'
+  ? 'calc(var(--width-prose) + ((var(--width-wide) - var(--width-prose)) / 4.236) + 14rem)'
+  : 'var(--width-prose)';
 
 // Build the full URL for this page (used in Open Graph tags)
 const canonicalURL = new URL(Astro.url.pathname, Astro.site);
@@ -89,7 +94,7 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
   <!-- flex + min-h-screen + flex-col makes footer stick to the bottom even on short pages -->
   <!-- --container drives the <main> width (set per page via the width prop). Header/footer -->
   <!-- stay pinned to --width-prose so the site chrome is identical on every page. -->
-  <body class="flex min-h-screen flex-col" style={`--container: ${containerWidth};`}>
+  <body class="flex min-h-screen flex-col" style={`--container: ${containerWidth}; --chrome-container: ${chromeContainerWidth};`}>
     <!-- Header component: nav bar with logo, links, theme toggle -->
     <Header />
 

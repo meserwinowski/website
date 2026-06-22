@@ -32,6 +32,7 @@ const depthClasses: Record<number, string> = {
 // Buttons look like text links but avoid native hash navigation. That lets the
 // custom scroll handler fully control the movement without browser/router jumps.
 const linkBaseClasses = 'block w-full cursor-pointer rounded bg-transparent py-0.5 text-left text-sm leading-tight hover:text-[var(--color-accent)]';
+const titleClasses = 'font-mono text-sm font-semibold leading-5 text-[var(--color-accent)]';
 const title = 'On This Page';
 ---
 
@@ -39,7 +40,7 @@ const title = 'On This Page';
   variant === 'mobile' ? (
     <details class="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-4 lg:hidden">
       <!-- Mobile ToC: collapsed by default so it does not take over the top of the page. -->
-      <summary class="cursor-pointer font-mono text-sm font-semibold text-[var(--color-text)]">
+      <summary class:list={['cursor-pointer', titleClasses]}>
         {title}
       </summary>
       <nav aria-label="Table of contents" class="mt-4">
@@ -62,7 +63,7 @@ const title = 'On This Page';
   ) : (
     <nav aria-label="Table of contents" class="hidden lg:block">
       <!-- Desktop ToC: hidden below lg; the project layout places it in the right rail. -->
-      <p class="mb-2 font-mono text-sm font-semibold leading-5 text-[var(--color-accent)]">
+      <p class:list={['mb-2', titleClasses]}>
         {title}
       </p>
       <ol class="border-l border-[var(--color-border)] pl-4">

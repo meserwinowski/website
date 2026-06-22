@@ -252,7 +252,7 @@ Only `done` and `ongoing` projects are shown publicly. Place thumbnail images in
 | `src/content/pages/` | Page content files (synced from Obsidian, committed so CI can build) |
 | `public/` | Static assets served as-is, including images, favicon, robots.txt, and `.well-known/security.txt` |
 | `.github/workflows/deploy.yml` | CI/CD pipeline — build, test, and deploy to the NAS on push |
-| `tests/` | Vitest test files (53 tests: build verification + HTML assertions + Obsidian Markdown handling) |
+| `tests/` | Vitest test files (54 tests: build verification + HTML assertions + Obsidian Markdown handling) |
 | `astro.config.mjs` | Astro framework configuration (Vite + Tailwind plugin + sitemap) |
 | `tsconfig.json` | TypeScript configuration |
 | `package.json` | Dependencies and npm scripts |

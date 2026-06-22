@@ -67,13 +67,17 @@ function transformBlockquote(blockquote) {
 
   if (isCollapsible) {
     return createElementNode('details', createCalloutProperties(marker, ['callout-collapsible'], marker.fold === '+'), [
-      createElementNode('summary', { className: ['callout-title'] }, titleChildren),
+      createElementNode('summary', { className: ['callout-title'] }, [
+        createElementNode('span', { className: ['callout-title-text'] }, titleChildren),
+      ]),
       createElementNode('div', { className: ['callout-content'] }, contentChildren),
     ]);
   }
 
   return createElementNode('aside', createCalloutProperties(marker), [
-    createElementNode('div', { className: ['callout-title'] }, titleChildren),
+    createElementNode('div', { className: ['callout-title'] }, [
+      createElementNode('span', { className: ['callout-title-text'] }, titleChildren),
+    ]),
     createElementNode('div', { className: ['callout-content'] }, contentChildren),
   ]);
 }
