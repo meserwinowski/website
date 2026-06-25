@@ -32,17 +32,22 @@ const depthClasses: Record<number, string> = {
 
 // Buttons look like text links but avoid native hash navigation. That lets the
 // custom scroll handler fully control the movement without browser/router jumps.
-const linkBaseClasses = 'block w-full cursor-pointer rounded bg-transparent py-0.5 text-left text-sm leading-tight hover:text-[var(--color-accent)]';
+// appearance-none is required so iOS Safari doesn't override our text color with
+// its native button chrome (the ToC links would otherwise lose their color on mobile).
+const linkBaseClasses = 'block w-full cursor-pointer appearance-none rounded bg-transparent py-0.5 text-left text-sm leading-tight hover:text-[var(--color-accent)]';
 const titleClasses = 'font-mono text-sm font-semibold leading-5 text-[var(--color-accent)]';
 const title = 'On This Page';
 ---
 
 {headings.length > 1 && (
   variant === 'mobile' ? (
-    <details class="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-4 lg:hidden">
+    <details class="toc-mobile rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-4 lg:hidden">
       <!-- Mobile ToC: collapsed by default so it does not take over the top of the page. -->
-      <summary class:list={['cursor-pointer', titleClasses]}>
-        {title}
+      <summary class:list={['flex cursor-pointer items-center justify-between gap-2', titleClasses]}>
+        <span>{title}</span>
+        <svg class="toc-chevron h-4 w-4 shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="m6 9 6 6 6-6" />
+        </svg>
       </summary>
       <nav aria-label="Table of contents" class="mt-4">
         <ol class="border-l border-[var(--color-border)] pl-4">
@@ -170,3 +175,19 @@ const title = 'On This Page';
     tocWindow.__tableOfContentsScrollBound = true;
   }
 </script>
+
+<style>
+  /* Replace the native disclosure triangle with our own right-aligned chevron. */
+  .toc-mobile > summary {
+    list-style: none;
+  }
+  .toc-mobile > summary::-webkit-details-marker {
+    display: none;
+  }
+  .toc-chevron {
+    transition: transform 0.2s ease;
+  }
+  .toc-mobile[open] > summary .toc-chevron {
+    transform: rotate(180deg);
+  }
+</style>
