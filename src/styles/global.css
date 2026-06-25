@@ -38,10 +38,15 @@
   --color-bg: #181a24;
   --color-surface: #1e2130;
   --color-border: #2d3348;
-  --color-text: #e4e4e7;
+  --color-text: #b3b7c1;
   --color-muted: #9ca3af;
   --color-accent: #60a5fa;
   --color-accent-hover: #93c5fd;
+
+  /* Table-of-contents heading-level accents: blue → muted white → muted gray */
+  --color-toc-1: #60a5fa;
+  --color-toc-2: #d2d4d9;
+  --color-toc-3: #9ca3af;
 }
 
 /* Light theme overrides */
@@ -49,10 +54,14 @@
   --color-bg: #ebe8df;
   --color-surface: #dedad0;
   --color-border: #c8c2b8;
-  --color-text: #18181b;
+  --color-text: #505055;
   --color-muted: #71717a;
   --color-accent: #2563eb;
   --color-accent-hover: #1d4ed8;
+
+  --color-toc-1: #2563eb;
+  --color-toc-2: #3a3a3e;
+  --color-toc-3: #71717a;
 }
 
 /* Base element styles */
@@ -66,7 +75,7 @@ body {
   font-family: var(--font-sans);
   background-color: var(--color-bg);
   color: var(--color-text);
-  line-height: 1.7;
+  line-height: 1.5;
 }
 
 /* Header uses monospace font and semibold */

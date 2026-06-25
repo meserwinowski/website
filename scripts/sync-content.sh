@@ -56,6 +56,16 @@ fi
 node ./scripts/sync-obsidian-assets.mjs
 node ./scripts/strip-image-metadata.mjs
 
+# Normalize Obsidian-flavored markdown for CommonMark: Obsidian indents nested
+# list items with tabs, but a leading tab is an indented code block in
+# CommonMark — so tab-indented lists render as <pre> blocks. Convert each
+# leading tab to 2 spaces (one list level), skipping fenced code so real code
+# is left untouched. Idempotent.
+find "$PROJECTS_DIR" "$PAGES_DIR" -name '*.md' -print0 | while IFS= read -r -d '' f; do
+  perl -i -pe 'BEGIN { $fence = 0 } if (/^\s*```/) { $fence = !$fence } unless ($fence) { 1 while s/^(\x20*)\t/$1  /g }' "$f"
+done
+echo -e "  ${GREEN}✓${RESET}  Normalized ${DIM}tab-indented lists${RESET}"
+
 echo ""
 echo -e "  ${GREEN}Done${RESET}"
 echo ""

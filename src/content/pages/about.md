@@ -14,35 +14,35 @@ My personal site for:
 ## What I'm Into
 
 ### Cats
-	- I have two: Circuit and Pixel!
+  - I have two: Circuit and Pixel!
 ### Fitness
-	- Calisthenics Newbie
-	- Nutrition
-	- Biochemistry - cellular metabolism
-	- Weightlifting
+  - Calisthenics Newbie
+  - Nutrition
+  - Biochemistry - cellular metabolism
+  - Weightlifting
 ### **Hardware**
-	- PCB Design
-	- Embedded Programming
-	- Soldering
-	- Assembling new devices
-	- Networking
+  - PCB Design
+  - Embedded Programming
+  - Soldering
+  - Assembling new devices
+  - Networking
 ### **Music**
-	- Instruments
-		- Guitar - primary; writing and performing
-		- Vocals
-		- Bass
-		- Drums - programming
-		- Synthesizers
-	- Audio Engineering
-		- Recording
-		- Production
-		- Mixing
-		- Mastering
+  - Instruments
+    - Guitar - primary; writing and performing
+    - Vocals
+    - Bass
+    - Drums - programming
+    - Synthesizers
+  - Audio Engineering
+    - Recording
+    - Production
+    - Mixing
+    - Mastering
 ### **Snowboarding**
-	- Most recently went to Niseko in Japan
-	- Would like to ski in Austria or Norway!
+  - Most recently went to Niseko in Japan
+  - Would like to ski in Austria or Norway!
 ### **Software**
-	- Full-Time - currently working on power management for the Windows kernel
-	- Lately been getting into web development (this website is a project)
+  - Full-Time - currently working on power management for the Windows kernel
+  - Lately been getting into web development (this website is a project)
 
 Thanks for checking out my website!

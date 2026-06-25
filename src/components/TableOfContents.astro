@@ -21,12 +21,13 @@ interface Props {
 
 const { headings, variant = 'desktop' }: Props = Astro.props;
 
-// Visual hierarchy for heading levels. Deeper sections are indented so readers
-// can tell which links are subsections of the headings above them.
+// Visual hierarchy for heading levels. Deeper sections are indented, and each
+// level gets its own color (blue → muted white → muted gray) so readers can
+// tell heading depths apart at a glance. Colors are theme-aware tokens (global.css).
 const depthClasses: Record<number, string> = {
-  1: 'pl-0 font-medium text-[var(--color-text)]',
-  2: 'pl-4 text-[color-mix(in_srgb,var(--color-text)_72%,var(--color-muted))]',
-  3: 'pl-8 text-xs text-[color-mix(in_srgb,var(--color-text)_42%,var(--color-muted))]',
+  1: 'pl-0 font-semibold text-[var(--color-toc-1)]',
+  2: 'pl-4 text-[var(--color-toc-2)]',
+  3: 'pl-8 text-[var(--color-toc-3)]',
 };
 
 // Buttons look like text links but avoid native hash navigation. That lets the
