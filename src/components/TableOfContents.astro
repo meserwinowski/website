@@ -34,7 +34,9 @@ const depthClasses: Record<number, string> = {
 // custom scroll handler fully control the movement without browser/router jumps.
 // appearance-none is required so iOS Safari doesn't override our text color with
 // its native button chrome (the ToC links would otherwise lose their color on mobile).
-const linkBaseClasses = 'block w-full cursor-pointer appearance-none rounded bg-transparent py-0.5 text-left text-sm leading-tight hover:text-[var(--color-accent)]';
+// The accent hover color is applied via a scoped @media (hover: hover) rule below
+// so it doesn't stick after a tap on touch devices.
+const linkBaseClasses = 'toc-link block w-full cursor-pointer appearance-none rounded bg-transparent py-0.5 text-left text-sm leading-tight';
 const titleClasses = 'font-mono text-sm font-semibold leading-5 text-[var(--color-accent)]';
 const title = 'On This Page';
 ---
@@ -46,7 +48,7 @@ const title = 'On This Page';
       <summary class:list={['flex cursor-pointer items-center justify-between gap-2', titleClasses]}>
         <span>{title}</span>
         <svg class="toc-chevron h-4 w-4 shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="m6 9 6 6 6-6" />
+          <path d="m9 18 6-6-6-6" />
         </svg>
       </summary>
       <nav aria-label="Table of contents" class="mt-4">
@@ -177,7 +179,8 @@ const title = 'On This Page';
 </script>
 
 <style>
-  /* Replace the native disclosure triangle with our own right-aligned chevron. */
+  /* Replace the native disclosure triangle with our own right-aligned chevron
+     that points right when collapsed and rotates down when expanded. */
   .toc-mobile > summary {
     list-style: none;
   }
@@ -188,6 +191,13 @@ const title = 'On This Page';
     transition: transform 0.2s ease;
   }
   .toc-mobile[open] > summary .toc-chevron {
-    transform: rotate(180deg);
+    transform: rotate(90deg);
+  }
+  /* Only apply the hover accent on devices with a real pointer. On touch the
+     :hover state would otherwise stick after a tap until you tap elsewhere. */
+  @media (hover: hover) {
+    .toc-link:hover {
+      color: var(--color-accent);
+    }
   }
 </style>
