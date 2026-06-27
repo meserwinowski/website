@@ -3,8 +3,13 @@
 # Run before `npm run build` or `npm run deploy` to pick up vault edits.
 set -e
 
-# Source: Obsidian vault content folder
-VAULT_DIR="$HOME/obsidian/vault/Projects/Website"
+# Load local configuration (git-ignored; see deploy.env.example).
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+[ -f "$REPO_ROOT/deploy.env" ] && { set -a; . "$REPO_ROOT/deploy.env"; set +a; }
+
+# Source: Obsidian vault content folder (VAULT_SUBPATH is relative to $HOME).
+VAULT_DIR="${VAULT_DIR:-$HOME/${VAULT_SUBPATH:?set VAULT_SUBPATH in deploy.env}}"
+export VAULT_DIR
 
 # Destinations
 PROJECTS_DIR="./src/content/projects"

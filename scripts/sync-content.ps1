@@ -11,8 +11,14 @@ $ErrorActionPreference = 'Stop'
 $RepoRoot = Resolve-Path (Join-Path $PSScriptRoot '..')
 Set-Location $RepoRoot
 
-# Source: Obsidian vault content folder
-$VaultDir = Join-Path $HOME 'obsidian\vault\Projects\Website'
+# Source: Obsidian vault content folder (VAULT_SUBPATH is relative to $HOME).
+. "$PSScriptRoot\load-deploy-env.ps1"
+$cfg = Import-DeployEnv (Join-Path $RepoRoot 'deploy.env')
+$VaultSubpath = $cfg['VAULT_SUBPATH']
+if (-not $VaultSubpath) { throw 'Set VAULT_SUBPATH in deploy.env (copy deploy.env.example).' }
+$VaultDir = Join-Path $HOME ($VaultSubpath -replace '/', '\')
+$env:VAULT_DIR = $VaultDir
+if ($cfg['EXCALIDRAW_SUBPATH']) { $env:EXCALIDRAW_SUBPATH = $cfg['EXCALIDRAW_SUBPATH'] }
 
 # Destinations
 $ProjectsDir = Join-Path $RepoRoot 'src\content\projects'
