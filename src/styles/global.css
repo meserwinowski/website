@@ -96,7 +96,7 @@ a:hover {
    the scaled-up state can't stick after a tap on touch devices; :active still
    gives a quick press/spring feedback everywhere. */
 button, a {
-  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.2s ease;
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.3s ease;
 }
 
 @media (hover: hover) {
