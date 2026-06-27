@@ -61,7 +61,11 @@ About two years ago I built an 8U rolling stage mixer around a Midas MR18, so a 
 
 Here are some diagrams of my rig! The rest of this post is all about explaining the decisions and details that led up to the design.
 
-## Graph Diagram
+## Diagrams
+
+Everyone loves a good visual, so I'll start with a bunch you can use as a reference.
+
+### Graph
 
 ![[Excalidraw/stage-mixer-diagram.excalidraw|stage-mixer-diagram.excalidraw|800x600]]
 
@@ -116,7 +120,7 @@ I mentioned I already had a **Fractal Axe-Fx 3 (3U)** - a lovely graduation gift
 ![[power-conditioner.HEIC]]
 
 >[!info]- Voltage and Current
->You don’t need an engineering degree to understand that your equipment needs power, and power is dangerous. A good power conditioner can protect your equipment and filter out noise.
+>You don’t need an engineering degree to understand that your equipment needs power. A good power conditioner can protect your equipment from faulty venue power, and filter out noise.
 >
 >Conditioners are not strictly the same as supplies - the real important bits are that you get the right output voltage (120V for America), and you have enough Amps (current) to power all of your equipment.
 

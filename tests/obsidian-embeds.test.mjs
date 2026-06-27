@@ -2,6 +2,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, utimesSync, w
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { describe, expect, it } from 'vitest';
+import sharp from 'sharp';
 import remarkObsidianEmbeds from '../src/plugins/remark-obsidian-embeds.mjs';
 import { syncObsidianAssets } from '../scripts/sync-obsidian-assets.mjs';
 
@@ -13,7 +14,7 @@ const stageMixerFile = { path: '/repo/src/content/projects/stage-mixer.md' };
 const stageMixerPrefix = 'projects/stage-mixer';
 
 describe('Obsidian embed rendering', () => {
-  it('renders a standalone Excalidraw embed under the project folder', () => {
+  it('renders a standalone Excalidraw embed under the project folder', async () => {
     const tree = {
       type: 'root',
       children: [
@@ -29,7 +30,7 @@ describe('Obsidian embed rendering', () => {
       ],
     };
 
-    remarkObsidianEmbeds({ contentRoot })(tree, stageMixerFile);
+    await remarkObsidianEmbeds({ contentRoot })(tree, stageMixerFile);
 
     expect(tree.children[0]).toEqual({
       type: 'html',
@@ -38,7 +39,7 @@ describe('Obsidian embed rendering', () => {
     });
   });
 
-  it('uses an existing PNG export under the project folder when no SVG export is present', () => {
+  it('uses an existing PNG export under the project folder when no SVG export is present', async () => {
     const assetsDir = mkdtempSync(join(tmpdir(), 'obsidian-assets-'));
 
     try {
@@ -55,7 +56,7 @@ describe('Obsidian embed rendering', () => {
         ],
       };
 
-      remarkObsidianEmbeds({ assetsDir, contentRoot })(tree, stageMixerFile);
+      await remarkObsidianEmbeds({ assetsDir, contentRoot })(tree, stageMixerFile);
 
       expect(tree.children[0].value).toContain('src="/images/projects/stage-mixer/stage-mixer-view-front.png"');
       expect(tree.children[0].value).toContain('width="600"');
@@ -65,7 +66,7 @@ describe('Obsidian embed rendering', () => {
     }
   });
 
-  it('rewrites a HEIC embed to its converted WebP asset under the project folder', () => {
+  it('rewrites a HEIC embed to its converted WebP asset under the project folder', async () => {
     const tree = {
       type: 'root',
       children: [
@@ -76,7 +77,7 @@ describe('Obsidian embed rendering', () => {
       ],
     };
 
-    remarkObsidianEmbeds({ contentRoot })(tree, stageMixerFile);
+    await remarkObsidianEmbeds({ contentRoot })(tree, stageMixerFile);
 
     expect(tree.children[0]).toEqual({
       type: 'html',
@@ -85,7 +86,7 @@ describe('Obsidian embed rendering', () => {
     });
   });
 
-  it('falls back to the shared root when no contentRoot context is available', () => {
+  it('falls back to the shared root when no contentRoot context is available', async () => {
     const tree = {
       type: 'root',
       children: [
@@ -96,12 +97,46 @@ describe('Obsidian embed rendering', () => {
       ],
     };
 
-    remarkObsidianEmbeds()(tree);
+    await remarkObsidianEmbeds()(tree);
 
     expect(tree.children[0]).toEqual({
       type: 'html',
       value: '<img src="/images/whiteboard.webp" alt="whiteboard" loading="lazy" decoding="async" />',
     });
+  });
+
+  it('stamps intrinsic width/height from the image when the embed omits dimensions', async () => {
+    const assetsDir = mkdtempSync(join(tmpdir(), 'obsidian-dims-'));
+
+    try {
+      mkdirSync(join(assetsDir, stageMixerPrefix), { recursive: true });
+      const webp = await sharp({
+        create: { width: 320, height: 240, channels: 3, background: { r: 1, g: 2, b: 3 } },
+      })
+        .webp()
+        .toBuffer();
+      writeFileSync(join(assetsDir, stageMixerPrefix, 'mixer.webp'), webp);
+
+      const tree = {
+        type: 'root',
+        children: [
+          {
+            type: 'paragraph',
+            children: [{ type: 'text', value: '![[mixer.webp]]' }],
+          },
+        ],
+      };
+
+      await remarkObsidianEmbeds({ assetsDir, contentRoot })(tree, stageMixerFile);
+
+      expect(tree.children[0]).toEqual({
+        type: 'html',
+        value:
+          '<img src="/images/projects/stage-mixer/mixer.webp" alt="mixer" width="320" height="240" loading="lazy" decoding="async" />',
+      });
+    } finally {
+      rmSync(assetsDir, { recursive: true, force: true });
+    }
   });
 });
 

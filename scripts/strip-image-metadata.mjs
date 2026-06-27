@@ -15,6 +15,13 @@ const strippableExtensions = new Set(['.jpg', '.jpeg', '.png', '.webp', '.tiff',
 // Formats that browsers can't render — auto-convert to WebP
 const convertToWebExtensions = new Set(['.heic', '.heif']);
 
+// Cap the longest edge of converted photos. Phone cameras shoot ~5712px wide,
+// but the site never displays an image wider than the ~720px reading column
+// (≈1440–2160px on hi-DPI screens). Downscaling shrinks files ~5–10× and, more
+// importantly, slashes the per-image decode cost that makes mobile scrolling
+// stutter.
+const maxImageEdge = 1600;
+
 export async function stripImageMetadata(imagesDir = resolve(repoRoot, 'public', 'images')) {
   const allFiles = listFiles(imagesDir);
 
@@ -91,11 +98,16 @@ export async function stripImageMetadata(imagesDir = resolve(repoRoot, 'public',
 // `.rotate()` auto-orients from EXIF so any rotation is baked into the pixels;
 // the WebP we emit carries no orientation tag, so without this the photo would
 // render rotated (sips preserves the orientation tag in the intermediate PNG).
+// `.resize()` caps the dimensions so we don't ship 24-megapixel photos.
 async function convertToWebpBuffer(filePath) {
   const input = readFileSync(filePath);
 
   try {
-    return await sharp(input).rotate().webp({ quality: 90 }).toBuffer();
+    return await sharp(input)
+      .rotate()
+      .resize({ width: maxImageEdge, height: maxImageEdge, fit: 'inside', withoutEnlargement: true })
+      .webp({ quality: 90 })
+      .toBuffer();
   } catch (sharpError) {
     if (process.platform !== 'darwin') {
       throw sharpError;
@@ -106,7 +118,11 @@ async function convertToWebpBuffer(filePath) {
 
     try {
       execFileSync('sips', ['-s', 'format', 'png', filePath, '--out', pngPath], { stdio: 'ignore' });
-      return await sharp(readFileSync(pngPath)).rotate().webp({ quality: 90 }).toBuffer();
+      return await sharp(readFileSync(pngPath))
+        .rotate()
+        .resize({ width: maxImageEdge, height: maxImageEdge, fit: 'inside', withoutEnlargement: true })
+        .webp({ quality: 90 })
+        .toBuffer();
     } finally {
       rmSync(tmpDir, { recursive: true, force: true });
     }

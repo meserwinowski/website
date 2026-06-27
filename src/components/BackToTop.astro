@@ -104,6 +104,7 @@ const { width = 'prose' }: Props = Astro.props;
     activeAnimationFrame = animationFrame;
     isAnimatingScroll = true;
     momentumGuardUntil = 0;
+    enableScrollInputBlocking();
 
     function step(now: number) {
       // If another click started a newer animation, stop this older frame loop.
@@ -129,6 +130,9 @@ const { width = 'prose' }: Props = Astro.props;
         if (guardMediaQuery.matches) {
           momentumGuardUntil = performance.now() + momentumGuardMs;
           window.requestAnimationFrame(guardAgainstMomentum);
+        } else {
+          // No momentum guard on touch devices — release the input block now.
+          disableScrollInputBlocking();
         }
       }
     }
@@ -146,6 +150,7 @@ const { width = 'prose' }: Props = Astro.props;
   function guardAgainstMomentum() {
     if (!isGuardingAgainstMomentum()) {
       momentumGuardUntil = 0;
+      disableScrollInputBlocking();
       return;
     }
 
@@ -157,7 +162,10 @@ const { width = 'prose' }: Props = Astro.props;
   }
 
   // Capture scroll inputs while the animation/guard is active so user-device
-  // momentum cannot fight the scripted scroll-to-top behavior.
+  // momentum cannot fight the scripted scroll-to-top behavior. These listeners
+  // are non-passive (they may preventDefault), which disables the browser's
+  // threaded scrolling and makes touch scrolling stutter — so they are attached
+  // ONLY while the scripted scroll is running, never during normal reading.
   function blockScrollInput(event: WheelEvent | TouchEvent | KeyboardEvent) {
     if (!isAnimatingScroll && !isGuardingAgainstMomentum()) {
       return;
@@ -172,10 +180,39 @@ const { width = 'prose' }: Props = Astro.props;
     event.stopImmediatePropagation();
   }
 
+  let scrollInputBlocked = false;
+
+  function enableScrollInputBlocking() {
+    if (scrollInputBlocked) {
+      return;
+    }
+
+    scrollInputBlocked = true;
+    document.addEventListener('wheel', blockScrollInput, { capture: true, passive: false });
+    document.addEventListener('touchmove', blockScrollInput, { capture: true, passive: false });
+    document.addEventListener('keydown', blockScrollInput, { capture: true });
+    window.addEventListener('wheel', blockScrollInput, { capture: true, passive: false });
+    window.addEventListener('touchmove', blockScrollInput, { capture: true, passive: false });
+  }
+
+  function disableScrollInputBlocking() {
+    if (!scrollInputBlocked) {
+      return;
+    }
+
+    scrollInputBlocked = false;
+    document.removeEventListener('wheel', blockScrollInput, { capture: true });
+    document.removeEventListener('touchmove', blockScrollInput, { capture: true });
+    document.removeEventListener('keydown', blockScrollInput, { capture: true });
+    window.removeEventListener('wheel', blockScrollInput, { capture: true });
+    window.removeEventListener('touchmove', blockScrollInput, { capture: true });
+  }
+
   function cancelBackToTopMotion() {
     activeAnimationFrame += 1;
     isAnimatingScroll = false;
     momentumGuardUntil = 0;
+    disableScrollInputBlocking();
   }
 
   // Shows/hides the button and keeps its accessibility state in sync.
@@ -221,13 +258,11 @@ const { width = 'prose' }: Props = Astro.props;
 
   if (!backToTopWindow.__backToTopBound) {
     document.addEventListener('click', handleBackToTopClick, { capture: true });
-    document.addEventListener('wheel', blockScrollInput, { capture: true, passive: false });
-    document.addEventListener('touchmove', blockScrollInput, { capture: true, passive: false });
-    document.addEventListener('keydown', blockScrollInput, { capture: true });
     document.addEventListener('astro:before-preparation', cancelBackToTopMotion);
     document.addEventListener('astro:page-load', updateBackToTopVisibility);
-    window.addEventListener('wheel', blockScrollInput, { capture: true, passive: false });
-    window.addEventListener('touchmove', blockScrollInput, { capture: true, passive: false });
+    // Lightweight passive listener — safe for threaded scrolling. The non-passive
+    // wheel/touchmove blockers are attached on demand only during the scripted
+    // scroll (see enableScrollInputBlocking).
     window.addEventListener('scroll', updateBackToTopVisibility, { passive: true });
     backToTopWindow.__backToTopBound = true;
   }
