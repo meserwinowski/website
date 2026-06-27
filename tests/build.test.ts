@@ -40,12 +40,13 @@ describe('Build verification', () => {
     expect(existsSync(resolve(distDir, 'about', 'index.html'))).toBe(true);
   });
 
-  it('dist/projects/personal-website/index.html exists after build', () => {
-    expect(existsSync(resolve(distDir, 'projects', 'personal-website', 'index.html'))).toBe(true);
+  it('dist/projects/stage-mixer/index.html exists after build', () => {
+    expect(existsSync(resolve(distDir, 'projects', 'stage-mixer', 'index.html'))).toBe(true);
   });
 
-  it('dist/projects/home-lab/index.html exists after build', () => {
-    expect(existsSync(resolve(distDir, 'projects', 'home-lab', 'index.html'))).toBe(true);
+  it('does not build detail pages for planning-status projects', () => {
+    expect(existsSync(resolve(distDir, 'projects', 'personal-website', 'index.html'))).toBe(false);
+    expect(existsSync(resolve(distDir, 'projects', 'home-lab', 'index.html'))).toBe(false);
   });
 
   it('dist/404.html exists after build', () => {
