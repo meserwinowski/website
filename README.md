@@ -105,13 +105,18 @@ location, so a project's assets all live together (e.g. embeds in
 Raw `.excalidraw` drawing files are intentionally not published. `.heic`/`.heif`
 photos (e.g. straight from an iPhone) are converted to `.webp` during sync —
 browsers can't render HEIC — and the embeds are rewritten to point at the `.webp`
-result. Assets whose published output is already newer than the vault source are
-skipped, so re-syncing is fast and only new or changed images are
-re-copied/reconverted. The sync searches the website content folder and an optional shared
+result. During that step photos are also auto-oriented (EXIF rotation is baked in,
+so portrait shots don't render sideways), resized down to a 1600px longest edge,
+and stripped of EXIF/GPS metadata. Assets whose published output is already newer
+than the vault source are skipped, so re-syncing is fast and only new or changed
+images are re-copied/reconverted. The sync searches the website content folder and an optional shared
 Excalidraw export folder (`EXCALIDRAW_SUBPATH` in `deploy.env`), so Excalidraw
 exports can live in a central drawing folder while page Markdown stays with the vault.
 During build, `src/plugins/remark-obsidian-embeds.mjs` rewrites those embeds to
-normal `<img>` tags. For Excalidraw drawings, export an SVG or PNG, then embed
+normal `<img>` tags — stamping intrinsic `width`/`height` (to reserve layout
+space and avoid shift), inlining a tiny blur-up placeholder, and lazy-loading
+every image except the first on each page, which loads eagerly as the likely
+LCP element. For Excalidraw drawings, export an SVG or PNG, then embed
 the drawing normally:
 
 ```md
@@ -199,7 +204,9 @@ Tests run against the built `dist/` output (static HTML files) using [Vitest](ht
 | `tests/build.test.ts` | `astro build` exits successfully, all page HTML files exist, 404 + sitemap + robots.txt + security.txt generated |
 | `tests/html-structure.test.ts` | Key HTML elements: titles, meta tags, OG tags, navigation, headings, footer, project cards, detail content |
 | `tests/obsidian-callouts.test.mjs` | Obsidian callout rewriting for standard, expanded, and collapsed callout blockquotes |
-| `tests/obsidian-embeds.test.mjs` | Obsidian embed rewriting and asset-copy behavior for images and Excalidraw exports |
+| `tests/obsidian-embeds.test.mjs` | Obsidian embed rewriting (intrinsic dimensions, blur-up placeholders, eager/lazy loading) and asset-copy behavior for images and Excalidraw exports |
+| `tests/strip-image-metadata.test.mjs` | EXIF/GPS stripping, orientation baking, and clean-image skipping in the image pipeline |
+| `tests/reading-time.test.ts` | Reading-time estimation from Markdown body word count |
 
 ## Features
 
@@ -270,7 +277,7 @@ Only `done` and `ongoing` projects are shown publicly. Project thumbnails are co
 | `nginx/default.conf` | nginx config (AI/scraper UA blocking + rate limiting); rsynced to the NAS by `deploy.sh` |
 | `scripts/run-local-script.mjs` | Cross-platform npm dispatcher that chooses PowerShell on Windows and Bash elsewhere |
 | `scripts/sync-obsidian-assets.mjs` | Copies only web-renderable assets referenced by Obsidian embeds into per-project folders under `public/images/`; uses a manifest to clean up stale files |
-| `scripts/strip-image-metadata.mjs` | Strips EXIF/GPS metadata from raster images in `public/images/`, and converts `.heic`/`.heif` to `.webp` (via `sips` on macOS, since sharp can't decode HEIC) so the photos render in browsers |
+| `scripts/strip-image-metadata.mjs` | Strips EXIF/GPS metadata from raster images in `public/images/`, auto-orients them (baking in EXIF rotation), resizes down to a 1600px longest edge, and converts `.heic`/`.heif` to `.webp` (via `sips` on macOS, since sharp can't decode HEIC) so the photos render fast in browsers |
 | `scripts/sync-content.sh` / `scripts/sync-content.ps1` | Pull markdown content from the Obsidian vault |
 | `scripts/deploy.sh` / `scripts/deploy.ps1` | Sync + build + rsync deployment scripts |
 | `dist/` | Build output (gitignored) |
