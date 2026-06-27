@@ -109,7 +109,7 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
     <!-- The inner wrapper carries the per-page width cap (--container), centering, and padding. -->
     <!-- transition:name="main" gives this element a unique identity for the View Transitions API -->
     <main class="w-full flex-1" transition:name="main">
-      <div class="mx-auto w-full max-w-[var(--container,var(--width-prose))] px-6 py-12">
+      <div class="mx-auto w-full max-w-[var(--container,var(--width-prose))] px-6 pt-6 pb-12">
         <!-- <slot /> is where child content gets injected.
              When a page does <Layout><h1>Hello</h1></Layout>,
              the <h1>Hello</h1> appears here -->

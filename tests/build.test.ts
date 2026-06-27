@@ -17,12 +17,14 @@ const projectDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const distDir = resolve(projectDir, 'dist');
 
 describe('Build verification', () => {
+  // `astro build` is a real, multi-second build shelled out via execSync, so give
+  // it a generous timeout instead of Vitest's 5s default (which it sits right on).
   it('astro build completes successfully', () => {
     execSync('npm run build', {
       cwd: projectDir,
       stdio: 'pipe',
     });
-  });
+  }, 60000);
 
   it('dist/index.html exists after build', () => {
     expect(existsSync(resolve(distDir, 'index.html'))).toBe(true);
