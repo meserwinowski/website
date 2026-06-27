@@ -52,7 +52,7 @@ The original inspiration for this article was to write about the rig I built!
 
 I won't be able to tell you exactly how to build your own. Hopefully walking through my decisions and learnings can be helpful reference. The audience I had in mind would be other musicians, but anyone doing live sound should be able to glean some insights.
 
-It is a bit of a project, and if you'd prefer not to undertake it there are people who do design and build stage rigs / audio systems for musicians, so that is also an option.
+It is a bit of a project, and if you'd prefer not to undertake it there are people who do design and build stage rigs / audio systems for musicians. It’s more fun if you do it yourself, and you’ll save some money!
 
 ---
 # My Rig
@@ -61,15 +61,32 @@ About two years ago I built an 8U rolling stage mixer around a Midas MR18, so a 
 
 Here are some diagrams of my rig! The rest of this post is all about explaining the decisions and details that led up to the design.
 
-## Graph View
+## Graph Diagram
 
 ![[Excalidraw/stage-mixer-diagram.excalidraw|stage-mixer-diagram.excalidraw|800x600]]
-## Front View
+
+## Front Diagram
 
 ![[stage-mixer-view-front.excalidraw|600x400]]
-## Back View
+
+## Back Diagram
 
 ![[stage-mixer-view-back.excalidraw|600x400]]
+
+## Original Whiteboard
+
+![[whiteboard.HEIC]]
+
+## Front View
+
+
+
+## Back View
+
+
+
+> [!note]- The current pictures look a bit different than the diagram views.
+> At time of writing it’s been over a year since I last used my stage mixer - I decided a better use of the power conditioner would be for my desk. I also got a Quad Cortex Mini as a gift, which is also on my desk, so the AF3 is still currently racked in the rig.
 
 ## Getting Started
 
@@ -96,6 +113,8 @@ I mentioned I already had a **Fractal Axe-Fx 3 (3U)** - a lovely graduation gift
 
 **Power** - Due to playing with the Axe-Fx 3 (AF3) I had already racked it in a smaller 6U case with a **Furman PL-PLUS DMC power conditioner (1U)**. 15 amps, surge protection, and AC filtering this power conditioner was already perfect for what I needed.
 
+![[power-conditioner.HEIC]]
+
 >[!info]- Voltage and Current
 >You don’t need an engineering degree to understand that your equipment needs power, and power is dangerous. A good power conditioner can protect your equipment and filter out noise.
 >
@@ -121,6 +140,8 @@ For the mixer there were a couple of attributes that stood out to me as importan
 #### **I/O**
 After some research and browsing I purchased a **Midas MR18 (3U)**. The MR18 actually had a little more I/O than I needed, but just the right amount for expandability which I'll discuss with more detail in the patch bay section.
 
+![[mixer.HEIC]]
+
 **Inputs** - I ended up using 8 of the 16 inputs. The connectors are balanced mono XLR 1/4" combo inputs.
 
 > [!info]- [Balanced audio](https://en.wikipedia.org/wiki/Balanced_audio) is actually a really cool electrical engineering concept.
@@ -135,6 +156,8 @@ Luckily I had a little out-of-the-box idea (technically in the box…).
 I knew that since the outputs were mono, I would need to pair them up, and pan outputs left and right in the mixer routing. Then I would need to get a cable that would take two mono XLR and combine them into a stereo XLR. However, I could not find such a cable, and realized I would have to make my own!
 
 So I bought some XLR connectors + cable, and cut and soldered everything together to get 3 mono-to-stereo XLR cables. Why 3? Because I could just duplicate the stereo output for two of these custom cables I created. I would do this with a stereo splitter cable. Effectively I would now have 5 stereo outputs.
+
+![[custom-cable.HEIC]]
 
 Another upside was that I had the Main L and R outputs still free. I simply routed those out as a dedicated "band mix" that could be shared with the FOH if needed. The main benefit here was to be able to share not just a band mix, but also any audio from a laptop connected to the Digital I/O for the mixer over USB. More on that later.
 
@@ -205,6 +228,8 @@ The first patch bay I chose was a **Hosa XLR Balanced Patchbay (1U)**. This patc
 - One XLR for my AF3 foot controller (FC6)
 - Two XLRs for the Main L/R output from the mixer.
 
+![[output-bay.HEIC]]
+
 Setting up this component is quite easy, but here are some extra tips:
 1) You can unscrew the XLR ports and flip them around - this is why I put input in quote earlier: my FC6 uses an XLR for power and signal, and it technically had an input setup.
 2) Use a label maker to mark the connectors! I bought a **Brother P-Touch Cube Smartphone Label Maker** to do this, and it worked really well to visually make it really clear which port was which. A cheaper option is to use pen/marker and a bit of masking tape.
@@ -212,11 +237,15 @@ Setting up this component is quite easy, but here are some extra tips:
 #### **Input Bay (S8 Splitter)**
 For the input bay I got the **ART S8 (1U)**. It’s a three-way mic splitter with 8 channels. More than enough for what I wanted to do.
 
+![[s8.HEIC]]
+
 What I really like about this unit is that you get a front facing output, and the build quality is really nice too. The front facing output is key to forwarding the band’s signals to the FOH. The way that was most recommended to do this is with a *cable snake*.
 
 A cable snake is a bunch of individual cables all bound together except for the ends. Each small cable is color coded so you know which connectors match from each end. The cable snake combined with labels is a great way to set up your rig and hand off those signals to the FOH. In my case these would be raw signals from a DI or microphone because the front face of the S8 is just a duplicate.
 
 Inside the rig, the S8 produces two more copies. I used a tiny internal cable snake to connect 8 internal outputs to the first 8 internal inputs of my mixer.
+
+![[s8-and-mixer.HEIC]]
 
 Finally, I also had to wire up my AF3. I used two internal XLRs for the Left and Right outputs, that then looped to the front of S8 using right-angled low-profile connectors. Those channels went to the mixer, but since I had a third copy I routed that directly to the *output bay*, which then made it easy to connect my Line 6 FRFR speaker.
 
@@ -256,6 +285,8 @@ While this setup is a relatively cheap way to get stereo IEMs, it's quite clunky
 ### Testing
 With any good system you should be testing it as you go. Solving problems as they arise is a lot easier than debugging something that has been completely assembled.
 
+![[testing.HEIC]]
+
 Test that each component is working as you go through the assembly. Dial in your mixer's configuration over multiple practice sessions. The routing software for the mixers can be kind of a pain so get familiar with using it.
 
 A multimeter can also be useful for checking continuity if you've mixed up some cables and are trying to figure out which is which.
@@ -269,6 +300,10 @@ A multimeter can also be useful for checking continuity if you've mixed up some 
 A stage mixer is pretty punk rock, especially if you make it a DIY project.
 
 One thing I didn't talk about is that the stage mixer essentially doubles as a portable recording studio. The MR18's USB is bidirectional, so it can act as an audio interface. Throw in another S8 and you can have 16 XLRs recording a whole band for a demo.
+
+I unfortunately failed to get a good picture of the rig in action. The closet I have is this nice photo a friend took at a show. The rig is barely visible behind me!
+
+![[matt-vb-show.jpg]]
 
 If you found this article helpful, or you end up building your own stage mixer, I'd love to hear about it.
 

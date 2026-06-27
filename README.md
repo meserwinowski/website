@@ -89,8 +89,7 @@ Content lives in your Obsidian vault (set `VAULT_SUBPATH` in `deploy.env`):
 |--------------|-------------|---------|
 | `projects/` | `src/content/projects/` | Project markdown files (with frontmatter) |
 | `pages/` | `src/content/pages/` | Page content (home, about) |
-| `images/` | `public/images/` | Thumbnails, photos, and other curated images |
-| Referenced image embeds | `public/images/` | Web-renderable assets referenced by Obsidian embeds |
+| Referenced image embeds | `public/images/<project>/` | Web-renderable assets referenced by Obsidian embeds, grouped per content file |
 
 Edit markdown in Obsidian → run `npm run deploy` to ship directly, **or** `npm run sync`,
 commit, and push to deploy via CI.
@@ -98,8 +97,17 @@ commit, and push to deploy via CI.
 Obsidian image embeds are supported with the `![[...]]` syntax. During sync, the
 site scans committed Markdown for referenced embeds and copies only web-renderable
 asset exports (`.svg`, `.png`, `.webp`, `.jpg`, `.jpeg`, `.gif`) into
-`public/images/`; raw `.excalidraw` drawing files are intentionally not
-published. The sync searches the website content folder and an optional shared
+`public/images/`. Only assets that are actually embedded are published — the
+whole vault `images/` folder is **not** mirrored, so unreferenced files stay out
+of the site. Each embed is placed in a folder mirroring its content file's
+location, so a project's assets all live together (e.g. embeds in
+`src/content/projects/stage-mixer.md` land in `public/images/projects/stage-mixer/`).
+Raw `.excalidraw` drawing files are intentionally not published. `.heic`/`.heif`
+photos (e.g. straight from an iPhone) are converted to `.webp` during sync —
+browsers can't render HEIC — and the embeds are rewritten to point at the `.webp`
+result. Assets whose published output is already newer than the vault source are
+skipped, so re-syncing is fast and only new or changed images are
+re-copied/reconverted. The sync searches the website content folder and an optional shared
 Excalidraw export folder (`EXCALIDRAW_SUBPATH` in `deploy.env`), so Excalidraw
 exports can live in a central drawing folder while page Markdown stays with the vault.
 During build, `src/plugins/remark-obsidian-embeds.mjs` rewrites those embeds to
@@ -110,8 +118,8 @@ the drawing normally:
 ![[Excalidraw/stage-mixer-diagram.excalidraw|stage-mixer-diagram|800x600]]
 ```
 
-If an SVG export exists, that renders as
-`/images/Excalidraw/stage-mixer-diagram.svg`; otherwise the renderer
+If an SVG export exists, that renders (from `stage-mixer.md`) as
+`/images/projects/stage-mixer/stage-mixer-diagram.svg`; otherwise the renderer
 uses another copied web export when available.
 
 Obsidian callouts are also supported. Markdown such as
@@ -236,7 +244,7 @@ repo: "https://github.com/..."  # optional
 Your markdown content here...
 ```
 
-Only `done` and `ongoing` projects are shown publicly. Place thumbnail images in your vault's `images/projects/` folder — they sync to `public/images/projects/` automatically.
+Only `done` and `ongoing` projects are shown publicly. Project thumbnails are committed directly to `public/images/projects/` (e.g. `public/images/projects/project-name.svg`); they aren't pulled from the vault. Embedded images referenced with `![[...]]` are published separately under a per-project folder like `public/images/projects/project-name/`.
 
 ## Project Structure
 
@@ -261,8 +269,8 @@ Only `done` and `ongoing` projects are shown publicly. Place thumbnail images in
 | `package.json` | Dependencies and npm scripts |
 | `nginx/default.conf` | nginx config (AI/scraper UA blocking + rate limiting); rsynced to the NAS by `deploy.sh` |
 | `scripts/run-local-script.mjs` | Cross-platform npm dispatcher that chooses PowerShell on Windows and Bash elsewhere |
-| `scripts/sync-obsidian-assets.mjs` | Copies only web-renderable assets referenced by Obsidian embeds into `public/images/`; uses a manifest to clean up stale files |
-| `scripts/strip-image-metadata.mjs` | Strips EXIF/GPS metadata from raster images in `public/images/` to prevent location data leakage |
+| `scripts/sync-obsidian-assets.mjs` | Copies only web-renderable assets referenced by Obsidian embeds into per-project folders under `public/images/`; uses a manifest to clean up stale files |
+| `scripts/strip-image-metadata.mjs` | Strips EXIF/GPS metadata from raster images in `public/images/`, and converts `.heic`/`.heif` to `.webp` (via `sips` on macOS, since sharp can't decode HEIC) so the photos render in browsers |
 | `scripts/sync-content.sh` / `scripts/sync-content.ps1` | Pull markdown content from the Obsidian vault |
 | `scripts/deploy.sh` / `scripts/deploy.ps1` | Sync + build + rsync deployment scripts |
 | `dist/` | Build output (gitignored) |

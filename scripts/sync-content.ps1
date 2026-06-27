@@ -76,20 +76,12 @@ if (Test-Path $VaultPages) {
     Write-Host "  !! Pages      no vault folder found" -ForegroundColor Yellow
 }
 
-# --- Sync images ---
-$VaultImages = Join-Path $VaultDir 'images'
-if (Test-Path $VaultImages) {
-    & robocopy $VaultImages $ImagesDir /E /NJH /NJS /NP /NFL /NDL *> $null
-    $exitCode = $LASTEXITCODE
-    if ($exitCode -ge 8) {
-        throw "Robocopy failed for images (exit code $exitCode)"
-    }
-    $count = (Get-ChildItem $ImagesDir -Recurse -File -Exclude '.embed-manifest.json' | Measure-Object).Count
-    Write-Host "  OK Images     $count files" -ForegroundColor Green
-} else {
-    Write-Host "  !! Images     no vault folder found" -ForegroundColor Yellow
-}
-
+# --- Embedded images ---
+# Embedded images and Excalidraw exports are published per-project by
+# sync-obsidian-assets.mjs (only assets referenced via ![[...]] embeds are
+# copied, grouped under public/images/<project>/). HEIC/HEIF embeds are then
+# converted to WebP by strip-image-metadata.mjs. We intentionally don't mirror
+# the whole vault images/ folder, so unreferenced assets stay out of public/.
 node .\scripts\sync-obsidian-assets.mjs
 node .\scripts\strip-image-metadata.mjs
 

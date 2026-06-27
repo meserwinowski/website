@@ -1,17 +1,23 @@
 import { existsSync } from 'node:fs';
-import { basename, extname, resolve } from 'node:path';
+import { basename, extname, isAbsolute, relative, resolve } from 'node:path';
 
 const defaultAssetBaseUrl = '/images/';
 const webImageExtensions = ['.svg', '.png', '.webp', '.jpg', '.jpeg', '.gif'];
 const directImageExtensions = new Set(webImageExtensions);
+// Browsers can't render HEIC/HEIF; the sync pipeline converts them to WebP, so
+// embeds pointing at these are rewritten to the converted .webp asset.
+const convertToWebpExtensions = new Set(['.heic', '.heif']);
 const embedPattern = /!\[\[([^\]]+)\]\]/g;
 
 export default function remarkObsidianEmbeds(options = {}) {
   const assetBaseUrl = options.assetBaseUrl ?? defaultAssetBaseUrl;
   const assetsDir = options.assetsDir ? resolve(options.assetsDir) : null;
+  const contentRoot = options.contentRoot ? resolve(options.contentRoot) : null;
 
-  return function transform(tree) {
-    transformChildren(tree, { assetBaseUrl, assetsDir });
+  return function transform(tree, file) {
+    const filePath = file?.path ?? file?.history?.[file.history.length - 1] ?? null;
+    const prefix = assetFolderForContentFile(contentRoot, filePath);
+    transformChildren(tree, { assetBaseUrl, assetsDir, prefix });
   };
 }
 
@@ -117,33 +123,59 @@ function parseEmbed(rawEmbed, options) {
   };
 }
 
-function toAssetUrl(target, { assetBaseUrl, assetsDir }) {
+function toAssetUrl(target, { assetBaseUrl, assetsDir, prefix }) {
   const extension = extname(target).toLowerCase();
-  let publicPath = target;
+  const name = basename(target);
+  let assetFile;
 
   if (extension === '.excalidraw') {
-    publicPath = resolveExcalidrawExportPath(target, assetsDir);
-  } else if (!directImageExtensions.has(extension)) {
+    assetFile = resolveExcalidrawExportFile(name, assetsDir, prefix);
+  } else if (convertToWebpExtensions.has(extension)) {
+    assetFile = `${name.slice(0, -extension.length)}.webp`;
+  } else if (directImageExtensions.has(extension)) {
+    assetFile = name;
+  } else {
     return null;
   }
 
+  const publicPath = joinAssetPath(prefix, assetFile);
   return `${assetBaseUrl.replace(/\/?$/, '/')}${encodePath(publicPath)}`;
 }
 
-function resolveExcalidrawExportPath(target, assetsDir) {
-  const withoutExtension = target.slice(0, -extname(target).length);
+function resolveExcalidrawExportFile(name, assetsDir, prefix) {
+  const base = name.slice(0, -extname(name).length);
 
   if (assetsDir) {
     for (const extension of webImageExtensions) {
-      const candidate = `${withoutExtension}${extension}`;
+      const candidate = joinAssetPath(prefix, `${base}${extension}`);
 
       if (existsSync(resolve(assetsDir, candidate))) {
-        return candidate;
+        return `${base}${extension}`;
       }
     }
   }
 
-  return `${withoutExtension}.svg`;
+  return `${base}.svg`;
+}
+
+// Place a project's embedded assets under a folder mirroring the content file's
+// location, e.g. src/content/projects/stage-mixer.md -> images/projects/stage-mixer/.
+function assetFolderForContentFile(contentRoot, filePath) {
+  if (!contentRoot || !filePath) {
+    return '';
+  }
+
+  const relativePath = relative(contentRoot, filePath);
+
+  if (!relativePath || relativePath.startsWith('..') || isAbsolute(relativePath)) {
+    return '';
+  }
+
+  return relativePath.replace(/\.[^./\\]+$/, '').split(/[\\/]/).join('/');
+}
+
+function joinAssetPath(prefix, file) {
+  return prefix ? `${prefix}/${file}` : file;
 }
 
 function parseDimensions(value) {
@@ -195,7 +227,13 @@ function basenameWithoutKnownExtension(target) {
   const fileName = basename(target);
   const extension = extname(fileName);
 
-  if (extension.toLowerCase() === '.excalidraw' || directImageExtensions.has(extension.toLowerCase())) {
+  const lowerExtension = extension.toLowerCase();
+
+  if (
+    lowerExtension === '.excalidraw' ||
+    directImageExtensions.has(lowerExtension) ||
+    convertToWebpExtensions.has(lowerExtension)
+  ) {
     return fileName.slice(0, -extension.length);
   }
 

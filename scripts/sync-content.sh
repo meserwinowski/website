@@ -49,15 +49,11 @@ else
   echo -e "  ${YELLOW}⚠${RESET}  Pages      ${DIM}no vault folder found${RESET}"
 fi
 
-# Sync images
-if [ -d "$VAULT_DIR/images" ]; then
-  rsync -a "$VAULT_DIR/images/" "$IMAGES_DIR/"
-  COUNT=$(find "$IMAGES_DIR" -type f ! -name '.embed-manifest.json' | wc -l | tr -d ' ')
-  echo -e "  ${GREEN}✓${RESET}  Images     ${DIM}${COUNT} files${RESET}"
-else
-  echo -e "  ${YELLOW}⚠${RESET}  Images     ${DIM}no vault folder found${RESET}"
-fi
-
+# Embedded images and Excalidraw exports are published per-project by
+# sync-obsidian-assets.mjs (only assets referenced via ![[...]] embeds are
+# copied, grouped under public/images/<project>/). HEIC/HEIF embeds are then
+# converted to WebP by strip-image-metadata.mjs. We intentionally don't mirror
+# the whole vault images/ folder, so unreferenced assets stay out of public/.
 node ./scripts/sync-obsidian-assets.mjs
 node ./scripts/strip-image-metadata.mjs
 

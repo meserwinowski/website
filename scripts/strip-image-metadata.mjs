@@ -1,5 +1,7 @@
-import { readdirSync, readFileSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { mkdtempSync, readdirSync, readFileSync, rmSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
 import { dirname, extname, join, relative, resolve } from 'node:path';
+import { tmpdir } from 'node:os';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import sharp from 'sharp';
 
@@ -21,11 +23,20 @@ export async function stripImageMetadata(imagesDir = resolve(repoRoot, 'public',
 
   let stripped = 0;
   let converted = 0;
+  const failed = [];
 
   // Strip metadata from web-native raster images
   for (const filePath of strippable) {
     const input = readFileSync(filePath);
     const metadata = await sharp(input).metadata();
+
+    // Only re-encode when there's actually privacy metadata to remove. Skipping
+    // already-clean files keeps the pass idempotent and avoids needlessly
+    // recompressing images (which degrades JPEGs and bloats WebP) on every sync.
+    if (!metadata.exif && !metadata.xmp && !metadata.iptc) {
+      continue;
+    }
+
     let pipeline = sharp(input);
 
     // Preserve format and quality — we only want to strip metadata, not degrade
@@ -51,18 +62,48 @@ export async function stripImageMetadata(imagesDir = resolve(repoRoot, 'public',
 
   // Convert non-web formats (HEIC/HEIF) to WebP, stripping metadata in the process
   for (const filePath of convertible) {
-    const input = readFileSync(filePath);
-    const output = await sharp(input).webp({ quality: 90 }).toBuffer();
+    try {
+      const output = await convertToWebpBuffer(filePath);
 
-    if (output.length > 0) {
-      const webpPath = filePath.slice(0, -extname(filePath).length) + '.webp';
-      writeFileSync(webpPath, output);
-      unlinkSync(filePath);
-      converted += 1;
+      if (output.length > 0) {
+        const webpPath = filePath.slice(0, -extname(filePath).length) + '.webp';
+        writeFileSync(webpPath, output);
+        unlinkSync(filePath);
+        converted += 1;
+      }
+    } catch (error) {
+      failed.push({ filePath, message: error.message.split('\n')[0] });
     }
   }
 
-  return { stripped, converted, scanned: strippable.length + convertible.length };
+  return { stripped, converted, failed, scanned: strippable.length + convertible.length };
+}
+
+// Convert a HEIC/HEIF file to a WebP buffer.
+// sharp's prebuilt libheif ships without an HEVC decoder ("Support for this
+// compression format has not been built in"), so it can't read HEIC directly.
+// On macOS we fall back to `sips`, which decodes via the OS codecs, to produce a
+// PNG that sharp can then encode to WebP.
+async function convertToWebpBuffer(filePath) {
+  const input = readFileSync(filePath);
+
+  try {
+    return await sharp(input).webp({ quality: 90 }).toBuffer();
+  } catch (sharpError) {
+    if (process.platform !== 'darwin') {
+      throw sharpError;
+    }
+
+    const tmpDir = mkdtempSync(join(tmpdir(), 'heic-convert-'));
+    const pngPath = join(tmpDir, 'frame.png');
+
+    try {
+      execFileSync('sips', ['-s', 'format', 'png', filePath, '--out', pngPath], { stdio: 'ignore' });
+      return await sharp(readFileSync(pngPath)).webp({ quality: 90 }).toBuffer();
+    } finally {
+      rmSync(tmpDir, { recursive: true, force: true });
+    }
+  }
 }
 
 function listFiles(dir) {
@@ -97,8 +138,15 @@ async function main() {
     console.log(`  OK Metadata   ${parts.join(', ')}`);
   } else if (result.scanned === 0) {
     console.log('  -- Metadata   no raster images found');
-  } else {
+  } else if (result.failed.length === 0) {
     console.log(`  -- Metadata   ${result.scanned} image(s) scanned, all clean`);
+  }
+
+  if (result.failed.length > 0) {
+    console.log('  !! Could not convert (left in place):');
+    for (const { filePath, message } of result.failed) {
+      console.log(`     - ${relative(repoRoot, filePath)} (${message})`);
+    }
   }
 }
 
