@@ -14,7 +14,7 @@ date: 2026-06-15
 > I ask myself stuff like this on occasion. I thought this would be a fun and silly hook to use for this project. I do think there's an argument to be made for either side.
 
 ---
-If you've ever wondered what's in the black boxes that live musicians tour around with, it is usually one of the following:
+If you've ever wondered what's in the black boxes that musicians tour around with, it is usually one of the following:
 - Instruments
 - Microphones / Amplifiers
 - Mixers / Consoles
@@ -61,33 +61,33 @@ About two years ago I built an 8U rolling stage mixer around a Midas MR18, so a 
 
 Here are some diagrams of my rig! The rest of this post is all about explaining the decisions and details that led up to the design.
 
-## Diagrams
+## Visuals
 
 Everyone loves a good visual, so I'll start with a bunch you can use as a reference.
 
-### Graph
+### Graph Diagram
 
 ![[Excalidraw/stage-mixer-diagram.excalidraw|stage-mixer-diagram.excalidraw|800x600]]
 
-## Front Diagram
+### Front Diagram
 
 ![[stage-mixer-view-front.excalidraw|600x400]]
 
-## Back Diagram
+### Back Diagram
 
 ![[stage-mixer-view-back.excalidraw|600x400]]
 
-## Original Whiteboard
+### Original Whiteboard
 
 ![[whiteboard.HEIC]]
 
-## Front View
+### Front View
 
+![[mixer-front.HEIC]]
 
+### Back View
 
-## Back View
-
-
+![[mixer-back.HEIC]]
 
 > [!note]- The current pictures look a bit different than the diagram views.
 > At time of writing it’s been over a year since I last used my stage mixer - I decided a better use of the power conditioner would be for my desk. I also got a Quad Cortex Mini as a gift, which is also on my desk, so the AF3 is still currently racked in the rig.
