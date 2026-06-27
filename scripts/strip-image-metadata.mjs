@@ -37,7 +37,10 @@ export async function stripImageMetadata(imagesDir = resolve(repoRoot, 'public',
       continue;
     }
 
-    let pipeline = sharp(input);
+    // Auto-orient (bake any EXIF orientation into the pixels) before stripping
+    // metadata. Removing EXIF without this drops the orientation tag while
+    // leaving the raw pixels un-rotated, which visibly rotates the image.
+    let pipeline = sharp(input).rotate();
 
     // Preserve format and quality — we only want to strip metadata, not degrade
     switch (metadata.format) {
@@ -84,11 +87,15 @@ export async function stripImageMetadata(imagesDir = resolve(repoRoot, 'public',
 // compression format has not been built in"), so it can't read HEIC directly.
 // On macOS we fall back to `sips`, which decodes via the OS codecs, to produce a
 // PNG that sharp can then encode to WebP.
+//
+// `.rotate()` auto-orients from EXIF so any rotation is baked into the pixels;
+// the WebP we emit carries no orientation tag, so without this the photo would
+// render rotated (sips preserves the orientation tag in the intermediate PNG).
 async function convertToWebpBuffer(filePath) {
   const input = readFileSync(filePath);
 
   try {
-    return await sharp(input).webp({ quality: 90 }).toBuffer();
+    return await sharp(input).rotate().webp({ quality: 90 }).toBuffer();
   } catch (sharpError) {
     if (process.platform !== 'darwin') {
       throw sharpError;
@@ -99,7 +106,7 @@ async function convertToWebpBuffer(filePath) {
 
     try {
       execFileSync('sips', ['-s', 'format', 'png', filePath, '--out', pngPath], { stdio: 'ignore' });
-      return await sharp(readFileSync(pngPath)).webp({ quality: 90 }).toBuffer();
+      return await sharp(readFileSync(pngPath)).rotate().webp({ quality: 90 }).toBuffer();
     } finally {
       rmSync(tmpDir, { recursive: true, force: true });
     }
