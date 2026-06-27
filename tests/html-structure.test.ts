@@ -63,8 +63,8 @@ describe('HTML structure - index.html', () => {
   });
 
   it('renders recent projects from the collection', () => {
-    expect(indexHtml).toContain('Personal Website');
-    expect(indexHtml).toMatch(/href="\/projects\/personal-website\/"/);
+    expect(indexHtml).toContain('Is a Stage Mixer Punk Rock?');
+    expect(indexHtml).toMatch(/href="\/projects\/stage-mixer\/"/);
     expect(indexHtml).toMatch(/href="\/projects\/"/);
   });
 });
@@ -149,13 +149,11 @@ describe('Theme toggle', () => {
 
 describe('Projects page - content collection', () => {
   it('renders project cards with links to detail pages', () => {
-    expect(projectsHtml).toMatch(/href="\/projects\/personal-website\/"/);
-    expect(projectsHtml).toMatch(/href="\/projects\/home-lab\/"/);
+    expect(projectsHtml).toMatch(/href="\/projects\/stage-mixer\/"/);
   });
 
   it('displays project titles', () => {
-    expect(projectsHtml).toContain('Personal Website');
-    expect(projectsHtml).toContain('Home Lab Server');
+    expect(projectsHtml).toContain('Is a Stage Mixer Punk Rock?');
   });
 
   it('displays status badges', () => {
@@ -163,12 +161,12 @@ describe('Projects page - content collection', () => {
   });
 
   it('displays tags', () => {
-    expect(projectsHtml).toContain('software');
     expect(projectsHtml).toContain('hardware');
+    expect(projectsHtml).toContain('music');
   });
 
-  it('shows thumbnails', () => {
-    expect(projectsHtml).toMatch(/src="\/images\/projects\/personal-website\.svg"/);
+  it('shows a placeholder for projects without a thumbnail', () => {
+    expect(projectsHtml).toMatch(/font-mono[^"]*">Is a Stage Mixer Punk Rock\?</);
   });
 });
 
@@ -176,11 +174,11 @@ describe('Project detail pages', () => {
   let projectDetailHtml: string;
 
   beforeAll(() => {
-    projectDetailHtml = readFileSync(resolve(distDir, 'projects', 'personal-website', 'index.html'), 'utf-8');
+    projectDetailHtml = readFileSync(resolve(distDir, 'projects', 'stage-mixer', 'index.html'), 'utf-8');
   });
 
   it('has correct title', () => {
-    expect(projectDetailHtml).toMatch(/<title>Personal Website - Matt Serwinowski<\/title>/);
+    expect(projectDetailHtml).toMatch(/<title>Is a Stage Mixer Punk Rock\? - Matt Serwinowski<\/title>/);
   });
 
   it('has back link to projects index', () => {
@@ -188,12 +186,7 @@ describe('Project detail pages', () => {
   });
 
   it('renders markdown content', () => {
-    expect(projectDetailHtml).toContain('Astro 6');
-    expect(projectDetailHtml).toContain('Tailwind CSS v4');
-  });
-
-  it('has repo link when provided', () => {
-    expect(projectDetailHtml).toMatch(/href="https:\/\/github\.com\/meserwinowski\/website"/);
+    expect(projectDetailHtml).toContain('Midas MR18');
   });
 
   it('shows estimated reading time near the top of the detail page', () => {
@@ -203,8 +196,8 @@ describe('Project detail pages', () => {
 
   it('renders a table of contents with links to markdown sections', () => {
     expect(projectDetailHtml).toMatch(/aria-label="Table of contents"/);
-    expect(projectDetailHtml).toMatch(/data-toc-target="overview"/);
-    expect(projectDetailHtml).toMatch(/data-toc-target="tech-stack"/);
+    expect(projectDetailHtml).toMatch(/data-toc-target="what-is-a-stage-mixer"/);
+    expect(projectDetailHtml).toMatch(/data-toc-target="my-rig"/);
   });
 });
 
