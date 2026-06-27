@@ -35,7 +35,7 @@ describe('Obsidian embed rendering', () => {
     expect(tree.children[0]).toEqual({
       type: 'html',
       value:
-        '<img src="/images/projects/stage-mixer/stage-mixer-diagram.svg" alt="stage mixer diagram" width="800" height="600" loading="lazy" decoding="async" />',
+        '<img src="/images/projects/stage-mixer/stage-mixer-diagram.svg" alt="stage mixer diagram" width="800" height="600" loading="eager" fetchpriority="high" decoding="async" />',
     });
   });
 
@@ -82,7 +82,7 @@ describe('Obsidian embed rendering', () => {
     expect(tree.children[0]).toEqual({
       type: 'html',
       value:
-        '<img src="/images/projects/stage-mixer/whiteboard.webp" alt="whiteboard" loading="lazy" decoding="async" />',
+        '<img src="/images/projects/stage-mixer/whiteboard.webp" alt="whiteboard" loading="eager" fetchpriority="high" decoding="async" />',
     });
   });
 
@@ -101,7 +101,7 @@ describe('Obsidian embed rendering', () => {
 
     expect(tree.children[0]).toEqual({
       type: 'html',
-      value: '<img src="/images/whiteboard.webp" alt="whiteboard" loading="lazy" decoding="async" />',
+      value: '<img src="/images/whiteboard.webp" alt="whiteboard" loading="eager" fetchpriority="high" decoding="async" />',
     });
   });
 
@@ -129,14 +129,46 @@ describe('Obsidian embed rendering', () => {
 
       await remarkObsidianEmbeds({ assetsDir, contentRoot })(tree, stageMixerFile);
 
-      expect(tree.children[0]).toEqual({
-        type: 'html',
-        value:
-          '<img src="/images/projects/stage-mixer/mixer.webp" alt="mixer" width="320" height="240" loading="lazy" decoding="async" />',
-      });
+      const { value } = tree.children[0];
+      expect(tree.children[0].type).toBe('html');
+      expect(value).toContain('src="/images/projects/stage-mixer/mixer.webp"');
+      expect(value).toContain('alt="mixer"');
+      expect(value).toContain('width="320"');
+      expect(value).toContain('height="240"');
+      // First (and only) image on the page loads eagerly as the likely LCP element.
+      expect(value).toContain('loading="eager"');
+      expect(value).toContain('fetchpriority="high"');
+      // Blur-up placeholder is inlined as a WebP data URI background.
+      expect(value).toContain('style="background-image:url(data:image/webp;base64,');
     } finally {
       rmSync(assetsDir, { recursive: true, force: true });
     }
+  });
+
+  it('loads the first embedded image eagerly and later images lazily', async () => {
+    const tree = {
+      type: 'root',
+      children: [
+        {
+          type: 'paragraph',
+          children: [{ type: 'text', value: '![[whiteboard.HEIC|first]]' }],
+        },
+        {
+          type: 'paragraph',
+          children: [{ type: 'text', value: '![[mixer.HEIC|second]]' }],
+        },
+      ],
+    };
+
+    await remarkObsidianEmbeds({ contentRoot })(tree, stageMixerFile);
+
+    const first = tree.children[0].value;
+    const second = tree.children[1].value;
+
+    expect(first).toContain('loading="eager"');
+    expect(first).toContain('fetchpriority="high"');
+    expect(second).toContain('loading="lazy"');
+    expect(second).not.toContain('fetchpriority');
   });
 });
 

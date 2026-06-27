@@ -1,4 +1,4 @@
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { basename, extname, isAbsolute, relative, resolve } from 'node:path';
 import sharp from 'sharp';
 
@@ -9,9 +9,13 @@ const directImageExtensions = new Set(webImageExtensions);
 // embeds pointing at these are rewritten to the converted .webp asset.
 const convertToWebpExtensions = new Set(['.heic', '.heif']);
 const embedPattern = /!\[\[([^\]]+)\]\]/g;
-// Memoizes intrinsic dimensions per resolved file so an image embedded more than
-// once is only read from disk once per build.
-const dimensionCache = new Map();
+// Longest edge of the inlined low-quality placeholder (LQIP). Tiny enough to add
+// only a few hundred bytes per image, large enough to read as a blurred preview
+// once the browser upscales it to fill the reserved box.
+const placeholderEdge = 20;
+// Memoizes intrinsic dimensions + placeholder per resolved file so an image
+// embedded more than once is only read and downsampled from disk once per build.
+const imageInfoCache = new Map();
 
 export default function remarkObsidianEmbeds(options = {}) {
   const assetBaseUrl = options.assetBaseUrl ?? defaultAssetBaseUrl;
@@ -21,7 +25,10 @@ export default function remarkObsidianEmbeds(options = {}) {
   return async function transform(tree, file) {
     const filePath = file?.path ?? file?.history?.[file.history.length - 1] ?? null;
     const prefix = assetFolderForContentFile(contentRoot, filePath);
-    await transformChildren(tree, { assetBaseUrl, assetsDir, prefix });
+    // Shared across the page so the first embedded image can load eagerly while
+    // the rest stay lazy.
+    const state = { firstImageEmitted: false };
+    await transformChildren(tree, { assetBaseUrl, assetsDir, prefix, state });
   };
 }
 
@@ -70,21 +77,30 @@ async function parseBlockEmbed(node, options) {
     return null;
   }
 
-  // Stamp intrinsic dimensions when the embed didn't specify them. This lets the
-  // browser reserve layout space up front, so images don't pop in or shift the
-  // page as they load while scrolling.
-  if ((!image.width || !image.height) && options.assetsDir && image.publicPath) {
-    const dimensions = await readImageDimensions(resolve(options.assetsDir, image.publicPath));
+  // Intrinsic dimensions let the browser reserve layout space up front, and an
+  // inlined low-quality placeholder fills that space with a blurred preview so
+  // images don't flash blank when scrolled into view faster than they load.
+  if (options.assetsDir && image.publicPath) {
+    const info = await readImageInfo(resolve(options.assetsDir, image.publicPath));
 
-    if (dimensions) {
-      image.width = image.width ?? dimensions.width;
-      image.height = image.height ?? dimensions.height;
+    if (info) {
+      image.width = image.width ?? info.width;
+      image.height = image.height ?? info.height;
+      image.placeholder = info.placeholder;
     }
+  }
+
+  // The first image on the page is the likely above-the-fold / LCP element, so
+  // load it eagerly with high priority; everything below stays lazy.
+  const eager = !options.state?.firstImageEmitted;
+
+  if (options.state) {
+    options.state.firstImageEmitted = true;
   }
 
   return {
     type: 'html',
-    value: renderImageHtml(image),
+    value: renderImageHtml(image, { eager }),
   };
 }
 
@@ -165,31 +181,41 @@ function toAssetUrl(target, { assetBaseUrl, assetsDir, prefix }) {
   return { url: `${assetBaseUrl.replace(/\/?$/, '/')}${encodePath(publicPath)}`, publicPath };
 }
 
-// Reads an image's intrinsic pixel dimensions for the width/height attributes.
-// SVGs are resolution-independent and may report fractional/no dimensions, so we
-// skip them. Failures (e.g. the file isn't synced yet) degrade gracefully to no
-// dimensions rather than breaking the build.
-async function readImageDimensions(filePath) {
+// Reads an image's intrinsic dimensions and builds a tiny inlined placeholder.
+// SVGs are resolution-independent (and already tiny), so they're skipped.
+// Failures (e.g. the file isn't synced yet) degrade gracefully to no info
+// rather than breaking the build.
+async function readImageInfo(filePath) {
   if (extname(filePath).toLowerCase() === '.svg') {
     return null;
   }
 
-  if (dimensionCache.has(filePath)) {
-    return dimensionCache.get(filePath);
+  if (imageInfoCache.has(filePath)) {
+    return imageInfoCache.get(filePath);
   }
 
-  let dimensions = null;
+  let info = null;
 
   try {
-    const { width, height } = await sharp(filePath).metadata();
+    const buffer = readFileSync(filePath);
+    const { width, height } = await sharp(buffer).metadata();
 
     if (width && height) {
-      dimensions = { width: String(width), height: String(height) };
+      const preview = await sharp(buffer)
+        .resize(placeholderEdge, placeholderEdge, { fit: 'inside' })
+        .webp({ quality: 50 })
+        .toBuffer();
+
+      info = {
+        width: String(width),
+        height: String(height),
+        placeholder: `data:image/webp;base64,${preview.toString('base64')}`,
+      };
     }
   } catch {}
 
-  dimensionCache.set(filePath, dimensions);
-  return dimensions;
+  imageInfoCache.set(filePath, info);
+  return info;
 }
 
 function resolveExcalidrawExportFile(name, assetsDir, prefix) {
@@ -241,13 +267,22 @@ function parseDimensions(value) {
   };
 }
 
-function renderImageHtml(image) {
+function renderImageHtml(image, { eager = false } = {}) {
+  // The placeholder is painted as the element's background; the real image draws
+  // on top and hides it once loaded. Upscaling the ~20px preview to cover the
+  // box is what gives the soft blur, so no CSS filter is needed.
+  const style = image.placeholder
+    ? `background-image:url(${image.placeholder});background-size:cover;background-position:center`
+    : null;
+
   const attributes = [
     ['src', image.src],
     ['alt', image.alt],
     ['width', image.width],
     ['height', image.height],
-    ['loading', 'lazy'],
+    ['style', style],
+    ['loading', eager ? 'eager' : 'lazy'],
+    ['fetchpriority', eager ? 'high' : null],
     ['decoding', 'async'],
   ]
     .filter(([, value]) => value)
