@@ -13,8 +13,8 @@ Pull the latest Markdown content from the Obsidian vault into the site source, t
    ```bash
    npm run sync
    ```
-   Source: `~/obsidian/vault/Projects/Website/` → `src/content/projects/`, `src/content/pages/`, and `public/images/` (see `scripts/sync-content.sh`).
-2. Report what landed. The content dirs are gitignored, so `git status` won't show them — instead list the synced files and their modified times:
+   Source: your Obsidian vault (`VAULT_SUBPATH` in `deploy.env`) → `src/content/projects/`, `src/content/pages/`, and `public/images/` (see `scripts/sync-content.sh`).
+2. Report what landed. `src/content/` is committed (so CI can build without the vault), so a sync shows up in `git status` — review the diff, and list the synced files and their modified times:
    ```bash
    ls -lt src/content/projects src/content/pages
    ```
@@ -28,4 +28,4 @@ Pull the latest Markdown content from the Obsidian vault into the site source, t
 
 - This does **not** build or deploy. When the user is happy with the preview, hand off to the `deploy-website` skill to ship it.
 - New project files need valid frontmatter (`title`, `description`, `status`, `tags`, `date`, optional `thumbnail`/`repo`). Only `done` and `ongoing` projects render publicly. See the "Adding Projects" section of `README.md` for the schema.
-- If sync reports "no vault folder found", the vault path in `scripts/sync-content.sh` (`VAULT_DIR`) is wrong or the vault moved — verify it points at the current vault location.
+- If sync reports "no vault folder found", the vault path (`VAULT_SUBPATH` in `deploy.env`) is wrong or the vault moved — verify it points at the current vault location.

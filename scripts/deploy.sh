@@ -1,17 +1,26 @@
 #!/bin/bash
 set -e
 
-NAS_USER="youruser"
-NAS_HOST="your-nas-host"
-DEPLOY_TARGET="/path/to/webserver/dist"
-NGINX_DIR="/path/to/webserver/nginx"
+# Load local deployment configuration (git-ignored; see deploy.env.example).
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ENV_FILE="$REPO_ROOT/deploy.env"
+if [ ! -f "$ENV_FILE" ]; then
+  echo "❌ Missing deploy.env. Copy deploy.env.example to deploy.env and fill in your values." >&2
+  exit 1
+fi
+set -a; . "$ENV_FILE"; set +a
+
+NAS_USER="${NAS_USER:?set NAS_USER in deploy.env}"
+NAS_HOST="${NAS_HOST:?set NAS_HOST in deploy.env}"
+DEPLOY_TARGET="${DEPLOY_TARGET:?set DEPLOY_TARGET in deploy.env}"
+NGINX_DIR="${NGINX_DIR:?set NGINX_DIR in deploy.env}"
 SOURCE_DIR="./dist/"
 SSH_OPTS="-o RemoteCommand=none -o RequestTTY=no"
 
-# Container lifecycle is owned by the generic NAS toolkit (nasctl), which lives in
-# OneDrive. We only need it here to reload nginx after pushing a new config.
+# Container lifecycle is owned by a separate NAS toolkit (nasctl) kept outside
+# this repo. We only need it here to reload nginx after pushing a new config.
 NASCTL="$(command -v nasctl || true)"
-: "${NASCTL:=$HOME/Library/CloudStorage/path/to/nasctl}"
+: "${NASCTL:=${NASCTL_PATH:-}}"
 
 # Sync content from Obsidian vault
 echo "📥 Syncing content from vault..."

@@ -12,19 +12,25 @@ $ErrorActionPreference = 'Stop'
 $RepoRoot = Resolve-Path (Join-Path $PSScriptRoot '..')
 Set-Location $RepoRoot
 
-$NasUser      = 'youruser'
-$NasHost      = 'your-nas-host'
-$DeployTarget = '/path/to/webserver/dist'
-$NginxDir     = '/path/to/webserver/nginx'
+# Load local deployment configuration (git-ignored; see deploy.env.example).
+. "$PSScriptRoot\load-deploy-env.ps1"
+$cfg = Import-DeployEnv (Join-Path $RepoRoot 'deploy.env')
+if (-not $cfg['NAS_HOST']) {
+    throw 'Missing deploy.env. Copy deploy.env.example to deploy.env and fill in your values.'
+}
+
+$NasUser      = $cfg['NAS_USER']
+$NasHost      = $cfg['NAS_HOST']
+$DeployTarget = $cfg['DEPLOY_TARGET']
+$NginxDir     = $cfg['NGINX_DIR']
 $SourceDir    = './dist/'
 $SshOpts      = @('-o', 'RemoteCommand=none', '-o', 'RequestTTY=no')
 
-# Container lifecycle is owned by the generic NAS toolkit (nasctl), which lives in
-# OneDrive. We only need it here to reload nginx after pushing a new config.
+# Container lifecycle is owned by a separate NAS toolkit (nasctl) kept outside
+# this repo. We only need it here to reload nginx after pushing a new config.
 $Nasctl = Get-Command nasctl -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source
-if (-not $Nasctl) {
-    $fallback = Join-Path $HOME 'path\to\nasctl'
-    if (Test-Path $fallback) { $Nasctl = $fallback }
+if (-not $Nasctl -and $cfg['NASCTL_PATH']) {
+    if (Test-Path $cfg['NASCTL_PATH']) { $Nasctl = $cfg['NASCTL_PATH'] }
 }
 
 # Require rsync + ssh on PATH (typically from Git for Windows or WSL)

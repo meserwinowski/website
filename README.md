@@ -10,7 +10,7 @@ A personal portfolio and posts site built with [Astro](https://astro.build/) and
 
 - Node.js (with npm)
 - Windows PowerShell 5.1+ on Windows, or Bash on macOS/Linux, for local helper scripts
-- SSH access to the NAS (`your-nas-host` via Tailscale) for local deploys
+- SSH access to the NAS (host configured in `deploy.env`) for local deploys
 - `rsync` and `ssh` on `PATH` for local deploys
 
 ### Development
@@ -36,7 +36,7 @@ This runs `scripts/run-local-script.mjs`, which dispatches to PowerShell on
 Windows (`deploy.ps1`) or Bash on macOS/Linux (`deploy.sh`). The deploy script:
 1. Syncs content from the Obsidian vault (`sync-content.ps1` / `sync-content.sh`)
 2. Builds the site with `astro build`
-3. Rsyncs the `dist/` directory to `/path/to/webserver/dist` on the NAS
+3. Rsyncs the `dist/` directory to the NAS deploy target (`DEPLOY_TARGET` in `deploy.env`)
 4. nginx (running in Docker) serves the files automatically
 
 ### Continuous Deployment (CI/CD)
@@ -57,9 +57,9 @@ latest content.
 | Secret | Purpose |
 |--------|---------|
 | `NAS_SSH_KEY` | Passphrase-less private deploy key (`nas_deploy_key`) |
-| `NAS_HOST` | NAS hostname (`your-nas-host` via Tailscale MagicDNS) |
+| `NAS_HOST` | NAS hostname (e.g. a Tailscale MagicDNS name) |
 | `NAS_USER` | SSH username on the NAS |
-| `NAS_DEPLOY_PATH` | Deploy target (`/path/to/webserver/dist`) |
+| `NAS_DEPLOY_PATH` | Deploy target (e.g. `/path/to/webserver/dist`) |
 | `TS_OAUTH_CLIENT_ID` | Tailscale OAuth client ID (scoped to `tag:ci`) |
 | `TS_OAUTH_SECRET` | Tailscale OAuth client secret |
 
@@ -67,11 +67,11 @@ latest content.
 with a forced command + `restrict`:
 
 ```
-command="/var/services/homes/youruser/bin/deploy-rsync-only.sh",restrict ssh-ed25519 AAAA... github-actions-deploy
+command="/var/services/homes/<nas-user>/bin/deploy-rsync-only.sh",restrict ssh-ed25519 AAAA... github-actions-deploy
 ```
 
 The wrapper (`~/bin/deploy-rsync-only.sh`) permits **only** an `rsync` push and forces the
-destination to `/path/to/webserver/dist/` — no shell, no other paths, no downloads. If a
+destination to your configured deploy target — no shell, no other paths, no downloads. If a
 leaked key is the worst case, it can do exactly one thing: rsync into `dist`. The personal key
 stays unrestricted for admin/recovery. If you ever change the rsync flags in `deploy.yml`
 (e.g. add `--rsync-path`), re-test the deploy, since the wrapper only passes through standard
@@ -83,7 +83,7 @@ stays unrestricted for admin/recovery. If you ever change the rsync flags in `de
 npm run sync   # Pull latest content from Obsidian vault
 ```
 
-Content lives in your Obsidian vault at `~/obsidian/vault/Projects/Website/`:
+Content lives in your Obsidian vault (set `VAULT_SUBPATH` in `deploy.env`):
 
 | Vault folder | Destination | Purpose |
 |--------------|-------------|---------|
@@ -99,9 +99,9 @@ Obsidian image embeds are supported with the `![[...]]` syntax. During sync, the
 site scans committed Markdown for referenced embeds and copies only web-renderable
 asset exports (`.svg`, `.png`, `.webp`, `.jpg`, `.jpeg`, `.gif`) into
 `public/images/`; raw `.excalidraw` drawing files are intentionally not
-published. The sync searches the website content folder and the shared
-`~/obsidian/vault/Excalidraw/` folder, so Excalidraw exports can live in the
-central drawing folder while page Markdown stays under `Projects/Website`.
+published. The sync searches the website content folder and an optional shared
+Excalidraw export folder (`EXCALIDRAW_SUBPATH` in `deploy.env`), so Excalidraw
+exports can live in a central drawing folder while page Markdown stays with the vault.
 During build, `src/plugins/remark-obsidian-embeds.mjs` rewrites those embeds to
 normal `<img>` tags. For Excalidraw drawings, export an SVG or PNG, then embed
 the drawing normally:
@@ -236,7 +236,7 @@ repo: "https://github.com/..."  # optional
 Your markdown content here...
 ```
 
-Only `done` and `ongoing` projects are shown publicly. Place thumbnail images in `~/obsidian/vault/Projects/Website/images/projects/` — they sync to `public/images/projects/` automatically.
+Only `done` and `ongoing` projects are shown publicly. Place thumbnail images in your vault's `images/projects/` folder — they sync to `public/images/projects/` automatically.
 
 ## Project Structure
 

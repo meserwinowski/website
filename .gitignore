@@ -1,6 +1,12 @@
 # OS
 .DS_Store
 
+# Local development
+PLANS.md
+
+# Local, machine-specific deployment configuration (real infra values)
+deploy.env
+
 # Dependencies
 node_modules
 

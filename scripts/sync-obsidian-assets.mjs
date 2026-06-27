@@ -4,9 +4,11 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(scriptDir, '..');
-const defaultObsidianRoot = join(process.env.HOME ?? process.env.USERPROFILE ?? '', 'obsidian', 'vault');
-const defaultVaultDir = join(defaultObsidianRoot, 'Projects', 'Website');
-const defaultExcalidrawDir = join(defaultObsidianRoot, 'Excalidraw');
+const homeDir = process.env.HOME ?? process.env.USERPROFILE ?? '';
+const fromSubpath = (subpath) => (subpath ? join(homeDir, ...subpath.split('/').filter(Boolean)) : null);
+const defaultVaultDir = process.env.VAULT_DIR ?? fromSubpath(process.env.VAULT_SUBPATH) ?? join(homeDir, 'vault');
+const defaultExcalidrawDir =
+  process.env.EXCALIDRAW_DIR ?? fromSubpath(process.env.EXCALIDRAW_SUBPATH) ?? join(defaultVaultDir, 'Excalidraw');
 const markdownExtensions = new Set(['.md', '.mdx']);
 const webImageExtensions = ['.svg', '.png', '.webp', '.jpg', '.jpeg', '.gif'];
 const exactWebImageExtensions = new Set(webImageExtensions);

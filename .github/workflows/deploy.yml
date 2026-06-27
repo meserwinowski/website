@@ -3,9 +3,9 @@
 #
 # Required GitHub Secrets:
 #   NAS_SSH_KEY          - Private SSH key for NAS access (nas_deploy_key)
-#   NAS_HOST             - NAS hostname (with Tailscale: just "your-nas-host")
+#   NAS_HOST             - NAS hostname (e.g. a Tailscale MagicDNS name)
 #   NAS_USER             - SSH username on NAS
-#   NAS_DEPLOY_PATH      - Deployment path (e.g., /path/to/webserver/dist)
+#   NAS_DEPLOY_PATH      - Deployment path on the NAS (e.g., /path/to/webserver/dist)
 #   TS_OAUTH_CLIENT_ID   - Tailscale OAuth client ID (lets the runner join your tailnet)
 #   TS_OAUTH_SECRET      - Tailscale OAuth client secret
 
