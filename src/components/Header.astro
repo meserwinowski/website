@@ -62,56 +62,100 @@ const normalizedCurrentPath = currentPath === '/' ? '/' : `${currentPath.replace
 
     <!-- Mobile hamburger button: only visible below sm (640px) breakpoint -->
     <!-- aria-label provides an accessible name since the button has no visible text -->
+    <!-- Boxed hamburger: also the close control. relative z-50 keeps it tappable -->
+    <!-- above the drawer; opaque bg so it reads as a button sitting on the panel. -->
     <button
       id="mobile-nav-toggle"
-      class="text-[var(--color-muted)] hover:text-[var(--color-text)] sm:hidden"
+      class="relative z-50 rounded-md border border-[var(--color-border)] bg-[var(--color-bg)] p-1.5 text-[var(--color-muted)] hover:border-[var(--color-muted)] hover:text-[var(--color-text)] sm:hidden"
       aria-label="Toggle navigation"
+      aria-controls="mobile-nav"
+      aria-expanded="false"
     >
       <!-- SVG hamburger icon (three horizontal lines) -->
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
       </svg>
     </button>
   </nav>
 
-  <!-- Mobile dropdown menu: starts hidden, toggled by the hamburger button's script below -->
-  <ul id="mobile-nav" class="hidden flex-col gap-2 border-t border-[var(--color-border)] px-6 py-4 sm:hidden">
-    {navLinks.map(({ href, label }) => (
-      <li>
-        <a
-          href={href}
-          class:list={[
-            'block text-base no-underline',
-            normalizedCurrentPath === href
-              ? 'text-[var(--color-accent)]'
-              : 'text-[var(--color-muted)] hover:text-[var(--color-text)]',
-          ]}
-        >
-          {label}
-        </a>
-      </li>
-    ))}
-  </ul>
+  <!-- Tap-away overlay: dims the page ~10% and closes the drawer when tapped. -->
+  <!-- Invisible + non-interactive when closed (no display:none, so it can fade). -->
+  <div
+    id="mobile-nav-overlay"
+    class="fixed inset-0 z-30 bg-black/10 opacity-0 pointer-events-none transition-opacity duration-300 motion-reduce:transition-none sm:hidden"
+  ></div>
+
+  <!-- Slide-in drawer: a floating card (like the project cards) below the header. -->
+  <!-- translate-x-[120%] parks it off-screen right; the script swaps to translate-x-0. -->
+  <!-- Height fits its content but is capped to the viewport (minus the header) so it -->
+  <!-- can never grow into the header bar; it scrolls internally if it ever overflows. -->
+  <nav
+    id="mobile-nav"
+    aria-label="Mobile"
+    aria-hidden="true"
+    class="fixed top-20 right-3 z-40 max-h-[calc(100dvh-6rem)] w-[64%] max-w-[18rem] translate-x-[120%] overflow-y-auto rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] transition-transform duration-300 ease-out motion-reduce:transition-none sm:hidden"
+  >
+    <!-- Compact rows split by divider lines (like card rows) -->
+    <ul class="flex flex-col divide-y divide-[var(--color-border)]">
+      {navLinks.map(({ href, label }) => (
+        <li>
+          <a
+            href={href}
+            class:list={[
+              'block px-5 py-3 text-lg no-underline',
+              normalizedCurrentPath === href
+                ? 'text-[var(--color-accent)]'
+                : 'text-[var(--color-muted)] hover:text-[var(--color-text)]',
+            ]}
+          >
+            {label}
+          </a>
+        </li>
+      ))}
+    </ul>
+  </nav>
 </header>
 
-<!-- Client-side JavaScript: toggles the mobile menu open/closed when hamburger is clicked -->
+<!-- Client-side JavaScript: opens/closes the slide-in mobile drawer. -->
 <!-- This <script> runs in the browser (not at build time like the --- frontmatter above) -->
 <!-- With View Transitions enabled, we use astro:page-load to re-bind after navigation -->
 <script>
   function setupMobileNav() {
     const toggle = document.getElementById('mobile-nav-toggle');
-    const menu = document.getElementById('mobile-nav');
+    const drawer = document.getElementById('mobile-nav');
+    const overlay = document.getElementById('mobile-nav-overlay');
 
-    if (!toggle || toggle.dataset.mobileNavBound === 'true') {
+    // Re-bind guard: skip if this toggle instance is already wired up
+    if (!toggle || !drawer || !overlay || toggle.dataset.mobileNavBound === 'true') {
       return;
     }
 
     toggle.dataset.mobileNavBound = 'true';
 
-    // When the button is clicked, swap between 'hidden' and 'flex' CSS classes
-    toggle.addEventListener('click', () => {
-      menu?.classList.toggle('hidden');
-      menu?.classList.toggle('flex');
+    // Slide the drawer in/out, fade the tap-away overlay, and keep ARIA in sync
+    function setOpen(open: boolean) {
+      drawer!.classList.toggle('translate-x-[120%]', !open);
+      drawer!.classList.toggle('translate-x-0', open);
+      overlay!.classList.toggle('opacity-0', !open);
+      overlay!.classList.toggle('pointer-events-none', !open);
+      overlay!.classList.toggle('opacity-100', open);
+      toggle!.setAttribute('aria-expanded', String(open));
+      drawer!.setAttribute('aria-hidden', String(!open));
+    }
+
+    function isOpen() {
+      return toggle!.getAttribute('aria-expanded') === 'true';
+    }
+
+    // The hamburger is the only open/close control
+    toggle.addEventListener('click', () => setOpen(!isOpen()));
+    // Tapping the dimmed area closes the drawer; starting to scroll/swipe on it
+    // (wheel or touch drag) also closes it so a tap-away-to-scroll gesture works.
+    overlay.addEventListener('click', () => setOpen(false));
+    overlay.addEventListener('wheel', () => setOpen(false), { passive: true });
+    overlay.addEventListener('touchmove', () => setOpen(false), { passive: true });
+    drawer.querySelectorAll('a').forEach((link) => {
+      link.addEventListener('click', () => setOpen(false));
     });
   }
 
@@ -119,6 +163,14 @@ const normalizedCurrentPath = currentPath === '/' ? '/' : `${currentPath.replace
   const headerWindow = window as Window & { __mobileNavPageLoadBound?: boolean };
   if (!headerWindow.__mobileNavPageLoadBound) {
     document.addEventListener('astro:page-load', setupMobileNav);
+    // Esc closes the open drawer — registered once for the page lifetime
+    document.addEventListener('keydown', (event) => {
+      if (event.key !== 'Escape') return;
+      const toggle = document.getElementById('mobile-nav-toggle');
+      if (toggle && toggle.getAttribute('aria-expanded') === 'true') {
+        toggle.click();
+      }
+    });
     headerWindow.__mobileNavPageLoadBound = true;
   }
   setupMobileNav();

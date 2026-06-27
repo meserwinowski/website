@@ -4,9 +4,6 @@ description: About Matt Serwinowski
 tags:
   - website
 ---
-
-> *Handcrafted artisanal thoughts and writing*
-
 My name is Matt, and welcome to my personal site. I assembled this website in order to better showcase the various projects I have worked on, and am currently working on. I found that I would do a lot of things, but I haven't had the right space to share the outcomes and learnings. I also wanted somewhere to share ideas that bounce around in my head, and link together my digital footprint.
 
 ## What I'm Into

@@ -9,11 +9,11 @@ tags:
 thumbnail:
 date: 2026-06-15
 ---
+---
 
 > [!example]- *Is a Stage Mixer Punk Rock?*
 > I ask myself stuff like this on occasion. I thought this would be a fun and silly hook to use for this project. I do think there's an argument to be made for either side.
 
----
 If you've ever wondered what's in the black boxes that musicians tour around with, it is usually one of the following:
 - Instruments
 - Microphones / Amplifiers
@@ -92,6 +92,7 @@ Everyone loves a good visual, so I'll start with a bunch you can use as a refere
 > [!note]- The current pictures look a bit different than the diagram views.
 > At time of writing it’s been over a year since I last used my stage mixer - I decided a better use of the power conditioner would be for my desk. I also got a Quad Cortex Mini as a gift, which is also on my desk, so the AF3 is still currently racked in the rig.
 
+---
 ## Getting Started
 
 Like any good project the first things to identify are your **requirements** and your **constraints**. Mine roughly looked like this:
@@ -336,6 +337,6 @@ Mixers come in different types: **Analog, Digital, and Hybrid**. These map onto 
 - Hybrid would be a mix of analog and digital processing channels.
 
 Mixers also come in different form factors: **racks, consoles, and stage boxes.**
-- Consoles are like something you would see in a recording studio or on a DJ's setup. They are usually operated by a stage or FOH engineer.
+- Consoles are like something you would see in a recording studio or on a DJ's setup. You can often see a FOH engineer operating one.
 - Stage boxes are simple rugged mixers with minimal external controls. Nicer ones have digital controls that can be operated wirelessly or over a hardwired connection. Can be racked or standalone.
 - Racked mixers are designed to be racked, and are built to the standard Rack Unit. Similar to server racks for computing, but not a surprise given digital computing and audio engineering have a shared history in electrical engineering.
