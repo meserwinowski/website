@@ -1,7 +1,7 @@
 ---
 title: Home Lab Server
 description: Self-hosted services on a Synology NAS with Docker and Tailscale networking.
-status: ongoing
+status: planning
 tags:
   - hardware
   - networking

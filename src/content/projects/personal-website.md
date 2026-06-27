@@ -1,7 +1,7 @@
 ---
 title: Personal Website
 description: Portfolio and blog built with Astro, Tailwind CSS, and deployed to a home server.
-status: ongoing
+status: planning
 tags:
   - software
   - website
