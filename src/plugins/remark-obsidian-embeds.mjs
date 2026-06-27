@@ -1,5 +1,6 @@
 import { existsSync } from 'node:fs';
 import { basename, extname, isAbsolute, relative, resolve } from 'node:path';
+import sharp from 'sharp';
 
 const defaultAssetBaseUrl = '/images/';
 const webImageExtensions = ['.svg', '.png', '.webp', '.jpg', '.jpeg', '.gif'];
@@ -8,41 +9,50 @@ const directImageExtensions = new Set(webImageExtensions);
 // embeds pointing at these are rewritten to the converted .webp asset.
 const convertToWebpExtensions = new Set(['.heic', '.heif']);
 const embedPattern = /!\[\[([^\]]+)\]\]/g;
+// Memoizes intrinsic dimensions per resolved file so an image embedded more than
+// once is only read from disk once per build.
+const dimensionCache = new Map();
 
 export default function remarkObsidianEmbeds(options = {}) {
   const assetBaseUrl = options.assetBaseUrl ?? defaultAssetBaseUrl;
   const assetsDir = options.assetsDir ? resolve(options.assetsDir) : null;
   const contentRoot = options.contentRoot ? resolve(options.contentRoot) : null;
 
-  return function transform(tree, file) {
+  return async function transform(tree, file) {
     const filePath = file?.path ?? file?.history?.[file.history.length - 1] ?? null;
     const prefix = assetFolderForContentFile(contentRoot, filePath);
-    transformChildren(tree, { assetBaseUrl, assetsDir, prefix });
+    await transformChildren(tree, { assetBaseUrl, assetsDir, prefix });
   };
 }
 
-function transformChildren(parent, options) {
+async function transformChildren(parent, options) {
   if (!Array.isArray(parent.children)) {
     return;
   }
 
-  parent.children = parent.children.flatMap((child) => {
-    const blockEmbed = parseBlockEmbed(child, options);
+  const nextChildren = [];
+
+  for (const child of parent.children) {
+    const blockEmbed = await parseBlockEmbed(child, options);
 
     if (blockEmbed) {
-      return [blockEmbed];
+      nextChildren.push(blockEmbed);
+      continue;
     }
 
     if (child.type === 'text') {
-      return splitTextNode(child, options);
+      nextChildren.push(...splitTextNode(child, options));
+      continue;
     }
 
-    transformChildren(child, options);
-    return [child];
-  });
+    await transformChildren(child, options);
+    nextChildren.push(child);
+  }
+
+  parent.children = nextChildren;
 }
 
-function parseBlockEmbed(node, options) {
+async function parseBlockEmbed(node, options) {
   if (node.type !== 'paragraph' || node.children?.length !== 1 || node.children[0]?.type !== 'text') {
     return null;
   }
@@ -58,6 +68,18 @@ function parseBlockEmbed(node, options) {
 
   if (!image) {
     return null;
+  }
+
+  // Stamp intrinsic dimensions when the embed didn't specify them. This lets the
+  // browser reserve layout space up front, so images don't pop in or shift the
+  // page as they load while scrolling.
+  if ((!image.width || !image.height) && options.assetsDir && image.publicPath) {
+    const dimensions = await readImageDimensions(resolve(options.assetsDir, image.publicPath));
+
+    if (dimensions) {
+      image.width = image.width ?? dimensions.width;
+      image.height = image.height ?? dimensions.height;
+    }
   }
 
   return {
@@ -109,14 +131,15 @@ function parseEmbed(rawEmbed, options) {
 
   const dimensions = parts.map(parseDimensions).find(Boolean);
   const explicitAlt = parts.find((part, index) => index > 0 && !parseDimensions(part));
-  const src = toAssetUrl(target, options);
+  const asset = toAssetUrl(target, options);
 
-  if (!src) {
+  if (!asset) {
     return null;
   }
 
   return {
-    src,
+    src: asset.url,
+    publicPath: asset.publicPath,
     alt: cleanAltText(explicitAlt ?? basenameWithoutKnownExtension(target)),
     width: dimensions?.width,
     height: dimensions?.height,
@@ -139,7 +162,34 @@ function toAssetUrl(target, { assetBaseUrl, assetsDir, prefix }) {
   }
 
   const publicPath = joinAssetPath(prefix, assetFile);
-  return `${assetBaseUrl.replace(/\/?$/, '/')}${encodePath(publicPath)}`;
+  return { url: `${assetBaseUrl.replace(/\/?$/, '/')}${encodePath(publicPath)}`, publicPath };
+}
+
+// Reads an image's intrinsic pixel dimensions for the width/height attributes.
+// SVGs are resolution-independent and may report fractional/no dimensions, so we
+// skip them. Failures (e.g. the file isn't synced yet) degrade gracefully to no
+// dimensions rather than breaking the build.
+async function readImageDimensions(filePath) {
+  if (extname(filePath).toLowerCase() === '.svg') {
+    return null;
+  }
+
+  if (dimensionCache.has(filePath)) {
+    return dimensionCache.get(filePath);
+  }
+
+  let dimensions = null;
+
+  try {
+    const { width, height } = await sharp(filePath).metadata();
+
+    if (width && height) {
+      dimensions = { width: String(width), height: String(height) };
+    }
+  } catch {}
+
+  dimensionCache.set(filePath, dimensions);
+  return dimensions;
 }
 
 function resolveExcalidrawExportFile(name, assetsDir, prefix) {
