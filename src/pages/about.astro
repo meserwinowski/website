@@ -19,7 +19,7 @@ const Content = aboutPage ? (await render(aboutPage)).Content : null;
 
     <!-- Render markdown content from the Obsidian vault if available -->
     {Content ? (
-      <div class="prose">
+      <div class="prose about-headings">
         <Content />
       </div>
     ) : (

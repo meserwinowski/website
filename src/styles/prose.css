@@ -30,6 +30,25 @@
   margin-bottom: 0.6rem;
 }
 
+/* Flanked section headers (omgmog-style): centered, capitalize h2 with an
+   accent rule on each side. Scoped to the About page via `.about-headings`. */
+.prose.about-headings h2 {
+  display: flex;
+  align-items: center;
+  gap: 0.64em;
+  text-align: center;
+  text-transform: capitalize;
+  letter-spacing: 0.04em;
+}
+
+.prose.about-headings h2::before,
+.prose.about-headings h2::after {
+  content: "";
+  flex: 1;
+  height: 2px;
+  background-color: var(--color-accent);
+}
+
 .prose h3 {
   font-size: var(--font-size-lg);
   font-weight: 600;
