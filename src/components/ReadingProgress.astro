@@ -1,0 +1,75 @@
+---
+/**
+ * ReadingProgress.astro — A thin scroll-progress bar pinned to the top of the viewport.
+ * Fills left→right as the reader moves down a long page, and stays hidden on pages
+ * that aren't tall enough to scroll meaningfully. Rendered site-wide from Base.astro.
+ */
+---
+
+<div id="reading-progress" class="reading-progress" aria-hidden="true"></div>
+
+<style>
+  .reading-progress {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 60;
+    height: 3px;
+    width: 100%;
+    /* Scaled from 0→1 on scroll; origin-left so it grows from the left edge. */
+    transform: scaleX(0);
+    transform-origin: left;
+    background: var(--color-accent);
+    opacity: 0;
+    pointer-events: none;
+    /* Only fade the visibility; the width tracks scroll instantly for a tight feel. */
+    transition: opacity 0.2s ease;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .reading-progress {
+      transition: none;
+    }
+  }
+</style>
+
+<script>
+  // Pages shorter than this (in px of scrollable distance) don't show the bar —
+  // it only earns its place on genuinely long, scrollable reading pages.
+  const minScrollablePx = 240;
+
+  function updateReadingProgress() {
+    const bar = document.getElementById('reading-progress');
+
+    if (!bar) {
+      return;
+    }
+
+    const doc = document.documentElement;
+    const scrollable = doc.scrollHeight - window.innerHeight;
+
+    if (scrollable <= minScrollablePx) {
+      bar.style.opacity = '0';
+      bar.style.transform = 'scaleX(0)';
+      return;
+    }
+
+    const progress = Math.min(Math.max(window.scrollY / scrollable, 0), 1);
+    bar.style.transform = `scaleX(${progress})`;
+    // Fade in only once the reader has actually started moving.
+    bar.style.opacity = progress > 0.005 ? '1' : '0';
+  }
+
+  // Astro re-runs component scripts across view transitions; guard the global
+  // listeners so they bind only once for the page lifetime.
+  const progressWindow = window as Window & { __readingProgressBound?: boolean };
+
+  if (!progressWindow.__readingProgressBound) {
+    window.addEventListener('scroll', updateReadingProgress, { passive: true });
+    window.addEventListener('resize', updateReadingProgress, { passive: true });
+    document.addEventListener('astro:page-load', updateReadingProgress);
+    progressWindow.__readingProgressBound = true;
+  }
+
+  updateReadingProgress();
+</script>
