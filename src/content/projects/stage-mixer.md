@@ -47,7 +47,7 @@ Most of the modern rigs I've seen have some or all of these components (in order
 - Rack drawers / storage
 
 All crammed into rack cases designed for portability. I've written more about each one below.
-## How do I build my own rig?
+## How do I build my own?
 The original inspiration for this article was to write about the rig I built!
 
 I won't be able to tell you exactly how to build your own. Hopefully walking through my decisions and learnings can be helpful reference. The audience I had in mind would be other musicians, but anyone doing live sound should be able to glean some insights.
@@ -123,7 +123,7 @@ I mentioned I already had a **Fractal Axe-Fx 3 (3U)** - a lovely graduation gift
 >[!info]- Voltage and Current
 >You don’t need an engineering degree to understand that your equipment needs power. A good power conditioner can protect your equipment from faulty venue power, and filter out noise.
 >
->Conditioners are not strictly the same as supplies - the real important bits are that you get the right output voltage (120V for America), and you have enough Amps (current) to power all of your equipment.
+>Conditioners are not strictly the same as supplies - the real important bits are that you get the right output voltage (120V for America), and you have enough Amps (current) to drive all of your equipment.
 
 **One of the first problems I ran into:** I had set up the rig during practice, and when I started playing the volume was really low and the AF3 was glitching out.
 

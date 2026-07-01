@@ -10,7 +10,7 @@
  *   /projects/mech-keyboard/index.html
  */
 import { getCollection, render } from 'astro:content';
-import ReadingTime from '../../components/ReadingTime.astro';
+import ProjectMeta from '../../components/ProjectMeta.astro';
 import TableOfContents from '../../components/TableOfContents.astro';
 import Layout from '../../layouts/Base.astro';
 import { estimateReadingTime } from '../../lib/readingTime';
@@ -39,32 +39,25 @@ const tableOfContentsHeadings = headings.filter((heading) => (
 ));
 const showTableOfContents = tableOfContentsHeadings.length > 1;
 const readingTime = estimateReadingTime(project.body);
-
-// Status badge styling (same as ProjectCard)
-const statusColors: Record<string, string> = {
-  'done': 'bg-green-500/20 text-green-400',
-  'ongoing': 'bg-blue-500/20 text-blue-400',
-};
-
-const statusLabels: Record<string, string> = {
-  'done': 'Done',
-  'ongoing': 'Ongoing',
-};
 ---
 
 <Layout title={`${project.data.title} - Matt Serwinowski`} width="wide" chrome="project-detail">
-  <div
-    class:list={[
-      'grid gap-8 lg:gap-x-[calc((var(--width-wide)-var(--width-prose))/4.236)] lg:items-start',
-      showTableOfContents
-        ? 'lg:grid-cols-[minmax(0,var(--width-prose))_14rem] lg:justify-center'
-        : 'lg:grid-cols-[minmax(0,var(--width-prose))] lg:justify-center',
-    ]}
-  >
-    <!-- <article> is semantic HTML for a self-contained piece of content (like a blog post or project) -->
-    <article class="min-w-0 space-y-8">
+  <div class="grid gap-8 xl:items-start xl:grid-cols-[minmax(0,1fr)_minmax(0,var(--width-prose))_minmax(0,1fr)]">
+    <!-- Left gutter: the sticky Table of Contents. Explicit column placement keeps
+         the article centered (col 2) even when this ToC aside is absent. -->
+    {showTableOfContents && (
+      <aside class="hidden xl:col-start-1 xl:block">
+        <div class="sticky top-8">
+          <TableOfContents headings={tableOfContentsHeadings} />
+        </div>
+      </aside>
+    )}
 
-      <!-- Page header with back link, title, badges, and description -->
+    <!-- <article> is semantic HTML for a self-contained piece of content (like a blog post or project) -->
+    <!-- mx-auto + max-w-prose centers the reading column below xl; inside the grid it fills the center column. -->
+    <article class="mx-auto w-full min-w-0 max-w-[var(--width-prose)] space-y-8 xl:col-start-2">
+
+      <!-- Page header with back link, title, and description -->
       <header class="space-y-4">
         <!-- Back navigation link -->
         <a href="/projects/" class="text-sm text-[var(--color-muted)] hover:text-[var(--color-accent)] inline-block">
@@ -73,30 +66,16 @@ const statusLabels: Record<string, string> = {
 
         <h1 class="text-4xl font-bold">{project.data.title}</h1>
 
-        <ReadingTime minutes={readingTime.minutes} />
-
-        <!-- Metadata row: status badge, tags, and optional GitHub link -->
-        <!-- flex-wrap allows items to flow to next line on small screens -->
-        <div class="flex flex-wrap items-center gap-3">
-          <!-- Status badge -->
-          <span class={`text-xs px-2 py-0.5 rounded-full font-medium ${statusColors[project.data.status]}`}>
-            {statusLabels[project.data.status]}
-          </span>
-
-          <!-- Tag badges — one per tag from the frontmatter array -->
-          {project.data.tags.map((tag) => (
-            <span class="text-xs px-2 py-0.5 rounded bg-[var(--color-surface)] text-[var(--color-muted)]">
-              {tag}
-            </span>
-          ))}
-
-          <!-- Conditional rendering: only show GitHub link if repo URL exists in frontmatter -->
-          <!-- The && pattern means "if left side is truthy, render right side" -->
-          {project.data.repo && (
-            <a href={project.data.repo} class="text-xs text-[var(--color-muted)] hover:text-[var(--color-accent)]" target="_blank" rel="noopener">
-              GitHub →
-            </a>
-          )}
+        <!-- Below xl there is no left rail, so the meta shows inline under the title. -->
+        <div class="xl:hidden">
+          <ProjectMeta
+            variant="inline"
+            status={project.data.status}
+            tags={project.data.tags}
+            date={project.data.date}
+            repo={project.data.repo}
+            readingMinutes={readingTime.minutes}
+          />
         </div>
 
         <p class="text-[var(--color-muted)]">{project.data.description}</p>
@@ -114,12 +93,19 @@ const statusLabels: Record<string, string> = {
       </div>
     </article>
 
-    {showTableOfContents && (
-      <aside class="hidden lg:block">
-        <div class="sticky top-8">
-          <TableOfContents headings={tableOfContentsHeadings} />
-        </div>
-      </aside>
-    )}
+    <!-- Right gutter: a sticky project "spec sheet" that balances the ToC gutter and
+         keeps the reading column centered (equal 1fr columns on both sides). -->
+    <aside class="hidden xl:col-start-3 xl:block">
+      <div class="sticky top-8">
+        <ProjectMeta
+          variant="rail"
+          status={project.data.status}
+          tags={project.data.tags}
+          date={project.data.date}
+          repo={project.data.repo}
+          readingMinutes={readingTime.minutes}
+        />
+      </div>
+    </aside>
   </div>
 </Layout>

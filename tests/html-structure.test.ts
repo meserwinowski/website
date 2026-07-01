@@ -117,6 +117,14 @@ describe('HTML structure - subpages', () => {
       expect(html).toMatch(/aria-label="Back to top"/);
     }
   });
+
+  it('content pages have a reading-progress bar, except the About page', () => {
+    for (const html of [indexHtml, projectsHtml, postsHtml]) {
+      expect(html).toMatch(/id="reading-progress"/);
+    }
+    // The About page opts out of the reading-progress bar (Base `readingProgress={false}`).
+    expect(aboutHtml).not.toMatch(/id="reading-progress"/);
+  });
 });
 
 describe('Social links - index.html', () => {
@@ -198,6 +206,12 @@ describe('Project detail pages', () => {
     expect(projectDetailHtml).toMatch(/aria-label="Table of contents"/);
     expect(projectDetailHtml).toMatch(/data-toc-target="what-is-a-stage-mixer"/);
     expect(projectDetailHtml).toMatch(/data-toc-target="my-rig"/);
+  });
+
+  it('renders a project meta rail that balances the table-of-contents gutter', () => {
+    expect(projectDetailHtml).toMatch(/>Details</);
+    expect(projectDetailHtml).toMatch(/>Status</);
+    expect(projectDetailHtml).toMatch(/>Published</);
   });
 });
 

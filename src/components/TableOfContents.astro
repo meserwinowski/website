@@ -43,7 +43,7 @@ const title = 'On This Page';
 
 {headings.length > 1 && (
   variant === 'mobile' ? (
-    <details class="toc-mobile rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-4 lg:hidden">
+    <details class="toc-mobile rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-4 xl:hidden">
       <!-- Mobile ToC: collapsed by default so it does not take over the top of the page. -->
       <summary class:list={['flex cursor-pointer items-center justify-between gap-2', titleClasses]}>
         <span>{title}</span>
@@ -69,8 +69,8 @@ const title = 'On This Page';
       </nav>
     </details>
   ) : (
-    <nav aria-label="Table of contents" class="hidden lg:block">
-      <!-- Desktop ToC: hidden below lg; the project layout places it in the right rail. -->
+    <nav aria-label="Table of contents" class="hidden xl:block">
+      <!-- Desktop ToC: hidden below xl; the project layout places it in the right gutter. -->
       <p class:list={['mb-2', titleClasses]}>
         {title}
       </p>
