@@ -230,7 +230,7 @@ Defined in `src/styles/global.css` using Tailwind v4's `@theme` directive:
 
 - **Colors:** Dark/light themes with custom properties (`--color-bg`, `--color-surface`, `--color-border`, `--color-text`, `--color-muted`, `--color-accent`)
 - **Fonts:** Inter (body) + JetBrains Mono (header/code) via Google Fonts
-- **Layout:** Per-content widths via a shared `--container` var on `<body>`. Reading pages use `--width-prose` (45rem / 720px — the readable measure); top-level content pages use `width="content"` plus `chrome="project-detail"` to align with the project-detail article rail; structural pages can still opt into the full `--width-wide` shell (72rem / 1152px ≈ prose × φ) with `width="wide"`. Containers stay fluid below the cap, and `.prose` is capped at the measure so body text never stretches inside a wider shell.
+- **Layout:** Per-content widths via a shared `--container` var on `<body>`. Reading pages use `--width-prose` (45rem / 720px — the readable measure); top-level content pages use `width="content"` plus `chrome="project-detail"` to align the header/nav with the shared content rail. Project detail pages use `width="wide"`, which centers the prose reading column on the viewport and flanks it with two symmetric gutters: the **Table of Contents** on the left and a sticky project **meta rail** (`ProjectMeta` "Details" spec sheet) on the right (rail ≈ prose + a matching gutter on each side). Below the `xl` breakpoint both side rails collapse — the ToC into an in-content block and the meta into an inline header row. The About page centers its content at the prose measure. A site-wide top **reading-progress bar** (`ReadingProgress`) fills left→right as you scroll and self-hides on pages too short to scroll. Containers stay fluid below the cap, and `.prose` is capped at the measure so body text never stretches inside a wider shell.
 - **Animations:** Spring easing (`cubic-bezier(0.34, 1.56, 0.64, 1)`) on interactive elements
 
 ## Adding Projects
@@ -260,7 +260,7 @@ Only `done` and `ongoing` projects are shown publicly. Project thumbnails are co
 | `src/pages/` | Astro page routes — Home, Projects, Posts, About, 404 |
 | `src/pages/projects/[slug].astro` | Dynamic project detail pages |
 | `src/layouts/` | Base page layout (header + content + footer + view transitions) |
-| `src/components/` | UI components (BackToTop, Header, Footer, ProjectCard, ReadingTime, TableOfContents, ThemeToggle, SocialLinks) |
+| `src/components/` | UI components (BackToTop, Header, Footer, ProjectCard, ProjectMeta, ReadingProgress, ReadingTime, TableOfContents, ThemeToggle, SocialLinks) |
 | `src/lib/` | Shared TypeScript utilities, including Markdown reading-time estimation |
 | `src/styles/` | CSS files: `global.css` (theme), `prose.css` (markdown typography), `transitions.css` (page animations) |
 | `src/plugins/remark-obsidian-callouts.mjs` | Remark plugin that converts Obsidian callout blockquotes to styled callout elements |

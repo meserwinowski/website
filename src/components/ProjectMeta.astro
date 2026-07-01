@@ -1,0 +1,95 @@
+---
+/**
+ * ProjectMeta.astro — Project spec metadata (status, date, reading time, tags, source).
+ *
+ * Two variants keep the same data in sync across breakpoints:
+ *  - 'rail'   : a vertical spec sheet for the sticky LEFT rail on wide project pages.
+ *               It visually rhymes with the Table of Contents in the right gutter,
+ *               balancing the layout around the centered reading column.
+ *  - 'inline' : the compact header row shown below the xl breakpoint (no side rails).
+ */
+import ReadingTime from './ReadingTime.astro';
+
+interface Props {
+  status: string;
+  tags: string[];
+  date: Date;
+  repo?: string | null;
+  readingMinutes: number;
+  variant?: 'rail' | 'inline';
+}
+
+const { status, tags, date, repo, readingMinutes, variant = 'inline' } = Astro.props;
+
+// Status badge styling (kept in sync with ProjectCard). Only done/ongoing get pages.
+const statusColors: Record<string, string> = {
+  done: 'bg-green-500/20 text-green-400',
+  ongoing: 'bg-blue-500/20 text-blue-400',
+};
+const statusLabels: Record<string, string> = {
+  done: 'Done',
+  ongoing: 'Ongoing',
+};
+
+// Human-readable date plus a machine-readable ISO value for <time datetime>.
+// Format in UTC so the displayed day matches the frontmatter regardless of build host.
+const formattedDate = date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' });
+const dateISO = date.toISOString().split('T')[0];
+
+const badgeClass = `text-xs px-2 py-0.5 rounded-full font-medium ${statusColors[status] ?? ''}`;
+const tagClass = 'text-xs px-2 py-0.5 rounded bg-[var(--color-surface)] text-[var(--color-muted)]';
+// Small mono label above each spec value, mirroring the ToC title treatment.
+const dtClass = 'font-mono text-xs uppercase tracking-wide text-[var(--color-muted)]';
+---
+
+{variant === 'rail' ? (
+  <div>
+    <!-- Rail title mirrors the ToC's "On This Page" so both gutters read as a pair. -->
+    <p class="mb-2 font-mono text-sm font-semibold leading-5 text-[var(--color-accent)]">Details</p>
+    <dl class="space-y-4 border-l border-[var(--color-border)] pl-4">
+      <div>
+        <dt class={dtClass}>Status</dt>
+        <dd class="mt-1"><span class={badgeClass}>{statusLabels[status] ?? status}</span></dd>
+      </div>
+      <div>
+        <dt class={dtClass}>Published</dt>
+        <dd class="mt-1 text-sm text-[var(--color-muted)]"><time datetime={dateISO}>{formattedDate}</time></dd>
+      </div>
+      {readingMinutes > 0 && (
+        <div>
+          <dt class={dtClass}>Reading time</dt>
+          <dd class="mt-1 text-sm text-[var(--color-muted)]">{readingMinutes} min</dd>
+        </div>
+      )}
+      {tags.length > 0 && (
+        <div>
+          <dt class={dtClass}>Tags</dt>
+          <dd class="mt-1 flex flex-wrap gap-1.5">
+            {tags.map((tag) => <span class={tagClass}>{tag}</span>)}
+          </dd>
+        </div>
+      )}
+      {repo && (
+        <div>
+          <dt class={dtClass}>Source</dt>
+          <dd class="mt-1 text-sm">
+            <a href={repo} class="text-[var(--color-muted)] hover:text-[var(--color-accent)]" target="_blank" rel="noopener">GitHub →</a>
+          </dd>
+        </div>
+      )}
+    </dl>
+  </div>
+) : (
+  <div class="space-y-3">
+    <ReadingTime minutes={readingMinutes} />
+    <!-- Metadata row: status badge, date, tags, and optional GitHub link -->
+    <div class="flex flex-wrap items-center gap-3">
+      <span class={badgeClass}>{statusLabels[status] ?? status}</span>
+      <time datetime={dateISO} class="text-xs text-[var(--color-muted)]">{formattedDate}</time>
+      {tags.map((tag) => <span class={tagClass}>{tag}</span>)}
+      {repo && (
+        <a href={repo} class="text-xs text-[var(--color-muted)] hover:text-[var(--color-accent)]" target="_blank" rel="noopener">GitHub →</a>
+      )}
+    </div>
+  </div>
+)}
