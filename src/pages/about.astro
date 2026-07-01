@@ -9,8 +9,9 @@ const Content = aboutPage ? (await render(aboutPage)).Content : null;
 ---
 
 <!-- About page: content managed in the Obsidian vault, synced at build time -->
-<Layout title="About - Matt Serwinowski" width="content" chrome="project-detail" description="About page">
-  <section class="space-y-8">
+<Layout title="About - Matt Serwinowski" width="content" chrome="project-detail" description="About page" readingProgress={false}>
+  <!-- Center the content block (hero + prose) on the viewport at the prose measure. -->
+  <section class="mx-auto max-w-[var(--width-prose)] space-y-8">
     <!-- Hero: hardcoded name + tagline (Brittany Chiang-inspired), distinct from the Home landing -->
     <div class="space-y-2">
       <h1 class="text-5xl font-bold tracking-tight">Matthew Serwinowski</h1>

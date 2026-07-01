@@ -4,27 +4,35 @@ import '../styles/global.css';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 import BackToTop from '../components/BackToTop.astro';
+import ReadingProgress from '../components/ReadingProgress.astro';
 import { ClientRouter } from 'astro:transitions';
 
 // Props interface: defines what data this component expects from its parent.
 interface Props {
   title: string;
   description?: string;
-  // Container width: 'prose' = readable measure, 'content' = project-detail content rail, 'wide' = full grid shell.
+  // Container width: 'prose' = readable measure, 'content' = project-detail content rail,
+  // 'wide' = centered reading column with a Table of Contents gutter (project detail pages).
   width?: 'prose' | 'content' | 'wide';
   // Header alignment: 'project-detail' aligns chrome to the same rail as project detail content.
   chrome?: 'prose' | 'project-detail';
+  // Show the top scroll-progress bar. Defaults to true; opt out on pages that don't want it.
+  readingProgress?: boolean;
 }
 
 // Destructure props with a default description for SEO
-const { title, description = 'Matt Serwinowski — software engineer, builder of things.', width = 'prose', chrome = 'prose' } = Astro.props;
+const { title, description = 'Matt Serwinowski — software engineer, builder of things.', width = 'prose', chrome = 'prose', readingProgress = true } = Astro.props;
 
 // Resolve the page container width to a CSS var, exposed to header/main/footer as --container
 const contentRailWidth = 'calc(var(--width-prose) + ((var(--width-wide) - var(--width-prose)) / 4.236) + 14rem)';
+// Project detail pages center the prose column and place the Table of Contents in
+// the right gutter. The container fits a symmetric rail — prose plus a matching
+// gutter (ToC width + gap) on each side — so the reading column lands dead-center.
+const projectRailWidth = 'calc(var(--width-prose) + (2 * (14rem + 2rem)))';
 const containerWidths: Record<NonNullable<Props['width']>, string> = {
   prose: 'var(--width-prose)',
   content: contentRailWidth,
-  wide: 'var(--width-wide)',
+  wide: projectRailWidth,
 };
 const containerWidth = containerWidths[width];
 const chromeContainerWidth = chrome === 'project-detail'
@@ -101,6 +109,8 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
   <!-- --container drives the <main> width (set per page via the width prop). Header/footer -->
   <!-- stay pinned to --width-prose so the site chrome is identical on every page. -->
   <body class="flex min-h-screen flex-col" style={`--container: ${containerWidth}; --chrome-container: ${chromeContainerWidth};`}>
+    <!-- Top scroll-progress bar: fills as the reader moves down long pages. -->
+    {readingProgress && <ReadingProgress />}
     <!-- Header component: nav bar with logo, links, theme toggle -->
     <Header />
 
@@ -121,7 +131,7 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
     <Footer />
 
     <!-- Floating scroll helper: appears after scrolling down on longer pages -->
-    <BackToTop width={width} />
+    <BackToTop />
 
     <!-- Directional navigation script: determines slide direction before each transition -->
     <!-- This runs client-side and sets a data-transition attribute that CSS reads -->
