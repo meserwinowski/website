@@ -1,0 +1,504 @@
+---
+/**
+ * NowPlaying.astro — "What I'm listening to" widget (About page only).
+ *
+ * Renders a compact, themed card with a skeleton placeholder, then fills it in
+ * client-side by fetching the Spotify now-playing Cloudflare Worker. The fetch
+ * runs after paint and never blocks rendering; if it fails or nothing is
+ * available, the widget hides itself with no layout shift or console noise.
+ *
+ * The Worker endpoint is resolved server-side (see src/config.ts) and passed to
+ * the client via data-endpoint, so it doesn't depend on client env inlining.
+ */
+import { NOW_PLAYING_ENDPOINT } from '../config';
+
+interface Props {
+  /**
+   * Render the card as a tap-to-expand disclosure. Used for the mobile inline
+   * copy on the About page; desktop/gutter instances stay flat (always open).
+   */
+  collapsible?: boolean;
+}
+
+const { collapsible = false } = Astro.props;
+// Links the toggle button to the collapsible body for assistive tech. Unique
+// per render so multiple instances on a page never share an id.
+const bodyId = `now-playing-body-${Math.random().toString(36).slice(2, 8)}`;
+---
+
+<!--
+  Starts hidden (data-state="loading" + hidden) so there is no visible skeleton
+  flash if the fetch is fast or returns nothing. The client script reveals it
+  only once real data arrives. When `collapsible`, the label becomes a toggle
+  button and the body collapses (mobile dropdown card).
+-->
+<section
+  class:list={['now-playing', collapsible && 'now-playing--collapsible']}
+  data-now-playing
+  data-endpoint={NOW_PLAYING_ENDPOINT}
+  data-state="loading"
+  aria-live="polite"
+  hidden
+>
+  {collapsible ? (
+    <button
+      type="button"
+      class="now-playing__label now-playing__toggle"
+      data-toggle
+      aria-expanded="false"
+      aria-controls={bodyId}
+    >
+      <span>What I'm listening to</span>
+      <svg
+        class="now-playing__chevron"
+        viewBox="0 0 24 24"
+        width="16"
+        height="16"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+      >
+        <polyline points="6 9 12 15 18 9"></polyline>
+      </svg>
+    </button>
+  ) : (
+    <p class="now-playing__label">What I'm listening to</p>
+  )}
+
+  <div class="now-playing__body" id={bodyId}>
+    <div class="now-playing__body-inner">
+      <a class="now-playing__track" data-track-link href="#" target="_blank" rel="noopener noreferrer">
+        <span class="now-playing__art-wrap">
+          <img
+            class="now-playing__art"
+            data-art
+            width="128"
+            height="128"
+            alt=""
+            loading="lazy"
+            decoding="async"
+          />
+          <span class="now-playing__equalizer" data-equalizer aria-hidden="true">
+            <span></span><span></span><span></span>
+          </span>
+        </span>
+
+        <span class="now-playing__meta">
+          <span class="now-playing__status" data-status>Last played</span>
+          <span class="now-playing__title now-playing__scroll" data-scroll>
+            <span class="now-playing__scroll-inner" data-title></span>
+          </span>
+          <span class="now-playing__artist now-playing__scroll" data-scroll>
+            <span class="now-playing__scroll-inner" data-artist></span>
+          </span>
+        </span>
+      </a>
+    </div>
+  </div>
+</section>
+
+<style>
+  .now-playing {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 1rem 1.25rem;
+    border: 1px solid var(--color-border);
+    border-radius: 0.75rem;
+    background: var(--color-surface);
+  }
+
+  /* Astro's scoped class outspecifies the UA `[hidden]` rule, so make the
+     hidden attribute authoritative for the initial (pre-data) state. */
+  .now-playing[hidden] {
+    display: none;
+  }
+
+  .now-playing__label {
+    font-family: var(--font-mono, monospace);
+    font-size: 0.75rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+    margin: 0;
+    text-align: center;
+  }
+
+  /* --- Collapsible (mobile dropdown card) --------------------------------- */
+
+  /* The label becomes a full-width toggle button: label text left, chevron right. */
+  .now-playing__toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    width: 100%;
+    text-align: left;
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    color: var(--color-muted);
+  }
+
+  /* Don't let the global spring-scale distort the toggle on hover/tap. */
+  .now-playing__toggle,
+  .now-playing__toggle:hover,
+  .now-playing__toggle:active {
+    transform: none;
+  }
+
+  .now-playing__toggle:hover {
+    color: var(--color-text);
+  }
+
+  .now-playing__chevron {
+    flex-shrink: 0;
+    color: var(--color-muted);
+    transition: transform 0.3s ease;
+  }
+
+  .now-playing--collapsible[data-open='true'] .now-playing__chevron {
+    transform: rotate(180deg);
+  }
+
+  /* Collapse the body with the grid-template-rows 0fr → 1fr trick so it animates
+     to the content's natural height without hardcoding a max-height. */
+  .now-playing--collapsible {
+    gap: 0;
+  }
+
+  .now-playing--collapsible .now-playing__body {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 0.3s ease;
+  }
+
+  .now-playing--collapsible[data-open='true'] .now-playing__body {
+    grid-template-rows: 1fr;
+  }
+
+  .now-playing--collapsible .now-playing__body-inner {
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  /* Space between the toggle and the track lives on the track (clipped content)
+     rather than the body-inner, so a collapsed card fully closes with no sliver
+     of leftover padding. */
+  .now-playing--collapsible .now-playing__track {
+    padding-top: 0.875rem;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .now-playing__chevron,
+    .now-playing--collapsible .now-playing__body {
+      transition: none;
+    }
+  }
+
+  /* ----------------------------------------------------------------------- */
+
+  .now-playing__track {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.875rem;
+    text-decoration: none;
+    color: inherit;
+  }
+
+  /* Opt out of the global spring-scale (button, a { transform: scale(...) }) so
+     hovering/tapping the card never distorts the player. The title colour change
+     below is the hover cue instead. */
+  .now-playing__track,
+  .now-playing__track:hover,
+  .now-playing__track:active {
+    transform: none;
+  }
+
+  .now-playing__art-wrap {
+    position: relative;
+    flex-shrink: 0;
+    width: 128px;
+    height: 128px;
+  }
+
+  .now-playing__art {
+    width: 128px;
+    height: 128px;
+    border-radius: 0.5rem;
+    object-fit: cover;
+    background: color-mix(in srgb, var(--color-border) 60%, transparent);
+    display: block;
+  }
+
+  .now-playing__meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .now-playing__status {
+    font-size: 0.75rem;
+    color: var(--color-muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.375rem;
+  }
+
+  .now-playing__title {
+    font-weight: 600;
+    color: var(--color-text);
+  }
+
+  .now-playing__track:hover .now-playing__title {
+    color: var(--color-accent);
+  }
+
+  .now-playing__artist {
+    font-size: 0.875rem;
+    color: var(--color-muted);
+  }
+
+  /* Marquee: title/artist that overflow the card scroll slowly instead of being
+     clipped. Short strings stay centred and static. The client script measures
+     the overflow, flips data-overflow, and sets the distance/duration vars. */
+  .now-playing__scroll {
+    display: block;
+    overflow: hidden;
+    white-space: nowrap;
+    text-align: center;
+  }
+
+  .now-playing__scroll-inner {
+    display: inline-block;
+    white-space: nowrap;
+  }
+
+  .now-playing__scroll[data-overflow='true'] {
+    text-align: left;
+  }
+
+  .now-playing__scroll[data-overflow='true'] .now-playing__scroll-inner {
+    animation: now-playing-marquee var(--np-marquee-duration, 10s) linear infinite alternate;
+  }
+
+  @keyframes now-playing-marquee {
+    0%,
+    12% {
+      transform: translateX(0);
+    }
+    88%,
+    100% {
+      transform: translateX(var(--np-marquee-distance, 0px));
+    }
+  }
+
+  /* Animated equalizer bars overlaid on the art while actively playing. */
+  .now-playing__equalizer {
+    position: absolute;
+    right: 6px;
+    bottom: 6px;
+    display: none;
+    align-items: flex-end;
+    gap: 3px;
+    height: 18px;
+    padding: 3px 4px;
+    border-radius: 4px;
+    background: color-mix(in srgb, var(--color-bg) 70%, transparent);
+  }
+
+  .now-playing[data-state='playing'] .now-playing__equalizer {
+    display: flex;
+  }
+
+  .now-playing__equalizer span {
+    width: 3px;
+    height: 100%;
+    background: var(--color-accent);
+    transform-origin: bottom;
+    animation: now-playing-eq 0.9s ease-in-out infinite;
+  }
+
+  .now-playing__equalizer span:nth-child(2) {
+    animation-delay: 0.25s;
+  }
+  .now-playing__equalizer span:nth-child(3) {
+    animation-delay: 0.5s;
+  }
+
+  @keyframes now-playing-eq {
+    0%,
+    100% {
+      transform: scaleY(0.35);
+    }
+    50% {
+      transform: scaleY(1);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .now-playing__equalizer span {
+      animation: none;
+      transform: scaleY(0.7);
+    }
+
+    /* No marquee when reduced motion is requested — clip with an ellipsis. */
+    .now-playing__scroll[data-overflow='true'] {
+      text-align: center;
+    }
+
+    .now-playing__scroll[data-overflow='true'] .now-playing__scroll-inner {
+      animation: none;
+      display: block;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  }
+</style>
+
+<script>
+  interface NowPlayingData {
+    isPlaying: boolean;
+    title?: string;
+    artist?: string;
+    album?: string;
+    albumImageUrl?: string;
+    songUrl?: string;
+    playedAt?: string;
+  }
+
+  // Measure a title/artist line and, if it overflows the card, arm the marquee.
+  // Short strings stay static and centred. Runs after layout so scrollWidth is
+  // accurate; skips instances that are display:none (clientWidth 0).
+  function setupMarquee(scrollEl: HTMLElement) {
+    const inner = scrollEl.querySelector<HTMLElement>('.now-playing__scroll-inner');
+    if (!inner) return;
+
+    // Reset any prior measurement so re-runs (resize, re-fetch) start clean.
+    scrollEl.removeAttribute('data-overflow');
+    scrollEl.style.removeProperty('--np-marquee-distance');
+    scrollEl.style.removeProperty('--np-marquee-duration');
+
+    if (!scrollEl.clientWidth) return; // Hidden instance — nothing to measure.
+
+    const overflow = inner.scrollWidth - scrollEl.clientWidth;
+    if (overflow <= 4) return; // Fits comfortably; leave it static.
+
+    scrollEl.dataset.overflow = 'true';
+    scrollEl.style.setProperty('--np-marquee-distance', `-${overflow}px`);
+    // Constant slow speed (~24px/s over the ~76% of the cycle spent scrolling).
+    const duration = Math.max(6, overflow / 24 / 0.76);
+    scrollEl.style.setProperty('--np-marquee-duration', `${duration.toFixed(1)}s`);
+  }
+
+  function measureRoot(root: HTMLElement) {
+    const lines = root.querySelectorAll<HTMLElement>('.now-playing__scroll');
+    lines.forEach(setupMarquee);
+  }
+
+  // Wire up the collapsible (mobile) card's toggle button. Flips data-open on the
+  // section and aria-expanded on the button; re-measures the marquee on open.
+  function bindToggle(root: HTMLElement) {
+    const toggle = root.querySelector<HTMLButtonElement>('[data-toggle]');
+    if (!toggle) return;
+    toggle.addEventListener('click', () => {
+      const open = root.dataset.open === 'true';
+      root.dataset.open = open ? 'false' : 'true';
+      toggle.setAttribute('aria-expanded', open ? 'false' : 'true');
+      if (!open) requestAnimationFrame(() => measureRoot(root));
+    });
+  }
+
+  // Populate a single widget instance and reveal it.
+  function applyNowPlaying(root: HTMLElement, data: NowPlayingData) {
+    const link = root.querySelector<HTMLAnchorElement>('[data-track-link]');
+    const art = root.querySelector<HTMLImageElement>('[data-art]');
+    const status = root.querySelector<HTMLElement>('[data-status]');
+    const title = root.querySelector<HTMLElement>('[data-title]');
+    const artist = root.querySelector<HTMLElement>('[data-artist]');
+
+    if (title) title.textContent = data.title ?? '';
+    if (artist) artist.textContent = data.artist ?? '';
+    if (status) status.textContent = data.isPlaying ? 'Now playing' : 'Last played';
+
+    if (link) {
+      if (data.songUrl) {
+        link.href = data.songUrl;
+      } else {
+        link.removeAttribute('href');
+      }
+    }
+
+    if (art && data.albumImageUrl) {
+      art.src = data.albumImageUrl;
+      art.alt = data.album ? `Album art for ${data.album}` : 'Album art';
+    }
+
+    root.dataset.state = data.isPlaying ? 'playing' : 'idle';
+    root.hidden = false;
+
+    // Measure once the fonts are loaded so scrollWidth reflects final metrics.
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(() => measureRoot(root));
+    } else {
+      requestAnimationFrame(() => measureRoot(root));
+    }
+  }
+
+  async function loadNowPlaying() {
+    // There may be more than one instance on a page (e.g. a left-gutter copy for
+    // desktop and an inline copy for mobile). Bind each once, fetch a single
+    // time, and apply the result to all of them.
+    const roots = Array.from(
+      document.querySelectorAll<HTMLElement>('[data-now-playing]'),
+    ).filter((el) => el.dataset.bound !== 'true');
+    if (roots.length === 0) return;
+    roots.forEach((el) => {
+      el.dataset.bound = 'true';
+      bindToggle(el);
+    });
+
+    const endpoint = roots[0].dataset.endpoint;
+    if (!endpoint) return;
+
+    try {
+      const res = await fetch(endpoint, { headers: { Accept: 'application/json' } });
+      if (!res.ok) return;
+
+      const data = (await res.json()) as NowPlayingData;
+      if (!data || !data.title) return; // Nothing to show — stay hidden.
+
+      for (const root of roots) applyNowPlaying(root, data);
+    } catch {
+      // Network/parse error: leave the widget hidden. Never surface an error.
+    }
+  }
+
+  // Run on first load and after every View Transition navigation. Bind the
+  // page-load listener once; the per-element `data-bound` guard prevents double
+  // fetches when the About page is revisited. A debounced resize re-measures the
+  // marquee (e.g. crossing the xl breakpoint reveals a previously-hidden copy).
+  const w = window as Window & { __nowPlayingBound?: boolean };
+  if (!w.__nowPlayingBound) {
+    document.addEventListener('astro:page-load', loadNowPlaying);
+    let resizeRaf = 0;
+    window.addEventListener('resize', () => {
+      cancelAnimationFrame(resizeRaf);
+      resizeRaf = requestAnimationFrame(() => {
+        document
+          .querySelectorAll<HTMLElement>('[data-now-playing]')
+          .forEach(measureRoot);
+      });
+    });
+    w.__nowPlayingBound = true;
+  }
+  loadNowPlaying();
+</script>

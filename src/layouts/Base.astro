@@ -18,10 +18,13 @@ interface Props {
   chrome?: 'prose' | 'project-detail';
   // Show the top scroll-progress bar. Defaults to true; opt out on pages that don't want it.
   readingProgress?: boolean;
+  // Optional explicit content-container width (CSS length/calc). Overrides the
+  // `width` preset — used by pages that need a bespoke gutter (e.g. About).
+  containerWidth?: string;
 }
 
 // Destructure props with a default description for SEO
-const { title, description = 'Matt Serwinowski — software engineer, builder of things.', width = 'prose', chrome = 'prose', readingProgress = true } = Astro.props;
+const { title, description = 'Matt Serwinowski — software engineer, builder of things.', width = 'prose', chrome = 'prose', readingProgress = true, containerWidth: containerWidthOverride } = Astro.props;
 
 // Resolve the page container width to a CSS var, exposed to header/main/footer as --container
 const contentRailWidth = 'calc(var(--width-prose) + ((var(--width-wide) - var(--width-prose)) / 4.236) + 14rem)';
@@ -34,7 +37,7 @@ const containerWidths: Record<NonNullable<Props['width']>, string> = {
   content: contentRailWidth,
   wide: projectRailWidth,
 };
-const containerWidth = containerWidths[width];
+const containerWidth = containerWidthOverride ?? containerWidths[width];
 const chromeContainerWidth = chrome === 'project-detail'
   ? contentRailWidth
   : 'var(--width-prose)';

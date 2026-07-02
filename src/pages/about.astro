@@ -1,30 +1,62 @@
 ---
 import { getCollection, render } from 'astro:content';
 import Layout from '../layouts/Base.astro';
+import NowPlaying from '../components/NowPlaying.astro';
 
 // Get the "about" page content from the pages collection (sourced from Obsidian vault)
 const allPages = await getCollection('pages');
 const aboutPage = allPages.find((p) => p.id === 'about');
+const baseTitle = aboutPage?.data.title ?? 'About';
+// Site convention: page titles are "PageName - Matt Serwinowski".
+const aboutTitle = baseTitle.includes('Matt Serwinowski')
+  ? baseTitle
+  : `${baseTitle} - Matt Serwinowski`;
+const aboutDescription = aboutPage?.data.description ?? 'About - Matt Serwinowski';
 const Content = aboutPage ? (await render(aboutPage)).Content : null;
+const heroName = aboutPage?.data.heroName ?? 'Matthew Serwinowski';
+const heroTagline = aboutPage?.data.heroTagline ?? 'Handtyped artisanal thoughts and writing';
 ---
 
 <!-- About page: content managed in the Obsidian vault, synced at build time -->
-<Layout title="About - Matt Serwinowski" width="content" chrome="project-detail" description="About page" readingProgress={false}>
-  <!-- Center the content block (hero + prose) on the viewport at the prose measure. -->
-  <section class="mx-auto max-w-[var(--width-prose)] space-y-8">
-    <!-- Hero: hardcoded name + tagline (Brittany Chiang-inspired), distinct from the Home landing -->
-    <div class="space-y-2">
-      <h1 class="text-5xl font-bold tracking-tight">Matthew Serwinowski</h1>
-      <p class="text-xl font-medium text-[var(--color-accent)] italic">Handtyped artisanal thoughts and writing</p>
-    </div>
-
-    <!-- Render markdown content from the Obsidian vault if available -->
-    {Content ? (
-      <div class="prose about-headings">
-        <Content />
+<Layout
+  title={aboutTitle}
+  width="wide"
+  chrome="project-detail"
+  description={aboutDescription}
+  readingProgress={false}
+  containerWidth="calc(var(--width-prose) + (2 * (18rem + 2rem)))"
+>
+  <!-- Wide reading layout: prose centered in column 2, with symmetric 1fr gutters.
+       The now-playing widget sits in the LEFT gutter on xl+ (like the project ToC). -->
+  <div class="grid gap-8 xl:items-start xl:grid-cols-[minmax(0,1fr)_minmax(0,var(--width-prose))_minmax(0,1fr)]">
+    <!-- Left gutter: sticky "What I'm listening to" widget (desktop only). -->
+    <aside class="hidden xl:col-start-1 xl:block">
+      <div class="sticky top-8">
+        <NowPlaying />
       </div>
-    ) : (
-      <p class="text-[var(--color-muted)] italic">Coming soon.</p>
-    )}
-  </section>
+    </aside>
+
+    <section class="mx-auto w-full min-w-0 max-w-[var(--width-prose)] space-y-8 xl:col-start-2">
+      <!-- Hero: hardcoded name + tagline (Brittany Chiang-inspired), distinct from the Home landing -->
+      <div class="space-y-2">
+        <h1 class="text-5xl font-bold tracking-tight">{heroName}</h1>
+        <p class="text-xl font-medium text-[var(--color-accent)] italic">{heroTagline}</p>
+      </div>
+
+      <!-- Below xl there is no left gutter, so show the widget inline instead —
+           as a tap-to-expand dropdown card to keep the mobile hero compact. -->
+      <div class="xl:hidden">
+        <NowPlaying collapsible />
+      </div>
+
+      <!-- Render markdown content from the Obsidian vault if available -->
+      {Content ? (
+        <div class="prose about-headings">
+          <Content />
+        </div>
+      ) : (
+        <p class="text-[var(--color-muted)] italic">Coming soon.</p>
+      )}
+    </section>
+  </div>
 </Layout>

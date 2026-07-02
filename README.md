@@ -190,6 +190,33 @@ nasctl ctl webserver_nginx exec nginx -s reload   # hot-reload nginx config
 `scripts/deploy.sh` uses `nasctl` automatically to reload nginx after pushing
 `nginx/default.conf`. Run `nasctl bootstrap` once to set up passwordless operation.
 
+## What I'm Listening To (Spotify widget)
+
+The About page shows a **"What I'm listening to"** widget: my current Spotify
+track (with a live "Now playing" indicator) or, when nothing is playing, my most
+recently played track. It's fetched **client-side, only on the About page**, so it
+never blocks rendering.
+
+The Spotify credentials live in a small **Cloudflare Worker** (free plan) — never
+in the browser or in git. The site calls the Worker's public URL; the Worker
+holds the secrets, talks to Spotify, and returns only track metadata.
+
+- **Worker code + full setup:** [`worker/README.md`](worker/README.md) (create the
+  Spotify app, mint the refresh token, store secrets, deploy, add the rate-limit rule)
+- **Frontend widget:** `src/components/NowPlaying.astro` (mounted in `src/pages/about.astro`)
+- **Endpoint config:** `PUBLIC_NOW_PLAYING_URL` in `deploy.env`, with a committed
+  default in `src/config.ts`
+
+```bash
+npm run spotify:token    # one-time: generate the Spotify refresh token
+npm run worker:dev       # run the Worker locally (needs worker/.dev.vars)
+npm run worker:deploy    # deploy the Worker to Cloudflare
+```
+
+Abuse/cost controls: short-TTL edge caching, a Cloudflare per-IP rate-limiting
+rule, an Origin/Referer allowlist, and the free plan's hard request cap (no
+overage billing). If the Worker is unreachable, the widget just hides.
+
 ## Testing
 
 ```bash
@@ -202,7 +229,8 @@ Tests run against the built `dist/` output (static HTML files) using [Vitest](ht
 | Test file | What it checks |
 |-----------|----------------|
 | `tests/build.test.ts` | `astro build` exits successfully, all page HTML files exist, 404 + sitemap + robots.txt + security.txt generated |
-| `tests/html-structure.test.ts` | Key HTML elements: titles, meta tags, OG tags, navigation, headings, footer, project cards, detail content |
+| `tests/html-structure.test.ts` | Key HTML elements: titles, meta tags, OG tags, navigation, headings, footer, project cards, detail content, and the About-only now-playing widget |
+| `tests/now-playing-worker.test.ts` | Unit tests for the Spotify Worker's pure `shapeNowPlaying()` transform (now-playing, recently-played, and empty/error states) |
 | `tests/obsidian-callouts.test.mjs` | Obsidian callout rewriting for standard, expanded, and collapsed callout blockquotes |
 | `tests/obsidian-embeds.test.mjs` | Obsidian embed rewriting (intrinsic dimensions, blur-up placeholders, eager/lazy loading) and asset-copy behavior for images and Excalidraw exports |
 | `tests/strip-image-metadata.test.mjs` | EXIF/GPS stripping, orientation baking, and clean-image skipping in the image pipeline |
@@ -218,6 +246,7 @@ Tests run against the built `dist/` output (static HTML files) using [Vitest](ht
 - **Spring easing** — subtle scale animations on hover/active for buttons and links
 - **Responsive design** — mobile hamburger menu, responsive grid layouts
 - **Obsidian vault sync** — edit content in Obsidian, sync to site at deploy time
+- **What I'm listening to** — About-page widget showing my current/last Spotify track, served by a free Cloudflare Worker (see [`worker/README.md`](worker/README.md))
 - **CI/CD** — push to `main` auto-builds, tests, and deploys to the NAS via GitHub Actions + Tailscale
 - **SEO** — Open Graph, Twitter cards, canonical URLs, auto-generated sitemap
 - **Crawler & AI control** — `robots.txt` opt-out plus nginx User-Agent blocking + rate limiting
@@ -260,7 +289,8 @@ Only `done` and `ongoing` projects are shown publicly. Project thumbnails are co
 | `src/pages/` | Astro page routes — Home, Projects, Posts, About, 404 |
 | `src/pages/projects/[slug].astro` | Dynamic project detail pages |
 | `src/layouts/` | Base page layout (header + content + footer + view transitions) |
-| `src/components/` | UI components (BackToTop, Header, Footer, ProjectCard, ProjectMeta, ReadingProgress, ReadingTime, TableOfContents, ThemeToggle, SocialLinks) |
+| `src/components/` | UI components (BackToTop, Header, Footer, NowPlaying, ProjectCard, ProjectMeta, ReadingProgress, ReadingTime, TableOfContents, ThemeToggle, SocialLinks) |
+| `src/config.ts` | Build-time site config (e.g. the public now-playing Worker URL, with a committed default) |
 | `src/lib/` | Shared TypeScript utilities, including Markdown reading-time estimation |
 | `src/styles/` | CSS files: `global.css` (theme), `prose.css` (markdown typography), `transitions.css` (page animations) |
 | `src/plugins/remark-obsidian-callouts.mjs` | Remark plugin that converts Obsidian callout blockquotes to styled callout elements |
@@ -270,6 +300,7 @@ Only `done` and `ongoing` projects are shown publicly. Project thumbnails are co
 | `src/content/pages/` | Page content files (synced from Obsidian, committed so CI can build) |
 | `public/` | Static assets served as-is, including images, favicon, robots.txt, and `.well-known/security.txt` |
 | `.github/workflows/deploy.yml` | CI/CD pipeline — build, test, and deploy to the NAS on push |
+| `worker/` | Cloudflare Worker for the Spotify "now-playing" widget (self-contained: `src/index.ts`, `wrangler.toml`, `README.md`). Deployed separately via `npm run worker:deploy` |
 | `tests/` | Vitest test files (build verification + HTML assertions + Obsidian Markdown handling + reading-time utility coverage) |
 | `astro.config.mjs` | Astro framework configuration (Vite + Tailwind plugin + sitemap) |
 | `tsconfig.json` | TypeScript configuration |
@@ -279,6 +310,7 @@ Only `done` and `ongoing` projects are shown publicly. Project thumbnails are co
 | `scripts/sync-obsidian-assets.mjs` | Copies only web-renderable assets referenced by Obsidian embeds into per-project folders under `public/images/`; uses a manifest to clean up stale files |
 | `scripts/strip-image-metadata.mjs` | Strips EXIF/GPS metadata from raster images in `public/images/`, auto-orients them (baking in EXIF rotation), resizes down to a 1600px longest edge, and converts `.heic`/`.heif` to `.webp` (via `sips` on macOS, since sharp can't decode HEIC) so the photos render fast in browsers |
 | `scripts/sync-content.sh` / `scripts/sync-content.ps1` | Pull markdown content from the Obsidian vault |
+| `scripts/spotify-refresh-token.mjs` | One-time OAuth helper that mints the Spotify refresh token for the now-playing Worker |
 | `scripts/deploy.sh` / `scripts/deploy.ps1` | Sync + build + rsync deployment scripts |
 | `dist/` | Build output (gitignored) |
 | `.astro/` | Generated types and cache (gitignored) |

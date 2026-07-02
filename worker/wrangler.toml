@@ -1,0 +1,33 @@
+#:schema node_modules/wrangler/config-schema.json
+# Cloudflare Worker config for the Spotify "now-playing" endpoint.
+# Deploy with:  npm run worker:deploy   (wraps `wrangler deploy --config worker/wrangler.toml`)
+#
+# Secrets are NOT stored here. Set them once (values never touch git):
+#   wrangler secret put SPOTIFY_CLIENT_ID     --config worker/wrangler.toml
+#   wrangler secret put SPOTIFY_CLIENT_SECRET --config worker/wrangler.toml
+#   wrangler secret put SPOTIFY_REFRESH_TOKEN --config worker/wrangler.toml
+
+name = "spotify-now-playing"
+main = "src/index.ts"
+compatibility_date = "2025-06-01"
+
+# Publish only on the rate-limited custom domain (below), not on *.workers.dev.
+# This forces all traffic through the Cloudflare zone where the free per-IP
+# rate-limiting rule applies. Flip to true if you want the workers.dev URL too.
+workers_dev = false
+
+# Custom domain route on your Cloudflare-managed zone. Cloudflare creates the DNS
+# record and TLS cert automatically. The site fetches https://api.<domain>/now-playing.
+# Requires the domain's DNS to be on Cloudflare.
+[[routes]]
+pattern = "api.mattserwinowski.com"
+custom_domain = true
+
+# Non-secret config. Comma-separated allowlist of site origins permitted to read
+# the endpoint from a browser (Origin/Referer check + CORS).
+[vars]
+ALLOWED_ORIGIN = "https://www.mattserwinowski.com,https://mattserwinowski.com"
+
+# Keep the free plan lean: no extra observability/log ingestion.
+[observability]
+enabled = false

@@ -1,6 +1,8 @@
 ---
 title: About
 description: About Matt Serwinowski
+heroName: Matthew Serwinowski
+heroTagline: Handtyped artisanal thoughts and writing*
 tags:
   - website
 ---
@@ -10,11 +12,11 @@ I assembled this website in order to better showcase the various projects I am c
 
 For a long time now I have desired a space to share the thoughts and ideas that bounce around in my head. I feel that I come across a lot of interesting, cool, and helpful ideas, and at the very least I should do my part to critique and relay them.
 
-You might ask why not just post on social media or the top blogging platforms. As much as I appreciate the good aspects of these channels, I find the downsides distasteful. They are also hyper competitive spaces vying for every users attention, and I believe this is not conducive to true interest and productive contemplation.
+You might ask why not just post on social media or the top blogging platforms. As much as I appreciate the positive aspects of these channels, I find the downsides distasteful. They are hyper competitive spaces vying for every users attention, and I believe this is not conducive to genuine interest and productive contemplation.
 
-I also find the [Publish (on your) Own Site, Syndicate Elsewhere](https://indieweb.org/POSSE) approach to be more a more attractive approach to this type of sharing.
+I also find [Publish (on your) Own Site, Syndicate Elsewhere](https://indieweb.org/POSSE) to be a more attractive approach for this type of sharing.
 
-## What I'm Into
+## Some of the Things I am Into
 ### Cats
 - I have two: Circuit and Pixel!
 ### Health & Fitness
@@ -55,3 +57,5 @@ I also find the [Publish (on your) Own Site, Syndicate Elsewhere](https://indiew
 - [Many things Gwern writes](https://gwern.net/subculture)
 
 Thanks for checking out my website!
+
+*/*Website is very much vibe coded with AI*

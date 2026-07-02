@@ -1,0 +1,11 @@
+{
+  "name": "spotify-now-playing-worker",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Cloudflare Worker that serves my current/last Spotify track for the website's About-page widget.",
+  "scripts": {
+    "dev": "wrangler dev --config wrangler.toml",
+    "deploy": "wrangler deploy --config wrangler.toml"
+  }
+}

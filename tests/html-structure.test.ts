@@ -98,11 +98,19 @@ describe('HTML structure - subpages', () => {
     expect(aboutHtml).toMatch(/<title>About - Matt Serwinowski<\/title>/);
   });
 
-  it('home, projects, and about use the same content-page alignment as project details', () => {
-    for (const html of [indexHtml, projectsHtml, aboutHtml]) {
+  it('home and projects use the same content-page alignment as project details', () => {
+    for (const html of [indexHtml, projectsHtml]) {
       expect(html).toContain('--container: calc(var(--width-prose) + ((var(--width-wide) - var(--width-prose)) / 4.236) + 14rem)');
       expect(html).toContain('--chrome-container: calc(var(--width-prose) + ((var(--width-wide) - var(--width-prose)) / 4.236) + 14rem)');
     }
+  });
+
+  it('about uses the wide reading layout (widget in the left gutter) with content-rail chrome', () => {
+    // A bespoke container widens the symmetric gutters to 18rem so the
+    // now-playing widget has room (see about.astro `containerWidth`)...
+    expect(aboutHtml).toContain('--container: calc(var(--width-prose) + (2 * (18rem + 2rem)))');
+    // ...while chrome="project-detail" keeps the header/nav on the content rail.
+    expect(aboutHtml).toContain('--chrome-container: calc(var(--width-prose) + ((var(--width-wide) - var(--width-prose)) / 4.236) + 14rem)');
   });
 
   it('all pages have footer', () => {
@@ -124,6 +132,32 @@ describe('HTML structure - subpages', () => {
     }
     // The About page opts out of the reading-progress bar (Base `readingProgress={false}`).
     expect(aboutHtml).not.toMatch(/id="reading-progress"/);
+  });
+});
+
+describe('Now-playing widget - About page only', () => {
+  it('About page renders the "What I\'m listening to" widget', () => {
+    expect(aboutHtml).toMatch(/data-now-playing/);
+    expect(aboutHtml).toContain("What I'm listening to");
+  });
+
+  it('widget bakes in the Worker endpoint from config', () => {
+    // The endpoint is resolved at build time and passed via data-endpoint so the
+    // client script never depends on client-side env inlining.
+    expect(aboutHtml).toMatch(/data-endpoint="https?:\/\/[^"]+"/);
+  });
+
+  it('widget starts hidden so nothing flashes before data loads', () => {
+    const match = aboutHtml.match(/<section[^>]*data-now-playing[^>]*>/);
+    expect(match).not.toBeNull();
+    expect(match?.[0]).toMatch(/\shidden(\s|>|=)/);
+  });
+
+  it('widget does NOT appear on other pages', () => {
+    for (const html of [indexHtml, projectsHtml, postsHtml]) {
+      expect(html).not.toMatch(/data-now-playing/);
+      expect(html).not.toContain("What I'm listening to");
+    }
   });
 });
 
