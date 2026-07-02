@@ -117,6 +117,23 @@ const bodyId = `now-playing-body-${Math.random().toString(36).slice(2, 8)}`;
     display: none;
   }
 
+  /* Reveal: the widget is hidden until data arrives, then fades/eases in so it
+     never hard-"pops". On View Transition navigations the client pre-fills the
+     incoming card from a session cache and marks it revealed up front, so it
+     rides the page transition instead of appearing a beat late. */
+  .now-playing {
+    opacity: 0;
+    transform: translateY(6px);
+    transition:
+      opacity 0.4s ease,
+      transform 0.4s ease;
+  }
+
+  .now-playing[data-revealed='true'] {
+    opacity: 1;
+    transform: none;
+  }
+
   .now-playing__label {
     font-family: var(--font-mono, monospace);
     font-size: 0.75rem;
@@ -350,6 +367,12 @@ const bodyId = `now-playing-body-${Math.random().toString(36).slice(2, 8)}`;
       transform: scaleY(0.7);
     }
 
+    /* Appear without the fade/slide when reduced motion is requested. */
+    .now-playing {
+      transition: none;
+      transform: none;
+    }
+
     /* No marquee when reduced motion is requested — clip with an ellipsis. */
     .now-playing__scroll[data-overflow='true'] {
       text-align: center;
@@ -373,6 +396,36 @@ const bodyId = `now-playing-body-${Math.random().toString(36).slice(2, 8)}`;
     albumImageUrl?: string;
     songUrl?: string;
     playedAt?: string;
+  }
+
+  // Session cache of the last good payload. Lets the widget paint instantly on
+  // repeat visits (and pre-fill the incoming page before a View Transition swap)
+  // instead of popping in after the fetch resolves. Short TTL so it stays fresh.
+  const CACHE_KEY = 'now-playing:v1';
+  const CACHE_TTL_MS = 10 * 60 * 1000;
+  let memoryCache: NowPlayingData | null = null;
+
+  function readCache(): NowPlayingData | null {
+    if (memoryCache) return memoryCache;
+    try {
+      const raw = sessionStorage.getItem(CACHE_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw) as { t: number; data: NowPlayingData };
+      if (!parsed?.data?.title || Date.now() - parsed.t > CACHE_TTL_MS) return null;
+      memoryCache = parsed.data;
+      return memoryCache;
+    } catch {
+      return null;
+    }
+  }
+
+  function writeCache(data: NowPlayingData) {
+    memoryCache = data;
+    try {
+      sessionStorage.setItem(CACHE_KEY, JSON.stringify({ t: Date.now(), data }));
+    } catch {
+      // Storage unavailable (private mode / quota) — the in-memory copy still helps.
+    }
   }
 
   // Measure a title/artist line and, if it overflows the card, arm the marquee.
@@ -417,8 +470,9 @@ const bodyId = `now-playing-body-${Math.random().toString(36).slice(2, 8)}`;
     });
   }
 
-  // Populate a single widget instance and reveal it.
-  function applyNowPlaying(root: HTMLElement, data: NowPlayingData) {
+  // Populate a single widget instance. DOM writes only — safe to run against a
+  // detached document (e.g. the incoming page during astro:before-swap).
+  function populateNowPlaying(root: HTMLElement, data: NowPlayingData) {
     const link = root.querySelector<HTMLAnchorElement>('[data-track-link]');
     const art = root.querySelector<HTMLImageElement>('[data-art]');
     const status = root.querySelector<HTMLElement>('[data-status]');
@@ -444,13 +498,33 @@ const bodyId = `now-playing-body-${Math.random().toString(36).slice(2, 8)}`;
 
     root.dataset.state = data.isPlaying ? 'playing' : 'idle';
     root.hidden = false;
+  }
 
-    // Measure once the fonts are loaded so scrollWidth reflects final metrics.
+  // Measure the marquee once fonts are ready (needs live layout).
+  function measureWhenReady(root: HTMLElement) {
     if (document.fonts && document.fonts.ready) {
       document.fonts.ready.then(() => measureRoot(root));
     } else {
       requestAnimationFrame(() => measureRoot(root));
     }
+  }
+
+  // Populate + reveal on the live document. If the card was already revealed
+  // (pre-filled during a page transition) we skip the fade to avoid a re-flash.
+  function applyNowPlaying(root: HTMLElement, data: NowPlayingData) {
+    const alreadyRevealed = root.dataset.revealed === 'true';
+    populateNowPlaying(root, data);
+
+    if (alreadyRevealed) {
+      measureWhenReady(root);
+      return;
+    }
+
+    // Reveal on the next frame so the opacity/transform transition actually runs.
+    requestAnimationFrame(() => {
+      root.dataset.revealed = 'true';
+      measureWhenReady(root);
+    });
   }
 
   async function loadNowPlaying() {
@@ -469,6 +543,12 @@ const bodyId = `now-playing-body-${Math.random().toString(36).slice(2, 8)}`;
     const endpoint = roots[0].dataset.endpoint;
     if (!endpoint) return;
 
+    // Paint instantly from a warm cache so there's nothing to "pop in".
+    const cached = readCache();
+    if (cached) {
+      for (const root of roots) applyNowPlaying(root, cached);
+    }
+
     try {
       const res = await fetch(endpoint, { headers: { Accept: 'application/json' } });
       if (!res.ok) return;
@@ -476,10 +556,23 @@ const bodyId = `now-playing-body-${Math.random().toString(36).slice(2, 8)}`;
       const data = (await res.json()) as NowPlayingData;
       if (!data || !data.title) return; // Nothing to show — stay hidden.
 
+      writeCache(data);
       for (const root of roots) applyNowPlaying(root, data);
     } catch {
-      // Network/parse error: leave the widget hidden. Never surface an error.
+      // Network/parse error: leave the widget hidden (or keep the cached copy).
     }
+  }
+
+  // Pre-fill the About widget in the INCOMING document during a View Transition,
+  // so a repeat visit shows the card immediately as part of the page slide
+  // rather than popping in after navigation. No-op on pages without the widget.
+  function prefillNewDocument(newDoc: Document) {
+    const data = readCache();
+    if (!data) return;
+    newDoc.querySelectorAll<HTMLElement>('[data-now-playing]').forEach((root) => {
+      populateNowPlaying(root, data);
+      root.dataset.revealed = 'true';
+    });
   }
 
   // Run on first load and after every View Transition navigation. Bind the
@@ -489,6 +582,11 @@ const bodyId = `now-playing-body-${Math.random().toString(36).slice(2, 8)}`;
   const w = window as Window & { __nowPlayingBound?: boolean };
   if (!w.__nowPlayingBound) {
     document.addEventListener('astro:page-load', loadNowPlaying);
+    // Pre-fill the incoming page from cache before the transition swaps it in.
+    document.addEventListener('astro:before-swap', (e) => {
+      const { newDocument } = e as unknown as { newDocument: Document };
+      if (newDocument) prefillNewDocument(newDocument);
+    });
     let resizeRaf = 0;
     window.addEventListener('resize', () => {
       cancelAnimationFrame(resizeRaf);
