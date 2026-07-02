@@ -8,7 +8,10 @@
     "preview": "node --disable-warning=DEP0205 node_modules/astro/bin/astro.mjs preview --host",
     "sync": "node scripts/run-local-script.mjs sync",
     "test": "npm run build && vitest run",
-    "deploy": "node scripts/run-local-script.mjs deploy"
+    "deploy": "node scripts/run-local-script.mjs deploy",
+    "spotify:token": "node scripts/spotify-refresh-token.mjs",
+    "worker:dev": "wrangler dev --config worker/wrangler.toml",
+    "worker:deploy": "wrangler deploy --config worker/wrangler.toml"
   },
   "overrides": {
     "vite": "^7"
@@ -20,7 +23,9 @@
     "tailwindcss": "^4.0.0"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^4.0.0",
     "@types/node": "^24.13.1",
-    "vitest": "^4.1.8"
+    "vitest": "^4.1.8",
+    "wrangler": "^4.0.0"
   }
 }

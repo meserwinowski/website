@@ -14,5 +14,10 @@ node_modules
 dist
 .astro
 
+# Cloudflare Worker local state / deps
+worker/.wrangler
+worker/node_modules
+worker/.dev.vars
+
 # Auto-generated embed manifest
 public/images/.embed-manifest.json
