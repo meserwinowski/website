@@ -38,19 +38,41 @@ export interface NowPlaying {
   playedAt?: string;
 }
 
+/** A single track in the "Liked Songs" list — public metadata only. */
+export interface LikedSong {
+  title?: string;
+  artist?: string;
+  album?: string;
+  albumImageUrl?: string;
+  songUrl?: string;
+  /** When I saved the track to my library (ISO 8601). */
+  addedAt?: string;
+}
+
+/** Payload for the `/liked-songs` endpoint: newest-saved tracks first. */
+export interface LikedSongsPayload {
+  tracks: LikedSong[];
+}
+
 const TOKEN_ENDPOINT = 'https://accounts.spotify.com/api/token';
 const CURRENTLY_PLAYING_ENDPOINT =
   'https://api.spotify.com/v1/me/player/currently-playing';
 const RECENTLY_PLAYED_ENDPOINT =
   'https://api.spotify.com/v1/me/player/recently-played?limit=1';
+// Saved-tracks library ("Liked Songs"), newest first. Requires the
+// user-library-read scope on the refresh token.
+const SAVED_TRACKS_ENDPOINT = 'https://api.spotify.com/v1/me/tracks?limit=5';
 
 // How long browsers/edge may reuse the response. Keeps us far under the free
 // plan's daily cap and shields Spotify from bursts.
 const CACHE_TTL_SECONDS = 60;
+// Liked Songs change rarely, so cache them longer than now-playing.
+const LIKED_CACHE_TTL_SECONDS = 300;
 // Upstream calls fail fast so a slow Spotify never ties up the Worker.
 const UPSTREAM_TIMEOUT_MS = 4000;
 
 const NOT_PLAYING: NowPlaying = { isPlaying: false };
+const EMPTY_LIKED: LikedSongsPayload = { tracks: [] };
 
 /**
  * Access-token memoization at the isolate level. Spotify access tokens live for
@@ -80,32 +102,48 @@ export default {
       return json(NOT_PLAYING, { status: 403, headers: corsHeaders });
     }
 
+    // The custom domain routes every path to this Worker, so branch on the path:
+    // `/liked-songs` serves the saved-tracks list; everything else is now-playing.
+    const url = new URL(request.url);
+    const isLiked = url.pathname === '/liked-songs';
+    const ttl = isLiked ? LIKED_CACHE_TTL_SECONDS : CACHE_TTL_SECONDS;
+
     // Serve from the edge cache when possible so most hits never touch Spotify.
     const cache = caches.default;
-    const cacheKey = new Request(new URL(request.url).toString(), { method: 'GET' });
+    const cacheKey = new Request(url.toString(), { method: 'GET' });
     const cached = await cache.match(cacheKey);
     if (cached) {
       return withCors(cached, corsHeaders);
     }
 
-    let payload: NowPlaying;
+    let payload: NowPlaying | LikedSongsPayload;
+    let hasData: boolean;
     try {
-      payload = await getNowPlaying(env);
+      if (isLiked) {
+        const liked = await getLikedSongs(env);
+        payload = liked;
+        hasData = liked.tracks.length > 0;
+      } else {
+        const np = await getNowPlaying(env);
+        payload = np;
+        // Only cache real results — don't pin a transient failure for a full TTL.
+        hasData = Boolean(np.isPlaying || np.title);
+      }
     } catch {
       // Fail closed: never surface an error to the visitor.
-      payload = NOT_PLAYING;
+      payload = isLiked ? EMPTY_LIKED : NOT_PLAYING;
+      hasData = false;
     }
 
     const response = json(payload, {
       status: 200,
       headers: {
         ...corsHeaders,
-        'Cache-Control': `public, max-age=${CACHE_TTL_SECONDS}, s-maxage=${CACHE_TTL_SECONDS}`,
+        'Cache-Control': `public, max-age=${ttl}, s-maxage=${ttl}`,
       },
     });
 
-    // Only cache real results — don't pin a transient failure for a full minute.
-    if (payload.isPlaying || payload.title) {
+    if (hasData) {
       ctx.waitUntil(cache.put(cacheKey, response.clone()));
     }
 
@@ -163,6 +201,40 @@ export function shapeNowPlaying(
     ...shapeTrack(track),
     ...(typeof entry.played_at === 'string' ? { playedAt: entry.played_at } : {}),
   };
+}
+
+/** Fetch the most recently saved "Liked Songs" and shape them for the browser. */
+export async function getLikedSongs(env: Env): Promise<LikedSongsPayload> {
+  const token = await getAccessToken(env);
+  const res = await spotifyFetch(SAVED_TRACKS_ENDPOINT, token);
+  if (res && res.status === 200) {
+    const body = await res.json().catch(() => null);
+    return shapeLikedSongs(body);
+  }
+  return EMPTY_LIKED;
+}
+
+/**
+ * Pure transform from a Spotify saved-tracks body to the public liked-songs
+ * payload. Network- and dependency-free so it can be unit tested directly.
+ * Entries without a usable track are dropped; each surviving track carries its
+ * `addedAt` timestamp when present.
+ */
+export function shapeLikedSongs(body: any): LikedSongsPayload {
+  if (!body || typeof body !== 'object' || !Array.isArray(body.items)) {
+    return { tracks: [] };
+  }
+  const tracks = body.items
+    .map((entry: any): LikedSong | null => {
+      const track = entry?.track;
+      if (!track || !track.name) return null;
+      return {
+        ...shapeTrack(track),
+        ...(typeof entry.added_at === 'string' ? { addedAt: entry.added_at } : {}),
+      };
+    })
+    .filter((t: LikedSong | null): t is LikedSong => t !== null);
+  return { tracks };
 }
 
 /** Extract the common track fields shared by both Spotify responses. */

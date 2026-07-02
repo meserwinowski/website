@@ -21,3 +21,16 @@ const fromEnv =
   (typeof process !== 'undefined' ? process.env?.PUBLIC_NOW_PLAYING_URL : undefined);
 
 export const NOW_PLAYING_ENDPOINT = (fromEnv || DEFAULT_NOW_PLAYING_ENDPOINT).trim();
+
+/**
+ * Public URL of the Spotify "liked-songs" endpoint on the same Worker. Same
+ * precedence and (non-secret) rationale as NOW_PLAYING_ENDPOINT above; served by
+ * the `/liked-songs` path on the Cloudflare Worker.
+ */
+const DEFAULT_LIKED_SONGS_ENDPOINT = 'https://api.mattserwinowski.com/liked-songs';
+
+const likedFromEnv =
+  import.meta.env.PUBLIC_LIKED_SONGS_URL ??
+  (typeof process !== 'undefined' ? process.env?.PUBLIC_LIKED_SONGS_URL : undefined);
+
+export const LIKED_SONGS_ENDPOINT = (likedFromEnv || DEFAULT_LIKED_SONGS_ENDPOINT).trim();
