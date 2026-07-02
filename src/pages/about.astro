@@ -8,9 +8,7 @@ const allPages = await getCollection('pages');
 const aboutPage = allPages.find((p) => p.id === 'about');
 const baseTitle = aboutPage?.data.title ?? 'About';
 // Site convention: page titles are "PageName - Matt Serwinowski".
-const aboutTitle = baseTitle.includes('Matt Serwinowski')
-  ? baseTitle
-  : `${baseTitle} - Matt Serwinowski`;
+const aboutTitle = aboutPage?.data.title ?? 'About - Matt Serwinowski';
 const aboutDescription = aboutPage?.data.description ?? 'About - Matt Serwinowski';
 const Content = aboutPage ? (await render(aboutPage)).Content : null;
 const heroName = aboutPage?.data.heroName ?? 'Matthew Serwinowski';

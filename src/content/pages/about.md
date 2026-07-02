@@ -1,5 +1,5 @@
 ---
-title: About
+title: About - Matt Serwinowski
 description: About Matt Serwinowski
 heroName: Matthew Serwinowski
 heroTagline: Handtyped artisanal thoughts and writing*
@@ -58,4 +58,4 @@ I also find [Publish (on your) Own Site, Syndicate Elsewhere](https://indieweb.o
 
 Thanks for checking out my website!
 
-*/*Website is very much vibe coded with AI*
+*\*Website is very much vibe coded with AI*
