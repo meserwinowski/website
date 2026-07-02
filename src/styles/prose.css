@@ -39,14 +39,36 @@
   text-align: center;
   text-transform: capitalize;
   letter-spacing: 0.04em;
+  /* Let long headings wrap/shrink within the container instead of forcing the
+     row wider than the viewport on narrow screens. */
+  min-width: 0;
+  overflow-wrap: break-word;
 }
 
 .prose.about-headings h2::before,
 .prose.about-headings h2::after {
   content: "";
-  flex: 1;
+  /* Grow to fill leftover space (long rules on wide screens), but keep a
+     minimum length so a long, wrapping heading shrinks the text rather than
+     collapsing the rules off-screen. */
+  flex: 1 1 0;
+  min-width: 1.5rem;
   height: 2px;
   background-color: var(--color-accent);
+}
+
+@media (max-width: 40rem) {
+  .prose.about-headings h2 {
+    max-width: 22ch;
+    margin-inline: auto;
+    gap: 0.3em;
+  }
+
+  .prose.about-headings h2::before,
+  .prose.about-headings h2::after {
+    flex: 0 0 0.9rem;
+    min-width: 0.9rem;
+  }
 }
 
 .prose h3 {

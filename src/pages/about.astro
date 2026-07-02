@@ -2,6 +2,7 @@
 import { getCollection, render } from 'astro:content';
 import Layout from '../layouts/Base.astro';
 import NowPlaying from '../components/NowPlaying.astro';
+import LikedSongs from '../components/LikedSongs.astro';
 
 // Get the "about" page content from the pages collection (sourced from Obsidian vault)
 const allPages = await getCollection('pages');
@@ -27,10 +28,11 @@ const heroTagline = aboutPage?.data.heroTagline ?? 'Handtyped artisanal thoughts
   <!-- Wide reading layout: prose centered in column 2, with symmetric 1fr gutters.
        The now-playing widget sits in the LEFT gutter on xl+ (like the project ToC). -->
   <div class="grid gap-8 xl:items-start xl:grid-cols-[minmax(0,1fr)_minmax(0,var(--width-prose))_minmax(0,1fr)]">
-    <!-- Left gutter: sticky "What I'm listening to" widget (desktop only). -->
+    <!-- Left gutter: sticky Spotify widgets (desktop only). -->
     <aside class="hidden xl:col-start-1 xl:block">
-      <div class="sticky top-8">
+      <div class="sticky top-8 space-y-4">
         <NowPlaying />
+        <LikedSongs />
       </div>
     </aside>
 
@@ -41,10 +43,11 @@ const heroTagline = aboutPage?.data.heroTagline ?? 'Handtyped artisanal thoughts
         <p class="text-xl font-medium text-[var(--color-accent)] italic">{heroTagline}</p>
       </div>
 
-      <!-- Below xl there is no left gutter, so show the widget inline instead —
-           as a tap-to-expand dropdown card to keep the mobile hero compact. -->
-      <div class="xl:hidden">
+      <!-- Below xl there is no left gutter, so show the widgets inline instead —
+           as tap-to-expand dropdown cards to keep the mobile hero compact. -->
+      <div class="space-y-4 xl:hidden">
         <NowPlaying collapsible />
+        <LikedSongs collapsible />
       </div>
 
       <!-- Render markdown content from the Obsidian vault if available -->

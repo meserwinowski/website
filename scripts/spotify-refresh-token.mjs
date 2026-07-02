@@ -30,7 +30,7 @@ import { spawn } from 'node:child_process';
 
 const REDIRECT_URI = 'http://127.0.0.1:8888/callback';
 const PORT = 8888;
-const SCOPES = 'user-read-currently-playing user-read-recently-played';
+const SCOPES = 'user-read-currently-playing user-read-recently-played user-library-read';
 
 function parseArgs(argv) {
   const out = {};

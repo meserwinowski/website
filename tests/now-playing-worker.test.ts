@@ -7,7 +7,12 @@
  * and the empty/nothing states.
  */
 import { describe, it, expect } from 'vitest';
-import { shapeNowPlaying, isOriginAllowed, isLocalOrigin } from '../worker/src/index';
+import {
+  shapeNowPlaying,
+  shapeLikedSongs,
+  isOriginAllowed,
+  isLocalOrigin,
+} from '../worker/src/index';
 
 const track = {
   name: 'Song Title',
@@ -91,6 +96,60 @@ describe('shapeNowPlaying — resilience', () => {
     expect(result.title).toBe('Bare');
     expect(result.artist).toBe('Solo');
     expect(result.albumImageUrl).toBeUndefined();
+  });
+});
+
+describe('shapeLikedSongs — saved tracks list', () => {
+  const savedBody = {
+    items: [
+      { added_at: '2026-02-01T00:00:00Z', track },
+      {
+        added_at: '2026-01-15T00:00:00Z',
+        track: {
+          name: 'Second Song',
+          artists: [{ name: 'Solo' }],
+          album: { name: 'Second Album', images: [{ url: 'https://i.scdn.co/image/two' }] },
+          external_urls: { spotify: 'https://open.spotify.com/track/def' },
+        },
+      },
+    ],
+  };
+
+  it('shapes saved tracks newest-first with addedAt', () => {
+    const result = shapeLikedSongs(savedBody);
+    expect(result.tracks).toHaveLength(2);
+    expect(result.tracks[0]).toEqual({
+      title: 'Song Title',
+      artist: 'Artist One, Artist Two',
+      album: 'Album Name',
+      albumImageUrl: 'https://i.scdn.co/image/large',
+      songUrl: 'https://open.spotify.com/track/abc',
+      addedAt: '2026-02-01T00:00:00Z',
+    });
+    expect(result.tracks[1].title).toBe('Second Song');
+    expect(result.tracks[1].addedAt).toBe('2026-01-15T00:00:00Z');
+  });
+
+  it('omits addedAt when absent', () => {
+    const result = shapeLikedSongs({ items: [{ track }] });
+    expect(result.tracks).toHaveLength(1);
+    expect(result.tracks[0]).not.toHaveProperty('addedAt');
+  });
+
+  it('drops entries without a usable track', () => {
+    const result = shapeLikedSongs({
+      items: [{ added_at: 'x', track: null }, { added_at: 'y', track }, {}],
+    });
+    expect(result.tracks).toHaveLength(1);
+    expect(result.tracks[0].title).toBe('Song Title');
+  });
+
+  it('returns an empty list for empty / malformed bodies', () => {
+    expect(shapeLikedSongs({ items: [] })).toEqual({ tracks: [] });
+    expect(shapeLikedSongs(null)).toEqual({ tracks: [] });
+    expect(shapeLikedSongs(undefined)).toEqual({ tracks: [] });
+    expect(shapeLikedSongs({ nope: true })).toEqual({ tracks: [] });
+    expect(shapeLikedSongs('nope' as unknown)).toEqual({ tracks: [] });
   });
 });
 

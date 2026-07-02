@@ -1,0 +1,559 @@
+---
+/**
+ * LikedSongs.astro — "Liked Songs" widget (About page only).
+ *
+ * A companion card to NowPlaying.astro that lists my five most recently saved
+ * Spotify "Liked Songs". Like the now-playing widget it renders a themed card
+ * with a skeleton, then fills it in client-side by fetching the Cloudflare
+ * Worker's `/liked-songs` endpoint after paint. It never blocks rendering and
+ * hides itself gracefully on failure or an empty library.
+ *
+ * The client logic mirrors NowPlaying (session cache + View Transition prefill,
+ * fade-in reveal, collapsible mobile dropdown, marquee for overflowing text) but
+ * is intentionally self-contained (scoped styles/script don't cross component
+ * boundaries) so the proven now-playing widget stays untouched.
+ */
+import { LIKED_SONGS_ENDPOINT } from '../config';
+
+interface Props {
+  /**
+   * Render the card as a tap-to-expand disclosure. Used for the mobile inline
+   * copy on the About page; desktop/gutter instances stay flat (always open).
+   */
+  collapsible?: boolean;
+}
+
+const { collapsible = false } = Astro.props;
+// Unique per render so multiple instances on a page never share an id.
+const bodyId = `liked-songs-body-${Math.random().toString(36).slice(2, 8)}`;
+// Five fixed skeleton rows; the client fills them and hides any unused ones.
+const rows = [0, 1, 2, 3, 4];
+---
+
+<!--
+  Starts hidden (data-state="loading" + hidden) so nothing flashes before data
+  arrives. The client reveals it only once real tracks load. When `collapsible`,
+  the label becomes a toggle button and the body collapses (mobile dropdown).
+-->
+<section
+  class:list={['liked-songs', collapsible && 'liked-songs--collapsible']}
+  data-liked-songs
+  data-endpoint={LIKED_SONGS_ENDPOINT}
+  data-state="loading"
+  aria-live="polite"
+  hidden
+>
+  {collapsible ? (
+    <button
+      type="button"
+      class="liked-songs__label liked-songs__toggle"
+      data-toggle
+      aria-expanded="false"
+      aria-controls={bodyId}
+    >
+      <span>Most Recently Liked Songs</span>
+      <svg
+        class="liked-songs__chevron"
+        viewBox="0 0 24 24"
+        width="16"
+        height="16"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+      >
+        <polyline points="6 9 12 15 18 9"></polyline>
+      </svg>
+    </button>
+  ) : (
+    <p class="liked-songs__label">Most Recently Liked Songs</p>
+  )}
+
+  <div class="liked-songs__body" id={bodyId}>
+    <div class="liked-songs__body-inner">
+      <ul class="liked-songs__list" data-list>
+        {rows.map(() => (
+          <li class="liked-songs__row" data-row hidden>
+            <a
+              class="liked-songs__link"
+              data-row-link
+              href="#"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <span class="liked-songs__art-wrap">
+                <img
+                  class="liked-songs__art"
+                  data-row-art
+                  width="40"
+                  height="40"
+                  alt=""
+                  loading="lazy"
+                  decoding="async"
+                />
+              </span>
+              <span class="liked-songs__meta">
+                <span class="liked-songs__title liked-songs__scroll" data-scroll>
+                  <span class="liked-songs__scroll-inner" data-row-title></span>
+                </span>
+                <span class="liked-songs__artist liked-songs__scroll" data-scroll>
+                  <span class="liked-songs__scroll-inner" data-row-artist></span>
+                </span>
+              </span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </div>
+</section>
+
+<style>
+  .liked-songs {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 1rem 1.25rem;
+    border: 1px solid var(--color-border);
+    border-radius: 0.75rem;
+    background: var(--color-surface);
+  }
+
+  /* Astro's scoped class outspecifies the UA `[hidden]` rule, so make the
+     hidden attribute authoritative for the initial (pre-data) state. */
+  .liked-songs[hidden] {
+    display: none;
+  }
+
+  /* Reveal: hidden until data arrives, then fades/eases in so it never hard-
+     "pops". On View Transition navigations the client pre-fills the incoming
+     card from a session cache and marks it revealed up front. */
+  .liked-songs {
+    opacity: 0;
+    transform: translateY(6px);
+    transition:
+      opacity 0.4s ease,
+      transform 0.4s ease;
+  }
+
+  .liked-songs[data-revealed='true'] {
+    opacity: 1;
+    transform: none;
+  }
+
+  .liked-songs__label {
+    font-family: var(--font-mono, monospace);
+    font-size: 0.75rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+    margin: 0;
+    text-align: center;
+  }
+
+  /* --- Collapsible (mobile dropdown card) --------------------------------- */
+
+  .liked-songs__toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    width: 100%;
+    text-align: left;
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    color: var(--color-muted);
+  }
+
+  /* Don't let the global spring-scale distort the toggle on hover/tap. */
+  .liked-songs__toggle,
+  .liked-songs__toggle:hover,
+  .liked-songs__toggle:active {
+    transform: none;
+  }
+
+  .liked-songs__toggle:hover {
+    color: var(--color-text);
+  }
+
+  .liked-songs__chevron {
+    flex-shrink: 0;
+    color: var(--color-muted);
+    transition: transform 0.3s ease;
+  }
+
+  .liked-songs--collapsible[data-open='true'] .liked-songs__chevron {
+    transform: rotate(180deg);
+  }
+
+  /* Collapse the body with the grid-template-rows 0fr → 1fr trick. */
+  .liked-songs--collapsible {
+    gap: 0;
+  }
+
+  .liked-songs--collapsible .liked-songs__body {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 0.3s ease;
+  }
+
+  .liked-songs--collapsible[data-open='true'] .liked-songs__body {
+    grid-template-rows: 1fr;
+  }
+
+  .liked-songs--collapsible .liked-songs__body-inner {
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  /* Space between the toggle and the list lives on the list (clipped content)
+     so a collapsed card fully closes with no leftover padding sliver. */
+  .liked-songs--collapsible .liked-songs__list {
+    padding-top: 0.875rem;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .liked-songs__chevron,
+    .liked-songs--collapsible .liked-songs__body {
+      transition: none;
+    }
+  }
+
+  /* --- List --------------------------------------------------------------- */
+
+  .liked-songs__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+  }
+
+  .liked-songs__row[hidden] {
+    display: none;
+  }
+
+  .liked-songs__link {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    text-decoration: none;
+    color: inherit;
+    min-width: 0;
+  }
+
+  /* Opt out of the global spring-scale so hovering a row never distorts it. */
+  .liked-songs__link,
+  .liked-songs__link:hover,
+  .liked-songs__link:active {
+    transform: none;
+  }
+
+  .liked-songs__art-wrap {
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+  }
+
+  .liked-songs__art {
+    width: 40px;
+    height: 40px;
+    border-radius: 0.375rem;
+    object-fit: cover;
+    background: color-mix(in srgb, var(--color-border) 60%, transparent);
+    display: block;
+  }
+
+  .liked-songs__meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.0625rem;
+    min-width: 0;
+    flex: 1;
+  }
+
+  .liked-songs__title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--color-text);
+  }
+
+  .liked-songs__link:hover .liked-songs__title {
+    color: var(--color-accent);
+  }
+
+  .liked-songs__artist {
+    font-size: 0.75rem;
+    color: var(--color-muted);
+  }
+
+  /* Marquee: title/artist that overflow the row scroll slowly instead of being
+     clipped. Short strings stay static and left-aligned. The client measures the
+     overflow, flips data-overflow, and sets the distance/duration vars. */
+  .liked-songs__scroll {
+    display: block;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+
+  .liked-songs__scroll-inner {
+    display: inline-block;
+    white-space: nowrap;
+  }
+
+  .liked-songs__scroll[data-overflow='true'] .liked-songs__scroll-inner {
+    animation: liked-songs-marquee var(--ls-marquee-duration, 10s) linear infinite alternate;
+  }
+
+  @keyframes liked-songs-marquee {
+    0%,
+    12% {
+      transform: translateX(0);
+    }
+    88%,
+    100% {
+      transform: translateX(var(--ls-marquee-distance, 0px));
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    /* Appear without the fade/slide when reduced motion is requested. */
+    .liked-songs {
+      transition: none;
+      transform: none;
+    }
+
+    /* No marquee — clip with an ellipsis instead. */
+    .liked-songs__scroll[data-overflow='true'] .liked-songs__scroll-inner {
+      animation: none;
+      display: block;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  }
+</style>
+
+<script>
+  interface LikedSong {
+    title?: string;
+    artist?: string;
+    album?: string;
+    albumImageUrl?: string;
+    songUrl?: string;
+    addedAt?: string;
+  }
+
+  interface LikedSongsData {
+    tracks: LikedSong[];
+  }
+
+  // Session cache of the last good payload. Lets the card paint instantly on
+  // repeat visits (and pre-fill the incoming page before a View Transition swap)
+  // instead of popping in after the fetch resolves. Short TTL so it stays fresh.
+  const CACHE_KEY = 'liked-songs:v1';
+  const CACHE_TTL_MS = 10 * 60 * 1000;
+  let memoryCache: LikedSongsData | null = null;
+
+  function hasTracks(data: LikedSongsData | null): data is LikedSongsData {
+    return !!data && Array.isArray(data.tracks) && data.tracks.length > 0;
+  }
+
+  function readCache(): LikedSongsData | null {
+    if (memoryCache) return memoryCache;
+    try {
+      const raw = sessionStorage.getItem(CACHE_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw) as { t: number; data: LikedSongsData };
+      if (!hasTracks(parsed?.data) || Date.now() - parsed.t > CACHE_TTL_MS) return null;
+      memoryCache = parsed.data;
+      return memoryCache;
+    } catch {
+      return null;
+    }
+  }
+
+  function writeCache(data: LikedSongsData) {
+    memoryCache = data;
+    try {
+      sessionStorage.setItem(CACHE_KEY, JSON.stringify({ t: Date.now(), data }));
+    } catch {
+      // Storage unavailable (private mode / quota) — the in-memory copy still helps.
+    }
+  }
+
+  // Measure a title/artist line and, if it overflows the row, arm the marquee.
+  // Short strings stay static. Runs after layout so scrollWidth is accurate;
+  // skips instances that are display:none (clientWidth 0).
+  function setupMarquee(scrollEl: HTMLElement) {
+    const inner = scrollEl.querySelector<HTMLElement>('.liked-songs__scroll-inner');
+    if (!inner) return;
+
+    scrollEl.removeAttribute('data-overflow');
+    scrollEl.style.removeProperty('--ls-marquee-distance');
+    scrollEl.style.removeProperty('--ls-marquee-duration');
+
+    if (!scrollEl.clientWidth) return; // Hidden instance — nothing to measure.
+
+    const overflow = inner.scrollWidth - scrollEl.clientWidth;
+    if (overflow <= 4) return; // Fits comfortably; leave it static.
+
+    scrollEl.dataset.overflow = 'true';
+    scrollEl.style.setProperty('--ls-marquee-distance', `-${overflow}px`);
+    // Constant slow speed (~24px/s over the ~76% of the cycle spent scrolling).
+    const duration = Math.max(6, overflow / 24 / 0.76);
+    scrollEl.style.setProperty('--ls-marquee-duration', `${duration.toFixed(1)}s`);
+  }
+
+  function measureRoot(root: HTMLElement) {
+    // Only measure rows that are actually shown (skip hidden skeleton rows).
+    root
+      .querySelectorAll<HTMLElement>('[data-row]:not([hidden]) .liked-songs__scroll')
+      .forEach(setupMarquee);
+  }
+
+  // Wire up the collapsible (mobile) card's toggle button.
+  function bindToggle(root: HTMLElement) {
+    const toggle = root.querySelector<HTMLButtonElement>('[data-toggle]');
+    if (!toggle) return;
+    toggle.addEventListener('click', () => {
+      const open = root.dataset.open === 'true';
+      root.dataset.open = open ? 'false' : 'true';
+      toggle.setAttribute('aria-expanded', open ? 'false' : 'true');
+      if (!open) requestAnimationFrame(() => measureRoot(root));
+    });
+  }
+
+  // Populate a single card instance. DOM writes only — safe to run against a
+  // detached document (e.g. the incoming page during astro:before-swap).
+  function populateLiked(root: HTMLElement, data: LikedSongsData) {
+    const rows = root.querySelectorAll<HTMLElement>('[data-row]');
+    const tracks = Array.isArray(data.tracks) ? data.tracks : [];
+
+    rows.forEach((row, i) => {
+      const track = tracks[i];
+      if (!track) {
+        row.hidden = true;
+        return;
+      }
+      row.hidden = false;
+
+      const link = row.querySelector<HTMLAnchorElement>('[data-row-link]');
+      const art = row.querySelector<HTMLImageElement>('[data-row-art]');
+      const title = row.querySelector<HTMLElement>('[data-row-title]');
+      const artist = row.querySelector<HTMLElement>('[data-row-artist]');
+
+      if (title) title.textContent = track.title ?? '';
+      if (artist) artist.textContent = track.artist ?? '';
+
+      if (link) {
+        if (track.songUrl) link.href = track.songUrl;
+        else link.removeAttribute('href');
+      }
+
+      if (art && track.albumImageUrl) {
+        art.src = track.albumImageUrl;
+        art.alt = track.album ? `Album art for ${track.album}` : 'Album art';
+      }
+    });
+
+    root.dataset.state = 'ready';
+    root.hidden = false;
+  }
+
+  // Measure the marquee once fonts are ready (needs live layout).
+  function measureWhenReady(root: HTMLElement) {
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(() => measureRoot(root));
+    } else {
+      requestAnimationFrame(() => measureRoot(root));
+    }
+  }
+
+  // Populate + reveal on the live document. If the card was already revealed
+  // (pre-filled during a page transition) we skip the fade to avoid a re-flash.
+  function applyLiked(root: HTMLElement, data: LikedSongsData) {
+    const alreadyRevealed = root.dataset.revealed === 'true';
+    populateLiked(root, data);
+
+    if (alreadyRevealed) {
+      measureWhenReady(root);
+      return;
+    }
+
+    requestAnimationFrame(() => {
+      root.dataset.revealed = 'true';
+      measureWhenReady(root);
+    });
+  }
+
+  async function loadLikedSongs() {
+    // There may be more than one instance on a page (desktop gutter + mobile
+    // inline). Bind each once, fetch a single time, apply to all.
+    const roots = Array.from(
+      document.querySelectorAll<HTMLElement>('[data-liked-songs]'),
+    ).filter((el) => el.dataset.bound !== 'true');
+    if (roots.length === 0) return;
+    roots.forEach((el) => {
+      el.dataset.bound = 'true';
+      bindToggle(el);
+    });
+
+    const endpoint = roots[0].dataset.endpoint;
+    if (!endpoint) return;
+
+    // Paint instantly from a warm cache so there's nothing to "pop in".
+    const cached = readCache();
+    if (cached) {
+      for (const root of roots) applyLiked(root, cached);
+    }
+
+    try {
+      const res = await fetch(endpoint, { headers: { Accept: 'application/json' } });
+      if (!res.ok) return;
+
+      const data = (await res.json()) as LikedSongsData;
+      if (!hasTracks(data)) return; // Nothing to show — stay hidden.
+
+      writeCache(data);
+      for (const root of roots) applyLiked(root, data);
+    } catch {
+      // Network/parse error: leave the card hidden (or keep the cached copy).
+    }
+  }
+
+  // Pre-fill the incoming document during a View Transition so a repeat visit
+  // shows the card immediately as part of the page slide rather than popping in.
+  function prefillNewDocument(newDoc: Document) {
+    const data = readCache();
+    if (!hasTracks(data)) return;
+    newDoc.querySelectorAll<HTMLElement>('[data-liked-songs]').forEach((root) => {
+      populateLiked(root, data);
+      root.dataset.revealed = 'true';
+    });
+  }
+
+  const w = window as Window & { __likedSongsBound?: boolean };
+  if (!w.__likedSongsBound) {
+    document.addEventListener('astro:page-load', loadLikedSongs);
+    document.addEventListener('astro:before-swap', (e) => {
+      const { newDocument } = e as unknown as { newDocument: Document };
+      if (newDocument) prefillNewDocument(newDocument);
+    });
+    let resizeRaf = 0;
+    window.addEventListener('resize', () => {
+      cancelAnimationFrame(resizeRaf);
+      resizeRaf = requestAnimationFrame(() => {
+        document
+          .querySelectorAll<HTMLElement>('[data-liked-songs]')
+          .forEach(measureRoot);
+      });
+    });
+    w.__likedSongsBound = true;
+  }
+  loadLikedSongs();
+</script>

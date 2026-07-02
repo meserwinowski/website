@@ -161,6 +161,37 @@ describe('Now-playing widget - About page only', () => {
   });
 });
 
+describe('Liked Songs widget - About page only', () => {
+  it('About page renders the "Liked Songs" widget', () => {
+    expect(aboutHtml).toMatch(/data-liked-songs/);
+    expect(aboutHtml).toContain('Liked Songs');
+  });
+
+  it('widget bakes in the Worker liked-songs endpoint from config', () => {
+    const match = aboutHtml.match(/<section[^>]*data-liked-songs[^>]*>/);
+    expect(match).not.toBeNull();
+    expect(match?.[0]).toMatch(/data-endpoint="https?:\/\/[^"]+\/liked-songs"/);
+  });
+
+  it('widget starts hidden so nothing flashes before data loads', () => {
+    const match = aboutHtml.match(/<section[^>]*data-liked-songs[^>]*>/);
+    expect(match).not.toBeNull();
+    expect(match?.[0]).toMatch(/\shidden(\s|>|=)/);
+  });
+
+  it('renders five skeleton rows for the client to fill', () => {
+    const rows = aboutHtml.match(/data-row(\s|>|=)/g) ?? [];
+    // Two instances (desktop gutter + mobile), five rows each.
+    expect(rows.length).toBe(10);
+  });
+
+  it('widget does NOT appear on other pages', () => {
+    for (const html of [indexHtml, projectsHtml, postsHtml]) {
+      expect(html).not.toMatch(/data-liked-songs/);
+    }
+  });
+});
+
 describe('Social links - index.html', () => {
   it('has a social links nav', () => {
     expect(indexHtml).toMatch(/aria-label="Social links"/);
