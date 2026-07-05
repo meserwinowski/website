@@ -1,6 +1,9 @@
+// tsconfig.json — TypeScript settings shared by Astro, Vite, and editors.
 {
+  // Start from Astro's recommended baseline instead of restating framework defaults.
   "extends": "astro/tsconfigs/base",
   "compilerOptions": {
+    // Astro config and local scripts use Node globals/modules (`process`, `node:path`).
     "types": ["node"]
   }
 }

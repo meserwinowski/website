@@ -1,11 +1,19 @@
 ---
 /**
  * ReadingProgress.astro — A thin scroll-progress bar pinned to the top of the viewport.
- * Fills left→right as the reader moves down a long page, and stays hidden on pages
- * that aren't tall enough to scroll meaningfully. Rendered site-wide from Base.astro.
+ *
+ * Rendered site-wide from Base.astro, but it stays hidden on short pages where a
+ * progress indicator would add noise. The browser-side math is the standard
+ * scroll ratio: current scroll offset divided by total scrollable distance
+ * (`scrollTop / (scrollHeight - clientHeight)`). This implementation uses the
+ * equivalent root-page values available on `window`/`documentElement`.
+ *
+ * The element is `aria-hidden` because it is purely visual; screen-reader users
+ * already have landmarks/headings for orientation.
  */
 ---
 
+{/* Decorative progress meter; the script below owns its transform and opacity. */}
 <div id="reading-progress" class="reading-progress" aria-hidden="true"></div>
 
 <style>
@@ -28,6 +36,7 @@
 
   @media (prefers-reduced-motion: reduce) {
     .reading-progress {
+      /* Honor reduced-motion preferences by removing even the small opacity fade. */
       transition: none;
     }
   }
@@ -38,6 +47,13 @@
   // it only earns its place on genuinely long, scrollable reading pages.
   const minScrollablePx = 240;
 
+  /**
+   * Recompute and paint the progress bar for the current page geometry.
+   *
+   * `scrollHeight - innerHeight` is the distance the root page can actually
+   * scroll. The ratio is clamped to 0→1 so bounce/overscroll and browser rounding
+   * cannot create invalid `scaleX()` values.
+   */
   function updateReadingProgress() {
     const bar = document.getElementById('reading-progress');
 
@@ -65,11 +81,15 @@
   const progressWindow = window as Window & { __readingProgressBound?: boolean };
 
   if (!progressWindow.__readingProgressBound) {
+    // Passive listeners promise not to call preventDefault, letting browsers keep scrolling smooth.
     window.addEventListener('scroll', updateReadingProgress, { passive: true });
+    // Resize changes `scrollHeight - innerHeight`, so the ratio must be recalculated.
     window.addEventListener('resize', updateReadingProgress, { passive: true });
+    // Astro fires this after View Transition navigations, when the document height may change.
     document.addEventListener('astro:page-load', updateReadingProgress);
     progressWindow.__readingProgressBound = true;
   }
 
+  // Initial paint covers direct page loads before any scroll/resize event fires.
   updateReadingProgress();
 </script>

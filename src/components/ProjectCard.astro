@@ -1,22 +1,30 @@
 ---
 /**
  * ProjectCard.astro — A clickable card that previews a project.
- * Used on the /projects index page, one card per project.
+ *
+ * Used on the /projects index page, one card per generated project. Astro
+ * frontmatter defines the prop contract and build-time formatting; the template
+ * turns that data into one large accessible link so the whole card is tappable.
  */
 
-// TypeScript interface: defines the "shape" of data this component needs.
-// The parent page must pass all these values as attributes.
 interface Props {
-  slug: string;         // URL-friendly ID (e.g., "mech-keyboard")
-  title: string;        // Display name
-  description: string;  // Short blurb for the card
-  status: 'done' | 'ongoing' | 'planning' | 'idea';  // Union type = only these 4 values allowed
-  tags: string[];       // Array of category labels
-  thumbnail?: string | null;  // Path to preview image (optional — falls back to a placeholder)
-  date: Date;           // Project date (used for the card timestamp + sorting)
+  /** URL-friendly project ID, used to build `/projects/{slug}/`. */
+  slug: string;
+  /** Display title shown in the card and thumbnail fallback. */
+  title: string;
+  /** Short summary copied from project frontmatter. */
+  description: string;
+  /** Project lifecycle state; the union keeps badges limited to known values. */
+  status: 'done' | 'ongoing' | 'planning' | 'idea';
+  /** Category labels rendered as small design-token badges. */
+  tags: string[];
+  /** Optional preview image path; missing images fall back to a text tile. */
+  thumbnail?: string | null;
+  /** Project date, used for the semantic <time> element. */
+  date: Date;
 }
 
-// Destructure: pull each named prop out of the Astro.props object
+// Astro.props contains the attributes passed by the parent page/component.
 const { slug, title, description, status, tags, thumbnail, date } = Astro.props;
 
 // Human-readable date (e.g. "Jun 7, 2026") plus a machine-readable ISO value for <time datetime>.
@@ -24,8 +32,8 @@ const { slug, title, description, status, tags, thumbnail, date } = Astro.props;
 const formattedDate = date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' });
 const dateISO = date.toISOString().split('T')[0];
 
-// Maps each status to Tailwind color classes for the badge
-// "bg-green-500/20" = green background at 20% opacity
+// Status badge styling. These semantic colors mirror ProjectMeta so cards and
+// detail pages speak the same visual language.
 const statusColors: Record<string, string> = {
   'done': 'bg-green-500/20 text-green-400',
   'ongoing': 'bg-blue-500/20 text-blue-400',
@@ -33,7 +41,7 @@ const statusColors: Record<string, string> = {
   'idea': 'bg-purple-500/20 text-purple-400',
 };
 
-// Human-readable labels for each status
+// Human-readable labels keep content data terse while the UI reads naturally.
 const statusLabels: Record<string, string> = {
   'done': 'Done',
   'ongoing': 'Ongoing',
@@ -42,55 +50,46 @@ const statusLabels: Record<string, string> = {
 };
 ---
 
-<!-- The entire card is one big <a> link — clicking anywhere navigates to the project detail page -->
-<!-- "group" class lets child elements react to the PARENT being hovered (see "group-hover:" below) -->
-<!-- Template literal `backticks` let us embed the ${slug} variable into the URL string -->
+{/* A single anchor makes the whole card reachable by mouse, touch, and keyboard. */}
 <a href={`/projects/${slug}/`} class="group block rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden hover:border-[var(--color-accent)] no-underline">
 
-  <!-- Thumbnail image area -->
-  <!-- aspect-video = 16:9 ratio. overflow-hidden clips the image when it scales up on hover -->
+  {/* Fixed 16:9 media area keeps the grid stable even with mixed thumbnail sizes. */}
   <div class="aspect-video overflow-hidden">
+    {/* Prefer a real thumbnail; fall back to a text tile so every card has media. */}
     {thumbnail ? (
-      <!-- object-cover: image fills the container, cropping if needed (like background-size: cover) -->
-      <!-- group-hover:scale-105 = when the parent <a> is hovered, zoom this image to 105% -->
       <img
         src={thumbnail}
         alt={`${title} thumbnail`}
         class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
       />
     ) : (
-      <!-- Fallback placeholder for projects without a thumbnail: surface block with the title in mono -->
       <div class="w-full h-full flex items-center justify-center bg-[var(--color-surface)] border-b border-[var(--color-border)]">
         <span class="px-4 text-center font-mono text-sm text-[var(--color-muted)]">{title}</span>
       </div>
     )}
   </div>
 
-  <!-- Text content below the thumbnail -->
-  <!-- space-y-2 adds vertical spacing between child elements (like margin-top on each) -->
+  {/* Card body uses design-system color tokens so it adapts to light/dark themes. */}
   <div class="p-4 space-y-2">
 
-    <!-- Status badge + project date on one row -->
     <div class="flex items-center justify-between gap-2">
-      <!-- Dynamic class: uses the statusColors map to pick colors based on project status -->
+      {/* Dynamic class picks the badge color from the frontmatter status. */}
       <span class={`text-xs px-2 py-0.5 rounded-full font-medium ${statusColors[status]}`}>
         {statusLabels[status]}
       </span>
-      <!-- <time> is semantic: datetime holds the machine-readable date, the text is human-readable -->
+      {/* <time> keeps the date understandable to parsers while remaining readable. */}
       <time datetime={dateISO} class="text-xs text-[var(--color-muted)]">{formattedDate}</time>
     </div>
 
-    <!-- Project title — changes color on hover via group-hover -->
     <h3 class="text-lg font-semibold text-[var(--color-text)] group-hover:text-[var(--color-accent)]">
       {title}
     </h3>
 
-    <!-- Description: line-clamp-2 truncates text to max 2 lines with "..." -->
+    {/* Clamp long descriptions so every card keeps a comparable height. */}
     <p class="text-sm text-[var(--color-muted)] line-clamp-2">{description}</p>
 
-    <!-- Tags: flex-wrap lets them flow to the next line if there are too many -->
     <div class="flex flex-wrap gap-1 pt-1">
-      <!-- .map() creates one <span> badge for each tag in the array -->
+      {/* Astro templates can use JavaScript expressions like map() to repeat markup. */}
       {tags.map((tag) => (
         <span class="text-xs px-2 py-0.5 rounded bg-[var(--color-bg)] text-[var(--color-muted)]">
           {tag}

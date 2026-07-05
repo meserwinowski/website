@@ -1,17 +1,39 @@
-/* Directional page transition animations for the View Transitions API */
+/*
+  transitions.css — Directional page motion for Astro's View Transitions API.
 
+  The browser captures snapshots named `root` and `main`; CSS animates the old
+  and new snapshots here. Base.astro's navigation script sets
+  `html[data-transition]` before a transition starts, which lets one stylesheet
+  express both forward and back movement.
+
+  Motion is decorative, not required for navigation, so the reduced-motion query
+  at the end collapses it to a short crossfade.
+*/
+
+/* --------------------------------------------------------------------------
+   Motion tokens
+   --------------------------------------------------------------------------
+   Custom properties keep the timing/distance tunable in one place and make the
+   reduced-motion override a simple token swap instead of duplicating rules.
+*/
 :root {
   /* Movement (transform) glides over a longer, smooth duration... */
   --vt-slide-duration: 0.34s;
   /* ...while opacity crossfades quickly so the old page never lingers behind the new one */
   --vt-fade-duration: 0.1s;
+  /* 20px is enough to imply direction without making navigation feel slow. */
   --vt-distance: 20px;
   /* Asymmetric easing reads as natural motion */
   --vt-ease-move-in: cubic-bezier(0.16, 1, 0.3, 1);    /* easeOutExpo — incoming decelerates into place */
   --vt-ease-move-out: cubic-bezier(0.55, 0, 1, 0.45);  /* easeInQuart — outgoing accelerates away */
 }
 
-/* Chrome (root: header/footer/background) — a quick crossfade keeps it in sync without lingering */
+/* --------------------------------------------------------------------------
+   Snapshot groups
+   --------------------------------------------------------------------------
+   `root` is the page chrome (header/footer/background). It only crossfades so
+   persistent layout does not appear to slide away with the article body.
+*/
 ::view-transition-old(root) {
   animation: vt-fade-out var(--vt-fade-duration) ease-in forwards;
 }
@@ -19,7 +41,8 @@
   animation: vt-fade-in var(--vt-fade-duration) ease-out forwards;
 }
 
-/* Default crossfade for <main> (fallback before the direction script runs) */
+/* `main` gets a default crossfade first; directional slides below override it
+   once the script has written `data-transition` to <html>. */
 ::view-transition-old(main) {
   animation: vt-fade-out var(--vt-fade-duration) ease-in forwards;
 }
@@ -27,8 +50,13 @@
   animation: vt-fade-in var(--vt-fade-duration) ease-out forwards;
 }
 
-/* Slide RIGHT: new page enters from the right (navigating "forward" / deeper).
-   Each element runs TWO animations: a long positional slide + a short opacity fade. */
+/* --------------------------------------------------------------------------
+   Directional main-content slides
+   --------------------------------------------------------------------------
+   Slide RIGHT: the new page enters from the right when navigating "forward" or
+   deeper. Each snapshot runs two animations: a longer transform for spatial
+   context, plus a short opacity fade so the old page does not linger behind it.
+*/
 html[data-transition="slide-right"] ::view-transition-old(main) {
   animation:
     vt-slide-to-left var(--vt-slide-duration) var(--vt-ease-move-out) forwards,
@@ -40,7 +68,7 @@ html[data-transition="slide-right"] ::view-transition-new(main) {
     vt-fade-in var(--vt-fade-duration) ease-out forwards;
 }
 
-/* Slide LEFT: new page enters from the left (navigating "back" / shallower) */
+/* Slide LEFT mirrors the same idea for "back" or shallower navigation. */
 html[data-transition="slide-left"] ::view-transition-old(main) {
   animation:
     vt-slide-to-right var(--vt-slide-duration) var(--vt-ease-move-out) forwards,
@@ -52,7 +80,11 @@ html[data-transition="slide-left"] ::view-transition-new(main) {
     vt-fade-in var(--vt-fade-duration) ease-out forwards;
 }
 
-/* Opacity-only keyframes */
+/* --------------------------------------------------------------------------
+   Keyframes
+   --------------------------------------------------------------------------
+   Opacity and transform are separate so each can use a different duration/ease.
+*/
 @keyframes vt-fade-in {
   from { opacity: 0; }
   to   { opacity: 1; }
@@ -62,7 +94,8 @@ html[data-transition="slide-left"] ::view-transition-new(main) {
   to   { opacity: 0; }
 }
 
-/* Transform-only keyframes (no opacity — the fade is handled separately) */
+/* Transform-only keyframes: no opacity here because the fade is layered as a
+   separate animation in the rules above. */
 @keyframes vt-slide-from-right {
   from { transform: translateX(var(--vt-distance)); }
   to   { transform: translateX(0); }
@@ -80,7 +113,8 @@ html[data-transition="slide-left"] ::view-transition-new(main) {
   to   { transform: translateX(var(--vt-distance)); }
 }
 
-/* Respect reduced-motion: collapse to a quick, distance-free crossfade */
+/* Respect `prefers-reduced-motion`: keep the orientation cue out and leave only
+   a quick, distance-free crossfade. */
 @media (prefers-reduced-motion: reduce) {
   :root {
     --vt-slide-duration: 0.12s;

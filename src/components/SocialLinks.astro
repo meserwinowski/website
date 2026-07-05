@@ -1,7 +1,15 @@
-<!-- SocialLinks: row of icon links to external profiles -->
 ---
-// Each entry defines a link with its URL, accessible label, and SVG path data.
-// These are "Feather-style" icons: outline/stroke-based SVGs (not filled).
+/**
+ * SocialLinks.astro — Icon-only links to external profiles.
+ *
+ * The component is intentionally data-driven: each profile supplies a URL,
+ * accessible label, and SVG path fragment, while the template below supplies the
+ * shared link behavior and icon styling. Because the links are icon-only, the
+ * `aria-label` on each anchor is the text screen readers announce.
+ */
+
+// Feather-style icons use strokes instead of fills, so `stroke="currentColor"`
+// in the shared <svg> lets the design-system text color drive the icon color.
 const links = [
   {
     href: 'https://github.com/meserwinowski',
@@ -21,13 +29,9 @@ const links = [
 ];
 ---
 
-<!-- <nav> with aria-label gives screen readers a name for this navigation region -->
-<!-- flex + gap-4 places icons side by side with consistent spacing -->
+{/* aria-label names this compact navigation landmark for assistive technology. */}
 <nav class="flex gap-4" aria-label="Social links">
   {links.map(({ href, label, icon }) => (
-    <!-- target="_blank" opens link in a new tab -->
-    <!-- rel="noopener noreferrer" is a security best practice for external links -->
-    <!-- aria-label provides accessible text since these links have no visible text, only icons -->
     <a
       href={href}
       target="_blank"
@@ -35,12 +39,9 @@ const links = [
       aria-label={label}
       class="text-[var(--color-muted)] hover:text-[var(--color-accent)]"
     >
-      <!-- SVG: Scalable Vector Graphics — resolution-independent icons -->
-      <!-- viewBox="0 0 24 24" means the internal coordinate system is 24x24 -->
-      <!-- stroke="currentColor" makes the icon color match the text color (set by parent) -->
-      <!-- aria-hidden="true" hides this decorative image from screen readers -->
+      {/* Icons are decorative because the anchor's aria-label already supplies the name. */}
       <svg viewBox="0 0 24 24" class="h-8 w-8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <!-- set:html injects raw SVG path data from our links array -->
+        {/* set:html injects trusted local SVG path fragments from the links array. */}
         <Fragment set:html={icon} />
       </svg>
     </a>

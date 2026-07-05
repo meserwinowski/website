@@ -1,13 +1,25 @@
 ---
+/**
+ * ReadingTime.astro — Render the small "Estimated reading time" label.
+ *
+ * The word-counting math lives in src/lib/readingTime.ts so it can be tested as
+ * plain TypeScript. This component only decides whether and how to show the
+ * already-computed minute count in the page template.
+ */
+
 interface Props {
+  /** Rounded minute count. A value of 0 means "hide the label." */
   minutes: number;
+  /** Optional extra utility classes supplied by the parent component. */
   class?: string;
 }
 
 const { minutes, class: className } = Astro.props;
+// Tiny grammar helper keeps the rendered sentence human-readable.
 const minuteLabel = minutes === 1 ? 'minute' : 'minutes';
 ---
 
+{/* Omit empty estimates rather than showing a broken-looking "0 minutes" label. */}
 {minutes > 0 && (
   <p class:list={['text-sm text-[var(--color-muted)]', className]} data-reading-time>
     Estimated reading time: {minutes}{' '}{minuteLabel}

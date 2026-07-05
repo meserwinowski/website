@@ -1,0 +1,169 @@
+---
+/**
+ * CollapsibleDetails.astro — Smooth open/close for native <details> disclosures.
+ *
+ * Used by the collapsible Obsidian callouts (<details class="callout-collapsible">)
+ * and the mobile Table of Contents (<details class="toc-mobile">).
+ *
+ * Native <details> can't be animated with CSS alone: the moment the `open`
+ * attribute is removed the browser hides all non-<summary> content instantly, so
+ * a CSS transition never gets to run on CLOSE. This script fixes that by:
+ *   - intercepting <summary> clicks,
+ *   - animating the element's `height` with the Web Animations API, and
+ *   - only flipping the real `open` attribute once the animation finishes.
+ *
+ * Animating `height` is a layout property, so it runs on the main thread and can
+ * drop frames on mobile. To keep it smooth we add an `is-animating` class for the
+ * duration of the animation; global.css uses it to promote the content to its own
+ * compositor layer and `contain` its layout/paint, so the height change only
+ * re-clips a cached layer instead of repainting the subtree every frame.
+ *
+ * The element stays a real, keyboard-operable <details> the whole time. Users who
+ * prefer reduced motion get the instant native toggle.
+ *
+ * This component ships only a script; drop it once in the layout (Base.astro).
+ */
+---
+
+<script>
+  // Smooth but responsive. The easing mirrors the site's BackToTop feel: gentle
+  // start, quick middle, soft landing (a cubic ease-in-out).
+  const DURATION_MS = 380;
+  const EASING = 'cubic-bezier(0.65, 0, 0.35, 1)';
+
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+  // Tracks the in-flight animation and intent for a single <details> so rapid
+  // clicks (open while closing, close while opening) reverse smoothly instead of
+  // snapping. Stored on the element via a WeakMap so state can't leak across
+  // Astro view-transition swaps that replace the DOM.
+  interface CalloutState {
+    animation: Animation | null;
+    // 'opening' | 'closing' | null — what the current animation is heading toward.
+    intent: 'opening' | 'closing' | null;
+  }
+
+  const stateFor = new WeakMap<HTMLDetailsElement, CalloutState>();
+
+  function getState(el: HTMLDetailsElement): CalloutState {
+    let state = stateFor.get(el);
+    if (!state) {
+      state = { animation: null, intent: null };
+      stateFor.set(el, state);
+    }
+    return state;
+  }
+
+  function finishAnimation(el: HTMLDetailsElement, open: boolean) {
+    const state = getState(el);
+    state.animation = null;
+    state.intent = null;
+    el.open = open;
+    el.removeAttribute('data-collapsing');
+    el.classList.remove('is-animating');
+    // Release the inline overrides so the element returns to natural flow layout.
+    el.style.height = '';
+    el.style.overflow = '';
+  }
+
+  function animateHeight(
+    el: HTMLDetailsElement,
+    startHeight: number,
+    endHeight: number,
+    open: boolean,
+  ) {
+    const state = getState(el);
+    // Clip content against the interpolating height for the whole animation and
+    // pin the starting height so there's no one-frame flash before WAAPI starts.
+    el.style.overflow = 'hidden';
+    el.style.height = `${startHeight}px`;
+    // Opt into the compositor/containment hints in global.css for this animation.
+    el.classList.add('is-animating');
+
+    const animation = el.animate(
+      { height: [`${startHeight}px`, `${endHeight}px`] },
+      { duration: DURATION_MS, easing: EASING },
+    );
+    state.animation = animation;
+
+    animation.onfinish = () => finishAnimation(el, open);
+    // A cancel means a newer click took over; that click's handler owns cleanup.
+    animation.oncancel = () => {};
+  }
+
+  function expand(el: HTMLDetailsElement) {
+    const state = getState(el);
+    // Current rendered height (may be mid-collapse if we're reversing a close).
+    const startHeight = el.offsetHeight;
+    if (state.animation) state.animation.cancel();
+
+    state.intent = 'opening';
+    el.removeAttribute('data-collapsing');
+    el.style.height = ''; // drop any pin so we measure the natural full height
+    el.open = true; // reveal content so the measurement includes it
+    const endHeight = el.offsetHeight;
+
+    animateHeight(el, startHeight, endHeight, true);
+  }
+
+  function collapse(el: HTMLDetailsElement) {
+    const state = getState(el);
+    // Current rendered height (full, or mid-open if reversing an open).
+    const startHeight = el.offsetHeight;
+    if (state.animation) state.animation.cancel();
+
+    state.intent = 'closing';
+    // Rotate the chevron now, in sync with the collapse, even though `open`
+    // stays true until the animation finishes.
+    el.setAttribute('data-collapsing', '');
+
+    // Measure the collapsed height (summary + padding) by briefly closing, then
+    // reopen so the content stays visible while the height animates down. Reading
+    // offsetHeight between the toggles forces layout but never paints, so there
+    // is no flicker.
+    el.style.height = '';
+    el.open = false;
+    const endHeight = el.offsetHeight;
+    el.open = true;
+
+    animateHeight(el, startHeight, endHeight, false);
+  }
+
+  // Which <details> disclosures this controller enhances. Both use a <summary> as
+  // the direct first child followed by a single content block, which is all the
+  // height animation needs.
+  const ENHANCED_SELECTOR = '.callout-collapsible, .toc-mobile';
+
+  function onSummaryClick(event: MouseEvent) {
+    const summary = (event.target as Element | null)?.closest('summary');
+    if (!summary) return;
+
+    const details = summary.parentElement;
+    if (!(details instanceof HTMLDetailsElement)) return;
+    if (!details.matches(ENHANCED_SELECTOR)) return;
+
+    // Reduced motion: let the browser do its instant native toggle.
+    if (reducedMotion.matches) return;
+
+    // Take over the toggle so we control timing.
+    event.preventDefault();
+
+    const state = getState(details);
+    // While animating, a click reverses direction; otherwise toggle by open state.
+    let shouldOpen: boolean;
+    if (state.intent === 'opening') shouldOpen = false;
+    else if (state.intent === 'closing') shouldOpen = true;
+    else shouldOpen = !details.open;
+
+    if (shouldOpen) expand(details);
+    else collapse(details);
+  }
+
+  // Delegate at document level so the handler survives Astro view-transition
+  // swaps that replace the disclosure DOM, and bind exactly once.
+  const detailsWindow = window as Window & { __collapsibleDetailsBound?: boolean };
+  if (!detailsWindow.__collapsibleDetailsBound) {
+    document.addEventListener('click', onSummaryClick, { capture: true });
+    detailsWindow.__collapsibleDetailsBound = true;
+  }
+</script>

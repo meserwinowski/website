@@ -1,10 +1,16 @@
 /**
- * Unit tests for the Cloudflare Worker's pure data-shaping function.
+ * now-playing-worker.test.ts — Cloudflare Worker helper contract tests.
  *
- * These test the transform from raw Spotify API bodies to the minimal public
- * payload without any network access or Workers runtime. Covers the three
- * branches the widget relies on: actively playing, recently played (fallback),
- * and the empty/nothing states.
+ * The Worker sits between the public site and Spotify. These tests cover the
+ * pure helpers exported from `worker/src/index.ts`: shaping Spotify responses
+ * into the tiny JSON payload the widgets render, and deciding which origins get
+ * CORS access. Keeping this layer deterministic means malformed Spotify bodies
+ * fail closed to empty UI states instead of leaking exceptions to visitors.
+ *
+ * No fetch mock is needed here because the suite passes small JSON fixtures
+ * directly to the helper functions. In Vitest terms, `describe` groups each
+ * branch of behavior, `it` names a concrete scenario, and `expect` checks the
+ * public contract the Worker promises to the frontend.
  */
 import { describe, it, expect } from 'vitest';
 import {
@@ -14,6 +20,8 @@ import {
   isLocalOrigin,
 } from '../worker/src/index';
 
+// Shared Spotify-track fixture: enough fields to prove the Worker preserves
+// reader-facing data while dropping the large, private API response shape.
 const track = {
   name: 'Song Title',
   artists: [{ name: 'Artist One' }, { name: 'Artist Two' }],
@@ -29,6 +37,8 @@ const track = {
 
 describe('shapeNowPlaying — currently playing', () => {
   it('shapes an actively playing track', () => {
+    // Arrange with a Spotify-like body, act by shaping it, then assert the exact
+    // public JSON the site consumes. That arrange-act-assert rhythm repeats below.
     const result = shapeNowPlaying({ is_playing: true, item: track }, 'current');
     expect(result).toEqual({
       isPlaying: true,
@@ -55,6 +65,8 @@ describe('shapeNowPlaying — currently playing', () => {
 
 describe('shapeNowPlaying — recently played', () => {
   it('shapes the most recent history entry with playedAt', () => {
+    // Recently-played data is the fallback when nothing is active, so `isPlaying`
+    // intentionally stays false while still carrying track metadata.
     const body = {
       items: [{ track, played_at: '2026-01-01T00:00:00Z' }],
     };
@@ -84,6 +96,8 @@ describe('shapeNowPlaying — recently played', () => {
 
 describe('shapeNowPlaying — resilience', () => {
   it('handles null / non-object bodies', () => {
+    // The Worker receives third-party API data; defensive parsing keeps bad or
+    // unexpected responses from becoming runtime errors.
     expect(shapeNowPlaying(null, 'current')).toEqual({ isPlaying: false });
     expect(shapeNowPlaying(undefined, 'recent')).toEqual({ isPlaying: false });
     expect(shapeNowPlaying('nope' as unknown, 'current')).toEqual({ isPlaying: false });
@@ -100,6 +114,8 @@ describe('shapeNowPlaying — resilience', () => {
 });
 
 describe('shapeLikedSongs — saved tracks list', () => {
+  // A list fixture exercises ordering, repeated field extraction, and optional
+  // `added_at` metadata without making a real Spotify request.
   const savedBody = {
     items: [
       { added_at: '2026-02-01T00:00:00Z', track },
@@ -154,6 +170,7 @@ describe('shapeLikedSongs — saved tracks list', () => {
 });
 
 describe('origin allowlist', () => {
+  // CORS decisions are security-sensitive but also need a local-dev escape hatch.
   const allowed = ['https://www.mattserwinowski.com', 'https://mattserwinowski.com'];
 
   it('allows configured production origins', () => {

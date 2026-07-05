@@ -1,10 +1,16 @@
 /**
- * HTML Structure Tests
+ * html-structure.test.ts — Structural checks for the built pages.
  *
- * Reads the built HTML files from dist/ and verifies that key
- * structural elements are present and correct. Catches regressions
- * like missing meta tags, wrong page titles, or removed headings —
- * especially useful as a guardrail for automated/agentic changes.
+ * These tests read `dist/` instead of `src/` because users and crawlers only see
+ * the static HTML emitted by Astro. Source components can compile yet still
+ * produce missing headings, wrong titles, absent widgets, or broken layout
+ * variables; asserting the built artifact catches those regressions at the
+ * contract boundary.
+ *
+ * Vitest's `beforeAll` loads shared fixtures once, `describe` scopes the checks
+ * by page or feature, `it` names the behavior being protected, and `expect`
+ * verifies the rendered markup. The regular expressions are intentionally simple
+ * structural probes, not full HTML parsing.
  */
 
 import { describe, it, expect, beforeAll } from 'vitest';
@@ -18,6 +24,8 @@ let postsHtml: string;
 let aboutHtml: string;
 
 beforeAll(() => {
+  // Arrange once: load the built HTML fixtures that every assertion inspects.
+  // `npm test` performs the build first, so this suite should never invoke Astro itself.
   indexHtml = readFileSync(resolve(distDir, 'index.html'), 'utf-8');
   projectsHtml = readFileSync(resolve(distDir, 'projects', 'index.html'), 'utf-8');
   postsHtml = readFileSync(resolve(distDir, 'posts', 'index.html'), 'utf-8');
@@ -54,6 +62,8 @@ describe('HTML structure - index.html', () => {
 
   it('has a non-empty <body>', () => {
     const bodyMatch = indexHtml.match(/<body[^>]*>([\s\S]*?)<\/body>/);
+    // The match is the "act" step; the two expects form the "assert" step:
+    // first prove a body exists, then prove Astro put real page content inside it.
     expect(bodyMatch).not.toBeNull();
     expect(bodyMatch![1].trim().length).toBeGreaterThan(0);
   });
@@ -71,6 +81,8 @@ describe('HTML structure - index.html', () => {
 
 describe('Navigation', () => {
   it('index has nav with links to all pages', () => {
+    // Navigation is a site-wide contract, so this uses public hrefs rather than
+    // component internals like the Header `navLinks` array.
     expect(indexHtml).toMatch(/href="\/"/);
     expect(indexHtml).toMatch(/href="\/projects\/"/);
     // Posts nav link is hidden until content exists
@@ -79,6 +91,7 @@ describe('Navigation', () => {
 
   it('all pages have navigation', () => {
     for (const html of [projectsHtml, postsHtml, aboutHtml]) {
+      // A loop keeps the invariant readable: every subpage gets the same chrome.
       expect(html).toMatch(/<nav/);
       expect(html).toMatch(/<header/);
     }
@@ -247,6 +260,8 @@ describe('Project detail pages', () => {
   let projectDetailHtml: string;
 
   beforeAll(() => {
+    // Project detail pages are generated from the content collection, so this
+    // fixture proves the dynamic `[slug]` route made it into `dist/`.
     projectDetailHtml = readFileSync(resolve(distDir, 'projects', 'stage-mixer', 'index.html'), 'utf-8');
   });
 
@@ -269,6 +284,7 @@ describe('Project detail pages', () => {
 
   it('renders a table of contents with links to markdown sections', () => {
     expect(projectDetailHtml).toMatch(/aria-label="Table of contents"/);
+    expect(projectDetailHtml).toMatch(/href="#what-is-a-stage-mixer"/);
     expect(projectDetailHtml).toMatch(/data-toc-target="what-is-a-stage-mixer"/);
     expect(projectDetailHtml).toMatch(/data-toc-target="my-rig"/);
   });
@@ -284,12 +300,14 @@ describe('Stage mixer markdown rendering', () => {
   let stageMixerHtml: string;
 
   beforeAll(() => {
+    // Re-read locally for this group so the markdown-rendering contract is easy
+    // to follow without scrolling back to the project-detail suite.
     stageMixerHtml = readFileSync(resolve(distDir, 'projects', 'stage-mixer', 'index.html'), 'utf-8');
   });
 
-  it('renders markdown hash headings as heading elements', () => {
-    expect(stageMixerHtml).toContain('<h1 id="additional-notes">Additional Notes</h1>');
-    expect(stageMixerHtml).toContain('<h2 id="mixers">Mixers</h2>');
+  it('renders markdown headings with permalink icon links', () => {
+    expect(stageMixerHtml).toMatch(/<h1 id="additional-notes">Additional Notes<a[^>]*href="#additional-notes"[^>]*class="heading-permalink"[^>]*data-heading-permalink="true"[^>]*>.*<\/a><\/h1>/);
+    expect(stageMixerHtml).toMatch(/<h2 id="mixers">Mixers<a[^>]*href="#mixers"[^>]*class="heading-permalink"[^>]*data-heading-permalink="true"[^>]*>.*<\/a><\/h2>/);
   });
 
   it('includes h1-h3 headings in the table of contents without noisy deeper headings', () => {

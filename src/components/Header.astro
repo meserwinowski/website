@@ -1,10 +1,18 @@
-<!-- Header: site-wide navigation bar with responsive mobile menu -->
 ---
+/**
+ * Header.astro — Site-wide navigation, social links, theme toggle, and mobile drawer.
+ *
+ * Astro frontmatter runs at build/render time, so it is used here for static
+ * navigation data and current-path calculations. The template below emits the
+ * semantic landmarks, while the browser <script> at the bottom handles the
+ * interactive mobile menu after the page loads.
+ */
+
 import SocialLinks from './SocialLinks.astro';
 import ThemeToggle from './ThemeToggle.astro';
 
-// Array of navigation links — adding an item here automatically adds it to both
-// the desktop nav AND the mobile menu (because both loop over this same array)
+// Single source of truth for site navigation. Both desktop and mobile menus
+// loop over this array, so adding a page here updates both experiences.
 const navLinks = [
   { href: '/', label: 'Home' },
   { href: '/projects/', label: 'Projects' },
@@ -12,39 +20,31 @@ const navLinks = [
   { href: '/about/', label: 'About' },
 ];
 
-// Astro.url.pathname gives us the current page's path (e.g., "/projects")
-// We use it to highlight the active nav link
+// Normalize trailing slashes so `/projects` and `/projects/` highlight the same
+// nav item. Astro.url is available in component frontmatter during rendering.
 const currentPath = Astro.url.pathname;
 const normalizedCurrentPath = currentPath === '/' ? '/' : `${currentPath.replace(/\/$/, '')}/`;
 ---
 
-<!-- <header> is a semantic HTML element that tells browsers/screen readers "this is the site header" -->
+{/* Semantic header landmark shared by every page through Base.astro. */}
 <header class="border-b border-[var(--color-border)]">
-  <!-- <nav> tells assistive tech "this contains navigation links" -->
-  <!-- flex + justify-between puts logo on left, nav links on right -->
+  {/* --chrome-container lets Base.astro align global chrome with each page's rail. */}
   <nav class="mx-auto flex max-w-[var(--chrome-container,var(--width-prose))] items-center justify-between px-6 py-4">
 
-    <!-- Left side: Logo + social icons + theme toggle grouped together -->
     <div class="flex items-center gap-4">
-      <!-- Logo link — "no-underline" removes the default link underline -->
+      {/* Short mono wordmark doubles as the home link. */}
       <a href="/" class="font-mono text-2xl font-semibold text-[var(--color-text)] no-underline hover:text-[var(--color-accent)]">
         MS
       </a>
-      <!-- Social icons component (GitHub, LinkedIn) -->
       <SocialLinks />
-      <!-- Light/dark theme toggle button -->
       <ThemeToggle />
     </div>
 
-    <!-- Desktop nav: hidden on mobile (hidden), shown on small screens and up (sm:flex) -->
-    <!-- "sm:" is a Tailwind responsive prefix meaning "at 640px width and above" -->
+    {/* Desktop nav is hidden below Tailwind's sm breakpoint; the drawer handles mobile. */}
     <ul class="hidden gap-6 sm:flex">
-      <!-- .map() loops over navLinks array and creates one <li> per link -->
       {navLinks.map(({ href, label }) => (
         <li>
-          <!-- class:list is Astro's way to conditionally apply CSS classes -->
-          <!-- If this link matches the current page, it gets the accent color -->
-          <!-- "inline-block" is needed so CSS transform (hover scale) works on links -->
+          {/* class:list is Astro's built-in helper for conditional class names. */}
           <a
             href={href}
             class:list={[
@@ -60,10 +60,7 @@ const normalizedCurrentPath = currentPath === '/' ? '/' : `${currentPath.replace
       ))}
     </ul>
 
-    <!-- Mobile hamburger button: only visible below sm (640px) breakpoint -->
-    <!-- aria-label provides an accessible name since the button has no visible text -->
-    <!-- Boxed hamburger: also the close control. relative z-50 keeps it tappable -->
-    <!-- above the drawer; opaque bg so it reads as a button sitting on the panel. -->
+    {/* aria-controls/expanded connect this icon button to the drawer for screen readers. */}
     <button
       id="mobile-nav-toggle"
       class="relative z-50 rounded-md border border-[var(--color-border)] bg-[var(--color-bg)] p-1.5 text-[var(--color-muted)] hover:border-[var(--color-muted)] hover:text-[var(--color-text)] sm:hidden"
@@ -71,31 +68,27 @@ const normalizedCurrentPath = currentPath === '/' ? '/' : `${currentPath.replace
       aria-controls="mobile-nav"
       aria-expanded="false"
     >
-      <!-- SVG hamburger icon (three horizontal lines) -->
+      {/* Icon is visible text's substitute; the button's aria-label supplies its name. */}
       <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
       </svg>
     </button>
   </nav>
 
-  <!-- Tap-away overlay: dims the page ~10% and closes the drawer when tapped. -->
-  <!-- Invisible + non-interactive when closed (no display:none, so it can fade). -->
+  {/* Overlay stays mounted so opacity can animate; pointer-events blocks taps only when open. */}
   <div
     id="mobile-nav-overlay"
     class="fixed inset-0 z-30 bg-black/10 opacity-0 pointer-events-none transition-opacity duration-300 motion-reduce:transition-none sm:hidden"
   ></div>
 
-  <!-- Slide-in drawer: a floating card (like the project cards) below the header. -->
-  <!-- translate-x-[120%] parks it off-screen right; the script swaps to translate-x-0. -->
-  <!-- Height fits its content but is capped to the viewport (minus the header) so it -->
-  <!-- can never grow into the header bar; it scrolls internally if it ever overflows. -->
+  {/* Drawer starts off-canvas; the script toggles transform classes and aria-hidden. */}
   <nav
     id="mobile-nav"
     aria-label="Mobile"
     aria-hidden="true"
     class="fixed top-20 right-3 z-40 max-h-[calc(100dvh-6rem)] w-[64%] max-w-[18rem] translate-x-[120%] overflow-y-auto rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] transition-transform duration-300 ease-out motion-reduce:transition-none sm:hidden"
   >
-    <!-- Compact rows split by divider lines (like card rows) -->
+    {/* Compact rows split by divider lines visually echo the project cards. */}
     <ul class="flex flex-col divide-y divide-[var(--color-border)]">
       {navLinks.map(({ href, label }) => (
         <li>
@@ -116,23 +109,22 @@ const normalizedCurrentPath = currentPath === '/' ? '/' : `${currentPath.replace
   </nav>
 </header>
 
-<!-- Client-side JavaScript: opens/closes the slide-in mobile drawer. -->
-<!-- This <script> runs in the browser (not at build time like the --- frontmatter above) -->
-<!-- With View Transitions enabled, we use astro:page-load to re-bind after navigation -->
+{/* Browser script: unlike frontmatter, this runs on the client after HTML is loaded. */}
 <script>
   function setupMobileNav() {
     const toggle = document.getElementById('mobile-nav-toggle');
     const drawer = document.getElementById('mobile-nav');
     const overlay = document.getElementById('mobile-nav-overlay');
 
-    // Re-bind guard: skip if this toggle instance is already wired up
+    // View Transitions can swap in fresh DOM while preserving the JS environment.
+    // The dataset guard prevents duplicate listeners on the same button instance.
     if (!toggle || !drawer || !overlay || toggle.dataset.mobileNavBound === 'true') {
       return;
     }
 
     toggle.dataset.mobileNavBound = 'true';
 
-    // Slide the drawer in/out, fade the tap-away overlay, and keep ARIA in sync
+    // Visual state (classes) and accessibility state (ARIA) must change together.
     function setOpen(open: boolean) {
       drawer!.classList.toggle('translate-x-[120%]', !open);
       drawer!.classList.toggle('translate-x-0', open);
@@ -147,7 +139,7 @@ const normalizedCurrentPath = currentPath === '/' ? '/' : `${currentPath.replace
       return toggle!.getAttribute('aria-expanded') === 'true';
     }
 
-    // The hamburger is the only open/close control
+    // The hamburger is both the open and close control.
     toggle.addEventListener('click', () => setOpen(!isOpen()));
     // Tapping the dimmed area closes the drawer; starting to scroll/swipe on it
     // (wheel or touch drag) also closes it so a tap-away-to-scroll gesture works.
@@ -159,7 +151,7 @@ const normalizedCurrentPath = currentPath === '/' ? '/' : `${currentPath.replace
     });
   }
 
-  // Run on initial load AND after every View Transition navigation
+  // Run on initial load and after every Astro View Transition navigation.
   const headerWindow = window as Window & { __mobileNavPageLoadBound?: boolean };
   if (!headerWindow.__mobileNavPageLoadBound) {
     document.addEventListener('astro:page-load', setupMobileNav);

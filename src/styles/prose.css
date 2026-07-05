@@ -1,10 +1,32 @@
-/* Typography styles for rendered Markdown content */
+/*
+  prose.css — Styling for rendered Markdown inside `.prose`.
 
-/* Cap reading text at the measure so it stays legible even inside a wide container */
+  Markdown from the Obsidian vault renders as plain HTML (`h2`, `p`, `pre`,
+  `blockquote`, etc.), not as hand-authored components. The `.prose` wrapper is
+  the boundary that makes those defaults safe: article content gets a rich,
+  readable system, while navigation/cards/forms elsewhere keep their own styles.
+
+  Most values point back to global.css tokens so articles automatically follow
+  theme, typography, and spacing decisions from the shared design system.
+*/
+
+/* --------------------------------------------------------------------------
+   Prose measure
+   --------------------------------------------------------------------------
+   Cap reading text at the shared measure so it stays legible even inside a wide
+   layout rail. `--width-prose` lives in global.css with the rest of the layout
+   scale.
+*/
 .prose {
   max-width: var(--width-prose);
 }
 
+/* --------------------------------------------------------------------------
+   Headings and permalinks
+   --------------------------------------------------------------------------
+   Headings use design tokens for color/size. The top scroll margin leaves room
+   when a permalink or table-of-contents link jumps directly to a section.
+*/
 .prose h1,
 .prose h2,
 .prose h3,
@@ -16,6 +38,66 @@
   scroll-margin-top: 2rem;
 }
 
+/* The permalink icon sits inline with the heading text; flex alignment keeps
+   both on the same baseline without wrapping the icon strangely. */
+.prose h1,
+.prose h2,
+.prose h3,
+.prose h4,
+.prose h5,
+.prose h6 {
+  display: flex;
+  align-items: baseline;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+/* Permalinks are visually quiet until hover/focus, but still keyboard-friendly
+   through `:focus-visible`. The icon itself is drawn as a mask below. */
+.prose .heading-permalink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 1.15rem;
+  height: 1.15rem;
+  /* Hide any text fallback; the masked SVG supplies the visible link icon. */
+  font-size: 0;
+  line-height: 1;
+  color: var(--color-muted);
+  text-decoration: none;
+  opacity: 0;
+  transform: translateY(-0.02em);
+  transition: opacity 0.16s ease, color 0.16s ease;
+}
+
+.prose .heading-permalink::before {
+  content: "";
+  display: block;
+  width: 100%;
+  height: 100%;
+  /* `currentColor` + mask lets hover/focus change the icon without swapping SVGs. */
+  background-color: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07L12 4'/%3E%3Cpath d='m14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07L12 20'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07L12 4'/%3E%3Cpath d='m14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07L12 20'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+
+.prose :is(h1, h2):hover .heading-permalink,
+.prose .heading-permalink:focus-visible {
+  opacity: 1;
+}
+
+.prose :is(h3, h4, h5, h6) > .heading-permalink {
+  display: none;
+}
+
+.prose .heading-permalink:hover,
+.prose .heading-permalink:focus-visible {
+  color: var(--color-accent);
+}
+
+/* Heading levels step down through the global golden-ratio type scale; margins
+   provide local rhythm for Markdown, which cannot carry utility classes. */
 .prose h1 {
   font-size: var(--font-size-2xl);
   font-weight: 700;
@@ -30,8 +112,8 @@
   margin-bottom: 0.6rem;
 }
 
-/* Flanked section headers (omgmog-style): centered, capitalize h2 with an
-   accent rule on each side. Scoped to the About page via `.about-headings`. */
+/* About-page flourish: flanked section headers (omgmog-style). The opt-in
+   `.about-headings` class keeps this decorative treatment out of project notes. */
 .prose.about-headings h2 {
   display: flex;
   align-items: center;
@@ -92,6 +174,13 @@
   color: var(--color-muted);
 }
 
+/* --------------------------------------------------------------------------
+   Flow content
+   --------------------------------------------------------------------------
+   Paragraphs, lists, rules, and quotes get a compact vertical rhythm tuned for
+   long-form reading. These are scoped to `.prose` so component lists elsewhere
+   are not affected.
+*/
 .prose p {
   margin-bottom: 0.85rem;
 }
@@ -119,6 +208,12 @@
   margin-bottom: 0.2rem;
 }
 
+/* --------------------------------------------------------------------------
+   Code, tables, and media
+   --------------------------------------------------------------------------
+   Inline code, code blocks, tables, and images reuse the same surface/border
+   tokens as cards, so generated Markdown feels integrated with the site chrome.
+*/
 .prose code {
   font-family: var(--font-mono);
   font-size: 0.875em;
@@ -159,6 +254,8 @@
   font-weight: 600;
 }
 
+/* Obsidian embeds are resolved upstream into `/images/` URLs with intrinsic
+   dimensions/LQIP; this layer just keeps rendered images responsive. */
 .prose img {
   border-radius: 0.5rem;
   margin: 0.85rem 0;
@@ -184,18 +281,34 @@
   margin-bottom: 0.85rem;
 }
 
+/* --------------------------------------------------------------------------
+   Obsidian callouts
+   --------------------------------------------------------------------------
+   remark-obsidian-callouts turns `> [!tip]`-style blocks into `.callout`
+   elements. The outer shell is shared; each variant below only overrides two
+   local custom properties (`--callout-accent` and `--callout-icon`) that cascade
+   into the title, border tint, and links.
+*/
 .prose .callout {
+  /* Defaults for generic callouts; type-specific classes override these below. */
   --callout-accent: var(--color-accent);
-  --callout-bg: color-mix(in srgb, var(--callout-accent) 14%, var(--color-surface));
-  --callout-border: color-mix(in srgb, var(--callout-accent) 32%, var(--color-border));
   --callout-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cline x1='12' x2='12' y1='16' y2='12'/%3E%3Cline x1='12' x2='12.01' y1='8' y2='8'/%3E%3C/svg%3E");
 
   margin: 1.5rem 0;
   padding: 1rem;
-  border: 1px solid var(--callout-border);
+  border: 1px solid var(--color-border);
   border-radius: 0.75rem;
-  background: var(--callout-bg);
+  background: var(--color-surface);
   color: var(--color-text);
+}
+
+/* Progressive enhancement: tint the card when `color-mix()` exists; older
+   browsers keep the solid surface fallback above. */
+@supports (color: color-mix(in srgb, black 50%, white)) {
+  .prose .callout {
+    border-color: color-mix(in srgb, var(--callout-accent) 32%, var(--color-border));
+    background: color-mix(in srgb, var(--callout-accent) 14%, var(--color-surface));
+  }
 }
 
 .prose .callout-title {
@@ -225,6 +338,8 @@
   min-width: 0;
 }
 
+/* Generated Markdown often nests paragraphs/lists inside callouts; trim the
+   final child so the card padding, not extra margins, defines the bottom edge. */
 .prose .callout-content > :last-child,
 .prose .callout-content > :last-child > :last-child {
   margin-bottom: 0;
@@ -239,6 +354,38 @@
   display: none;
 }
 
+/* --------------------------------------------------------------------------
+   Collapsible callouts
+   --------------------------------------------------------------------------
+   Collapsible callouts are native <details> elements. A closed <details> hides
+   all non-<summary> children the instant the `open` attribute is removed, so
+   pure CSS transitions cannot animate the CLOSE. The smooth open/close is
+   driven by the Web Animations API in CollapsibleDetails.astro, which animates
+   the element's height and only flips the `open` attribute once the animation
+   finishes. While that JS animation runs it sets inline `overflow: hidden` +
+   `height`, so the content clips cleanly against the interpolating height. These
+   rules just keep the content laid out normally; the inner wrapper is the
+   measured content box.
+*/
+.prose .callout-collapsible > .callout-content > .callout-content-inner {
+  min-height: 0;
+}
+
+/*
+  Progressive enhancement: if JS never runs (or before it hydrates), a closed
+  <details> still hides its content and an open one shows it — no animation, but
+  fully functional. The reduced-motion preference disables the scripted animation
+  entirely (handled in the component), falling back to this instant toggle.
+*/
+
+/*
+  Single chevron that rotates smoothly instead of swapping between two SVGs (mask
+  images can't transition). It points down when open and rotates to point right
+  when closed. The `data-collapsing` hook is set by CollapsibleDetails.astro at
+  the start of the CLOSE animation so the chevron rotates in sync with the height
+  animation, even though the `open` attribute isn't removed until the animation
+  finishes.
+*/
 .prose .callout-collapsible > summary.callout-title::after {
   content: "";
   display: inline-block;
@@ -247,6 +394,7 @@
   height: 1.35rem;
   margin-left: auto;
   background-color: currentColor;
+  transition: transform 0.3s cubic-bezier(0.65, 0, 0.35, 1);
   mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") center / contain no-repeat;
 }
 
@@ -254,8 +402,17 @@
   margin-bottom: 0;
 }
 
-.prose .callout-collapsible:not([open]) > summary.callout-title::after {
-  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m9 18 6-6-6-6'/%3E%3C/svg%3E");
+.prose .callout-collapsible:not([open]) > summary.callout-title::after,
+.prose .callout-collapsible[data-collapsing] > summary.callout-title::after {
+  transform: rotate(-90deg);
+}
+
+/* Honor the OS reduced-motion preference: the component skips the height
+   animation, and this removes the chevron tween to match. */
+@media (prefers-reduced-motion: reduce) {
+  .prose .callout-collapsible > summary.callout-title::after {
+    transition: none;
+  }
 }
 
 .prose .callout a {
@@ -269,9 +426,28 @@
   color: var(--callout-accent);
 }
 
+/* --------------------------------------------------------------------------
+   Callout variants
+   --------------------------------------------------------------------------
+   Obsidian has several names for similar intent (`summary`/`tldr`,
+   `tip`/`hint`, etc.). Grouping synonyms here keeps the generated markup simple.
+   These semantic accent colors intentionally stay stable across dark/light
+   themes so warning, success, and error callouts remain recognizable.
+*/
 .prose .callout-example {
   --callout-accent: #a78bfa;
   --callout-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cline x1='8' x2='21' y1='6' y2='6'/%3E%3Cline x1='8' x2='21' y1='12' y2='12'/%3E%3Cline x1='8' x2='21' y1='18' y2='18'/%3E%3Cline x1='3' x2='3.01' y1='6' y2='6'/%3E%3Cline x1='3' x2='3.01' y1='12' y2='12'/%3E%3Cline x1='3' x2='3.01' y1='18' y2='18'/%3E%3C/svg%3E");
+}
+
+.prose .callout-abstract,
+.prose .callout-summary,
+.prose .callout-tldr {
+  --callout-accent: #22d3ee;
+  --callout-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cline x1='8' x2='21' y1='6' y2='6'/%3E%3Cline x1='8' x2='21' y1='12' y2='12'/%3E%3Cline x1='8' x2='21' y1='18' y2='18'/%3E%3Cline x1='3' x2='3.01' y1='6' y2='6'/%3E%3Cline x1='3' x2='3.01' y1='12' y2='12'/%3E%3Cline x1='3' x2='3.01' y1='18' y2='18'/%3E%3C/svg%3E");
+}
+
+.prose .callout-tldr {
+  --callout-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect width='8' height='4' x='8' y='2' rx='1' ry='1'/%3E%3Cpath d='M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2'/%3E%3Cpath d='M9 10h6'/%3E%3Cpath d='M9 14h6'/%3E%3Cpath d='M9 18h6'/%3E%3C/svg%3E");
 }
 
 .prose .callout-quote {

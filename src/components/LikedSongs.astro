@@ -4,9 +4,9 @@
  *
  * A companion card to NowPlaying.astro that lists my five most recently saved
  * Spotify "Liked Songs". Like the now-playing widget it renders a themed card
- * with a skeleton, then fills it in client-side by fetching the Cloudflare
- * Worker's `/liked-songs` endpoint after paint. It never blocks rendering and
- * hides itself gracefully on failure or an empty library.
+ * with fixed placeholder/skeleton rows, then fills them in client-side by
+ * fetching the Cloudflare Worker's `/liked-songs` endpoint after paint. It never
+ * blocks rendering and hides itself gracefully on failure or an empty library.
  *
  * The client logic mirrors NowPlaying (session cache + View Transition prefill,
  * fade-in reveal, collapsible mobile dropdown, marquee for overflowing text) but
@@ -26,15 +26,18 @@ interface Props {
 const { collapsible = false } = Astro.props;
 // Unique per render so multiple instances on a page never share an id.
 const bodyId = `liked-songs-body-${Math.random().toString(36).slice(2, 8)}`;
-// Five fixed skeleton rows; the client fills them and hides any unused ones.
+// Five fixed placeholder/skeleton rows: the client fills each slot from JSON and
+// hides any extras so the rendered DOM shape stays predictable.
 const rows = [0, 1, 2, 3, 4];
 ---
 
-<!--
-  Starts hidden (data-state="loading" + hidden) so nothing flashes before data
-  arrives. The client reveals it only once real tracks load. When `collapsible`,
-  the label becomes a toggle button and the body collapses (mobile dropdown).
--->
+{/*
+  Starts hidden (data-state="loading" + hidden) so failed/empty responses leave
+  no blank card or layout shift. `data-endpoint` carries the server-resolved
+  Worker URL into the browser, and aria-live politely announces the populated
+  list when the client fetch succeeds. When `collapsible`, the label becomes a
+  mobile dropdown toggle.
+*/}
 <section
   class:list={['liked-songs', collapsible && 'liked-songs--collapsible']}
   data-liked-songs
@@ -359,10 +362,23 @@ const rows = [0, 1, 2, 3, 4];
   const CACHE_TTL_MS = 10 * 60 * 1000;
   let memoryCache: LikedSongsData | null = null;
 
+  /**
+   * Narrow unknown JSON/cache values to the shape this widget can render.
+   *
+   * Empty responses are treated the same as failures: there is no useful public
+   * metadata to show, so the pre-hidden card stays out of the layout.
+   */
   function hasTracks(data: LikedSongsData | null): data is LikedSongsData {
     return !!data && Array.isArray(data.tracks) && data.tracks.length > 0;
   }
 
+  /**
+   * Read the last successful liked-songs payload for this browser tab.
+   *
+   * The tab-scoped cache smooths repeat visits and Astro View Transitions by
+   * letting the incoming page render with known-good data before the fetch
+   * finishes, while the short TTL keeps the list from feeling stale.
+   */
   function readCache(): LikedSongsData | null {
     if (memoryCache) return memoryCache;
     try {
@@ -377,6 +393,12 @@ const rows = [0, 1, 2, 3, 4];
     }
   }
 
+  /**
+   * Save a good Worker response, but do not depend on Web Storage being present.
+   *
+   * Some browsers disable sessionStorage in private or locked-down contexts; the
+   * widget still works because the network response is already in hand.
+   */
   function writeCache(data: LikedSongsData) {
     memoryCache = data;
     try {
@@ -386,9 +408,12 @@ const rows = [0, 1, 2, 3, 4];
     }
   }
 
-  // Measure a title/artist line and, if it overflows the row, arm the marquee.
-  // Short strings stay static. Runs after layout so scrollWidth is accurate;
-  // skips instances that are display:none (clientWidth 0).
+  /**
+   * Measure a title/artist line and, if it overflows the row, arm the marquee.
+   *
+   * Short strings stay static. This runs after layout so scrollWidth is
+   * accurate, and skips instances that are display:none (clientWidth 0).
+   */
   function setupMarquee(scrollEl: HTMLElement) {
     const inner = scrollEl.querySelector<HTMLElement>('.liked-songs__scroll-inner');
     if (!inner) return;
@@ -409,27 +434,54 @@ const rows = [0, 1, 2, 3, 4];
     scrollEl.style.setProperty('--ls-marquee-duration', `${duration.toFixed(1)}s`);
   }
 
+  /**
+   * Recalculate marquee state for the visible rows in one card instance.
+   *
+   * Hidden placeholder rows are ignored so unused slots do not affect
+   * measurements or start animations.
+   */
   function measureRoot(root: HTMLElement) {
-    // Only measure rows that are actually shown (skip hidden skeleton rows).
+    // Only measure rows that are actually shown (skip hidden placeholder rows).
     root
       .querySelectorAll<HTMLElement>('[data-row]:not([hidden]) .liked-songs__scroll')
       .forEach(setupMarquee);
   }
 
-  // Wire up the collapsible (mobile) card's toggle button.
+  /**
+   * Wire up the collapsible mobile card's toggle button.
+   *
+   * The visual state lives on data-open, while aria-expanded gives assistive
+   * tech the same open/closed state as the CSS transition.
+   */
   function bindToggle(root: HTMLElement) {
     const toggle = root.querySelector<HTMLButtonElement>('[data-toggle]');
     if (!toggle) return;
+    // The grid body element; adding `is-animating` opts its inner content into the
+    // global compositor/containment hints (see global.css) so the grid-rows
+    // animation paints cheaply on mobile. Scoped to the transition window only, so
+    // the text is never permanently layer-promoted (which can look blurry).
+    const body = root.querySelector<HTMLElement>('.liked-songs__body');
+    let animateTimer = 0;
     toggle.addEventListener('click', () => {
       const open = root.dataset.open === 'true';
       root.dataset.open = open ? 'false' : 'true';
       toggle.setAttribute('aria-expanded', open ? 'false' : 'true');
       if (!open) requestAnimationFrame(() => measureRoot(root));
+      if (body) {
+        body.classList.add('is-animating');
+        window.clearTimeout(animateTimer);
+        // Slightly longer than the 0.3s grid transition so hints outlast it.
+        animateTimer = window.setTimeout(() => body.classList.remove('is-animating'), 340);
+      }
     });
   }
 
-  // Populate a single card instance. DOM writes only — safe to run against a
-  // detached document (e.g. the incoming page during astro:before-swap).
+  /**
+   * Populate one card's placeholder rows from Spotify track metadata.
+   *
+   * This performs DOM writes only, so it is safe to run against a detached
+   * document during astro:before-swap as well as the live page.
+   */
   function populateLiked(root: HTMLElement, data: LikedSongsData) {
     const rows = root.querySelectorAll<HTMLElement>('[data-row]');
     const tracks = Array.isArray(data.tracks) ? data.tracks : [];
@@ -465,7 +517,9 @@ const rows = [0, 1, 2, 3, 4];
     root.hidden = false;
   }
 
-  // Measure the marquee once fonts are ready (needs live layout).
+  /**
+   * Measure marquee overflow after fonts load, because font metrics change width.
+   */
   function measureWhenReady(root: HTMLElement) {
     if (document.fonts && document.fonts.ready) {
       document.fonts.ready.then(() => measureRoot(root));
@@ -474,8 +528,13 @@ const rows = [0, 1, 2, 3, 4];
     }
   }
 
-  // Populate + reveal on the live document. If the card was already revealed
-  // (pre-filled during a page transition) we skip the fade to avoid a re-flash.
+  /**
+   * Populate and reveal a live card without causing a flash during navigation.
+   *
+   * A pre-filled View Transition card is already visible, so it only needs
+   * measurement. Fresh cards reveal on the next animation frame so the CSS fade
+   * has a real before/after state to transition between.
+   */
   function applyLiked(root: HTMLElement, data: LikedSongsData) {
     const alreadyRevealed = root.dataset.revealed === 'true';
     populateLiked(root, data);
@@ -491,6 +550,13 @@ const rows = [0, 1, 2, 3, 4];
     });
   }
 
+  /**
+   * Fetch the liked-songs JSON after page load and fan it out to every instance.
+   *
+   * This is the graceful-degradation boundary: if the Worker is unavailable,
+   * returns no tracks, or sends invalid data, the card stays hidden and the page
+   * remains fully usable with no console noise.
+   */
   async function loadLikedSongs() {
     // There may be more than one instance on a page (desktop gutter + mobile
     // inline). Bind each once, fetch a single time, apply to all.
@@ -503,6 +569,7 @@ const rows = [0, 1, 2, 3, 4];
       bindToggle(el);
     });
 
+    // Read the Worker URL from the data-* channel emitted by Astro frontmatter.
     const endpoint = roots[0].dataset.endpoint;
     if (!endpoint) return;
 
@@ -526,8 +593,12 @@ const rows = [0, 1, 2, 3, 4];
     }
   }
 
-  // Pre-fill the incoming document during a View Transition so a repeat visit
-  // shows the card immediately as part of the page slide rather than popping in.
+  /**
+   * Pre-fill the incoming document during a View Transition.
+   *
+   * Repeat visits then show cached tracks as part of the page slide rather than
+   * popping in after the new document has already swapped into view.
+   */
   function prefillNewDocument(newDoc: Document) {
     const data = readCache();
     if (!hasTracks(data)) return;
@@ -537,6 +608,8 @@ const rows = [0, 1, 2, 3, 4];
     });
   }
 
+  // Bind global listeners once; individual component roots still use data-bound
+  // so returning to the About page does not duplicate fetches or click handlers.
   const w = window as Window & { __likedSongsBound?: boolean };
   if (!w.__likedSongsBound) {
     document.addEventListener('astro:page-load', loadLikedSongs);

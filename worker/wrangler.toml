@@ -1,4 +1,7 @@
 #:schema node_modules/wrangler/config-schema.json
+# wrangler.toml is the deployment/config file Wrangler reads for this Worker.
+# The schema line above lets editors validate the Cloudflare-specific keys.
+#
 # Cloudflare Worker config for the Spotify "now-playing" endpoint.
 # Deploy with:  npm run worker:deploy   (wraps `wrangler deploy --config worker/wrangler.toml`)
 #
@@ -7,8 +10,11 @@
 #   wrangler secret put SPOTIFY_CLIENT_SECRET --config worker/wrangler.toml
 #   wrangler secret put SPOTIFY_REFRESH_TOKEN --config worker/wrangler.toml
 
+# Service name shown in the Cloudflare dashboard and used by Wrangler commands.
 name = "spotify-now-playing"
+# TypeScript entrypoint Wrangler bundles and uploads to Cloudflare.
 main = "src/index.ts"
+# Pins the Workers runtime behavior so future platform changes are opt-in.
 compatibility_date = "2025-06-01"
 
 # Publish only on the rate-limited custom domain (below), not on *.workers.dev.
@@ -26,6 +32,8 @@ custom_domain = true
 # Non-secret config. Comma-separated allowlist of site origins permitted to read
 # the endpoint from a browser (Origin/Referer check + CORS).
 [vars]
+# Plaintext runtime config, exposed to code as env.ALLOWED_ORIGIN. This is safe
+# for origins, but secrets belong in `wrangler secret put`, not in [vars].
 ALLOWED_ORIGIN = "https://www.mattserwinowski.com,https://mattserwinowski.com"
 
 # Keep the free plan lean: no extra observability/log ingestion.
