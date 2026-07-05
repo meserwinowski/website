@@ -11,7 +11,7 @@ date: 2026-06-15
 ---
 ---
 
-> [!example]- *Is a Stage Mixer Punk Rock?*
+> [!tldr]- *Is a Stage Mixer Punk Rock?*
 > I ask myself stuff like this on occasion. I thought this would be a fun and silly hook to use for this project. I do think there's an argument to be made for either side.
 
 If you've ever wondered what's in the black boxes that musicians tour around with, it is usually one of the following:

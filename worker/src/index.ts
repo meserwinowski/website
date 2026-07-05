@@ -17,6 +17,7 @@
  *   - Secrets never leave the Worker: only public track metadata is returned.
  */
 
+/** Runtime bindings Cloudflare passes to the Worker on each request. */
 export interface Env {
   // Secrets — set once with `wrangler secret put` (never committed):
   SPOTIFY_CLIENT_ID: string;
@@ -81,16 +82,25 @@ const EMPTY_LIKED: LikedSongsPayload = { tracks: [] };
 let cachedToken: { value: string; expiresAt: number } | null = null;
 
 export default {
+  /**
+   * Cloudflare calls this fetch handler for every request routed to the Worker.
+   * It acts like a tiny serverless web server: answer CORS, reject disallowed
+   * callers, reuse edge-cached JSON when possible, then query Spotify only when
+   * the cache misses.
+   */
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const origin = request.headers.get('Origin');
     const allowOrigin = resolveAllowedOrigin(origin, request, env);
     const corsHeaders = buildCorsHeaders(allowOrigin);
 
-    // CORS preflight.
+    // CORS preflight: browsers ask permission with OPTIONS before some cross-
+    // origin requests. A 204 plus CORS headers says the real GET may proceed.
     if (request.method === 'OPTIONS') {
       return new Response(null, { status: 204, headers: corsHeaders });
     }
 
+    // The API is read-only. Unsupported methods still get the safe "hide the
+    // widget" payload shape, but with the proper HTTP status for clients.
     if (request.method !== 'GET' && request.method !== 'HEAD') {
       return json(NOT_PLAYING, { status: 405, headers: corsHeaders });
     }
@@ -108,8 +118,10 @@ export default {
     const isLiked = url.pathname === '/liked-songs';
     const ttl = isLiked ? LIKED_CACHE_TTL_SECONDS : CACHE_TTL_SECONDS;
 
-    // Serve from the edge cache when possible so most hits never touch Spotify.
+    // Cache API = Cloudflare's edge response cache. It is separate from
+    // browser local cache, and lets nearby visitors share one Spotify result.
     const cache = caches.default;
+    // Normalize HEAD/GET to a GET key so both methods reuse the same object.
     const cacheKey = new Request(url.toString(), { method: 'GET' });
     const cached = await cache.match(cacheKey);
     if (cached) {
@@ -139,11 +151,15 @@ export default {
       status: 200,
       headers: {
         ...corsHeaders,
+        // Browser caches and shared caches get the same short TTL. The explicit
+        // Cache API write below is what stores successful responses at the edge.
         'Cache-Control': `public, max-age=${ttl}, s-maxage=${ttl}`,
       },
     });
 
     if (hasData) {
+      // waitUntil lets the response return immediately while Cloudflare stores a
+      // clone in the edge cache in the background.
       ctx.waitUntil(cache.put(cacheKey, response.clone()));
     }
 
@@ -151,7 +167,12 @@ export default {
   },
 };
 
-/** Fetch current or last-played track and shape it into the public payload. */
+/**
+ * Fetch the current track, falling back to the most recently played track.
+ *
+ * Spotify returns 204 when nothing is playing, so the fallback keeps the widget
+ * useful without pretending an old track is live.
+ */
 export async function getNowPlaying(env: Env): Promise<NowPlaying> {
   const token = await getAccessToken(env);
 
@@ -237,12 +258,14 @@ export function shapeLikedSongs(body: any): LikedSongsPayload {
   return { tracks };
 }
 
-/** Extract the common track fields shared by both Spotify responses. */
+/** Extract the common, non-sensitive track fields shared by Spotify responses. */
 function shapeTrack(track: any): Omit<NowPlaying, 'isPlaying' | 'playedAt'> {
   const artists = Array.isArray(track?.artists)
     ? track.artists.map((a: any) => a?.name).filter(Boolean).join(', ')
     : undefined;
   const images = track?.album?.images;
+  // Spotify includes multiple album-art sizes; the first URL is enough for this
+  // small widget, and the browser can downscale it as needed.
   const albumImageUrl = Array.isArray(images) && images.length > 0
     ? images[0]?.url
     : undefined;
@@ -255,13 +278,22 @@ function shapeTrack(track: any): Omit<NowPlaying, 'isPlaying' | 'playedAt'> {
   };
 }
 
-/** Exchange the refresh token for a short-lived access token (memoized). */
+/**
+ * Exchange the long-lived Spotify refresh token for a short-lived access token.
+ *
+ * This is Spotify's OAuth refresh-token flow: the client id/secret and refresh
+ * token stay inside the Worker, while the temporary bearer token is used only
+ * for server-to-Spotify requests.
+ */
 async function getAccessToken(env: Env): Promise<string> {
   const now = Date.now();
+  // Refresh a few seconds early so a token does not expire mid-request.
   if (cachedToken && cachedToken.expiresAt > now + 5000) {
     return cachedToken.value;
   }
 
+  // Spotify expects the app credentials as HTTP Basic auth, with the user's
+  // refresh token in the form body.
   const basic = btoa(`${env.SPOTIFY_CLIENT_ID}:${env.SPOTIFY_CLIENT_SECRET}`);
   const res = await fetchWithTimeout(TOKEN_ENDPOINT, {
     method: 'POST',
@@ -285,7 +317,12 @@ async function getAccessToken(env: Env): Promise<string> {
   return cachedToken.value;
 }
 
-/** GET a Spotify endpoint with the bearer token; returns null on network error. */
+/**
+ * GET a Spotify endpoint with the bearer token.
+ *
+ * Network/timeout errors become `null`; callers then fall back to the same
+ * non-playing/empty payload instead of exposing an upstream failure.
+ */
 async function spotifyFetch(url: string, token: string): Promise<Response | null> {
   try {
     return await fetchWithTimeout(url, {
@@ -296,7 +333,12 @@ async function spotifyFetch(url: string, token: string): Promise<Response | null
   }
 }
 
-/** fetch() with an AbortController timeout so upstream stalls can't hang us. */
+/**
+ * fetch() with an AbortController timeout so upstream stalls cannot hang us.
+ *
+ * AbortController is the web-standard way to cancel a fetch: when the timer
+ * fires, the signal aborts the request and Spotify handling falls back safely.
+ */
 async function fetchWithTimeout(url: string, init: RequestInit): Promise<Response> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), UPSTREAM_TIMEOUT_MS);
@@ -351,7 +393,7 @@ export function isOriginAllowed(origin: string, allowed: string[]): boolean {
   return allowed.includes(origin);
 }
 
-/** True for http(s)://localhost | 127.0.0.1 | ::1 on any port. */
+/** True for localhost, loopback, and the LAN dev host on any port. */
 export function isLocalOrigin(origin: string): boolean {
   try {
     const host = new URL(origin).hostname.toLowerCase();
@@ -365,7 +407,13 @@ export function isLocalOrigin(origin: string): boolean {
   }
 }
 
-/** Pick the Access-Control-Allow-Origin value to echo back. */
+/**
+ * Pick the Access-Control-Allow-Origin value to echo back.
+ *
+ * Browsers only expose the response when this header matches the request's
+ * Origin. Non-browser callers may have no Origin, so we fall back to configured
+ * origin (or `*` when unconfigured).
+ */
 function resolveAllowedOrigin(origin: string | null, request: Request, env: Env): string {
   const list = allowedOrigins(env);
   if (origin && isOriginAllowed(origin, list)) return origin;
@@ -373,6 +421,12 @@ function resolveAllowedOrigin(origin: string | null, request: Request, env: Env)
   return origin ?? '*';
 }
 
+/**
+ * Build CORS response headers for browser reads.
+ *
+ * `Vary: Origin` tells shared caches that responses can differ by caller origin,
+ * preventing one allowed site's CORS header from being reused for another.
+ */
 function buildCorsHeaders(allowOrigin: string): Record<string, string> {
   return {
     'Access-Control-Allow-Origin': allowOrigin,
@@ -382,7 +436,12 @@ function buildCorsHeaders(allowOrigin: string): Record<string, string> {
   };
 }
 
-/** Clone a (possibly cached) response and attach CORS headers. */
+/**
+ * Clone a (possibly cached) response and attach request-specific CORS headers.
+ *
+ * Cached bodies are shared across visitors, but the allowed origin can vary per
+ * request, so CORS is applied after cache lookup.
+ */
 function withCors(response: Response, corsHeaders: Record<string, string>): Response {
   const headers = new Headers(response.headers);
   for (const [key, value] of Object.entries(corsHeaders)) {
@@ -395,6 +454,7 @@ function withCors(response: Response, corsHeaders: Record<string, string>): Resp
   });
 }
 
+/** Serialize a payload as JSON with the status and headers chosen by the caller. */
 function json(
   data: unknown,
   init: { status: number; headers?: Record<string, string> },

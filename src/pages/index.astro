@@ -1,25 +1,38 @@
 ---
-// Home page — a "recent activity" feed built entirely from content collections.
-// No vault/markdown content: the page is template-driven so it stays fresh on its own.
-// Posts will join this feed once a posts collection exists (see posts.astro / README roadmap).
+/**
+ * index.astro — Home page / recent activity feed.
+ *
+ * Astro uses file-based routing: `src/pages/index.astro` becomes the `/` route.
+ * This page is template-driven rather than vault-authored Markdown, so it can
+ * build a small "latest work" feed directly from content collections.
+ *
+ * The home page is the title-convention exception: Base receives just
+ * "Matt Serwinowski"; other top-level pages use "PageName - Matt Serwinowski".
+ */
 import { getCollection } from 'astro:content';
 import Layout from '../layouts/Base.astro';
 import ProjectCard from '../components/ProjectCard.astro';
 
-// How many recent items to surface on the landing page.
+/** How many public projects to surface before sending readers to /projects/. */
 const RECENT_LIMIT = 3;
 
-// Only public projects (done/ongoing), newest first, capped to the recent limit.
+// getCollection('projects') reads generated Markdown entries from
+// src/content/projects/ and returns Zod-validated frontmatter from
+// src/content.config.ts. There is no runtime CMS call after the static build.
 const allProjects = await getCollection('projects');
 const recentProjects = allProjects
+  // Match the detail route's public-project rule: only done/ongoing projects
+  // should appear in navigation or receive generated project pages.
   .filter((p) => ['done', 'ongoing'].includes(p.data.status))
+  // Newest first keeps the landing page feeling like a lightweight activity log.
   .sort((a, b) => b.data.date.getTime() - a.data.date.getTime())
   .slice(0, RECENT_LIMIT);
 ---
 
 <Layout title="Matt Serwinowski" width="content" chrome="project-detail" description="Recent projects and writing by Matt Serwinowski.">
+  {/* Base.astro composes the shared shell around this route: metadata, header, centered main content, and footer. */}
   <section class="space-y-8">
-    <!-- Feed header: section title + escape hatch to the full projects index -->
+    {/* Feed header: a compact landing-page label plus an escape hatch to the full projects index. */}
     <div class="flex items-baseline justify-between">
       <h1 class="text-3xl font-bold">Recent</h1>
       <a
@@ -30,9 +43,10 @@ const recentProjects = allProjects
       </a>
     </div>
 
+    {/* Auto-filling grid: one column on mobile, then more columns as the viewport has room. */}
     {recentProjects.length > 0 ? (
-      <!-- Auto-filling grid: 1 column on mobile, more as the viewport grows -->
       <div class="grid gap-6 grid-cols-[repeat(auto-fill,minmax(min(18rem,100%),1fr))]">
+        {/* ProjectCard receives frontmatter fields as props; Astro emits the final HTML at build time. */}
         {recentProjects.map((project) => (
           <ProjectCard
             slug={project.id}

@@ -1,32 +1,47 @@
-<!-- Base layout: wraps all pages with head, header, content area, and footer -->
 ---
+/**
+ * Base.astro — The site shell shared by every page.
+ *
+ * Layout components are Astro's page wrappers: pages pass metadata and content
+ * into this component, then `<slot />` below decides where that page content is
+ * inserted. The frontmatter section runs at build/render time for imports,
+ * prop defaults, SEO URLs, and layout-width calculations; the template section
+ * is the HTML that becomes the static page.
+ */
+
 import '../styles/global.css';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 import BackToTop from '../components/BackToTop.astro';
 import ReadingProgress from '../components/ReadingProgress.astro';
+import CollapsibleDetails from '../components/CollapsibleDetails.astro';
 import { ClientRouter } from 'astro:transitions';
 
-// Props interface: defines what data this component expects from its parent.
 interface Props {
+  /** Full browser/tab title. Home uses just the name; other pages append the site name. */
   title: string;
+  /** Meta/Open Graph description; defaults to the site's short bio. */
   description?: string;
-  // Container width: 'prose' = readable measure, 'content' = project-detail content rail,
-  // 'wide' = centered reading column with a Table of Contents gutter (project detail pages).
+  /**
+   * Main content rail:
+   * - `prose` keeps text at a comfortable reading measure.
+   * - `content` widens the rail for bespoke pages like About.
+   * - `wide` reserves balanced gutters for project detail pages.
+   */
   width?: 'prose' | 'content' | 'wide';
-  // Header alignment: 'project-detail' aligns chrome to the same rail as project detail content.
+  /** Header/footer chrome alignment; project detail pages use their content rail. */
   chrome?: 'prose' | 'project-detail';
-  // Show the top scroll-progress bar. Defaults to true; opt out on pages that don't want it.
+  /** Whether to render the top scroll-progress bar. */
   readingProgress?: boolean;
-  // Optional explicit content-container width (CSS length/calc). Overrides the
-  // `width` preset — used by pages that need a bespoke gutter (e.g. About).
+  /** Optional CSS width/calc override for pages that need a custom gutter. */
   containerWidth?: string;
 }
 
-// Destructure props with a default description for SEO
+// Destructure props from the parent page and apply layout-wide defaults.
 const { title, description = 'Matt Serwinowski — software engineer, builder of things.', width = 'prose', chrome = 'prose', readingProgress = true, containerWidth: containerWidthOverride } = Astro.props;
 
-// Resolve the page container width to a CSS var, exposed to header/main/footer as --container
+// Resolve page width to CSS variables. The actual tokens live in global.css so
+// layout math stays centralized in the design system.
 const contentRailWidth = 'calc(var(--width-prose) + ((var(--width-wide) - var(--width-prose)) / 4.236) + 14rem)';
 // Project detail pages center the prose column and place the Table of Contents in
 // the right gutter. The container fits a symmetric rail — prose plus a matching
@@ -41,103 +56,83 @@ const containerWidth = containerWidthOverride ?? containerWidths[width];
 const chromeContainerWidth = chrome === 'project-detail'
   ? contentRailWidth
   : 'var(--width-prose)';
+// containerWidth/chromeContainerWidth are injected onto <body> as the
+// --container / --chrome-container CSS variables so Tailwind arbitrary values
+// (e.g. max-w-[var(--container)]) can consume these design-system widths.
 
-// Build the full URL for this page (used in Open Graph tags)
+// Build the canonical absolute URL for SEO and social-sharing metadata.
 const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 ---
 
-<!-- DOCTYPE tells the browser this is a modern HTML5 document -->
 <!doctype html>
-<!-- lang="en" helps screen readers and search engines know this is English -->
-<!-- data-theme="dark" sets the default color scheme (our CSS reads this attribute) -->
+{/* Default to dark in markup; the inline pre-paint script below applies saved preference. */}
 <html lang="en" data-theme="dark">
-  <!-- <head> contains metadata — not visible on the page itself -->
   <head>
-    <!-- charset: tells the browser what character encoding to use (UTF-8 = all languages) -->
     <meta charset="UTF-8" />
-    <!-- color-scheme tells browsers and extensions (like Dark Reader) this site handles its own dark mode -->
+    {/* Advertise both schemes because theme colors are handled by CSS custom properties. */}
     <meta name="color-scheme" content="dark light" />
 
-    <!-- Inline script runs BEFORE the page paints — prevents a "flash" of wrong theme -->
-    <!-- is:inline tells Astro to leave this script as-is (not bundle it) -->
-    <!-- Also re-applies theme after View Transitions swap to prevent reset -->
+    {/* is:inline keeps this tiny script in the document head so it runs before first paint. */}
     <script is:inline>
+      // Apply the saved theme before CSS paints to avoid a flash of wrong theme (FOUC).
       (function() {
         var theme = localStorage.getItem('theme') || 'dark';
         document.documentElement.setAttribute('data-theme', theme);
       })();
+      // Astro View Transitions swap document fragments; re-apply the attribute after swaps.
       document.addEventListener('astro:after-swap', function() {
         var theme = localStorage.getItem('theme') || 'dark';
         document.documentElement.setAttribute('data-theme', theme);
       });
     </script>
 
-    <!-- viewport: makes the page responsive on mobile (scales to device width) -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <!-- description: shown in search engine results under the page title -->
     <meta name="description" content={description} />
-    <!-- canonical URL: tells search engines the "official" URL for this page -->
     <link rel="canonical" href={canonicalURL.href} />
-    <!-- favicon: the small icon shown in the browser tab -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 
-    <!-- Open Graph: controls how the page looks when shared on social media -->
+    {/* Open Graph and Twitter metadata keep shared links consistent across platforms. */}
     <meta property="og:type" content="website" />
     <meta property="og:url" content={canonicalURL.href} />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:site_name" content="Matt Serwinowski" />
 
-    <!-- Twitter card: controls how the page looks when shared on X/Twitter -->
     <meta name="twitter:card" content="summary" />
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
 
-    <!-- Preconnect: opens a connection to Google Fonts early so fonts load faster -->
+    {/* Preconnect warms up Google Fonts before requesting Inter and JetBrains Mono. */}
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <!-- Load Inter (body text) and JetBrains Mono (code/header) from Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
 
-    <!-- {title} is a dynamic value — Astro replaces it with the prop passed to this layout -->
     <title>{title}</title>
 
-    <!-- ClientRouter enables View Transitions: smooth crossfade animations between pages -->
-    <!-- Instead of full page reloads, the browser morphs one page into the next -->
-    <!-- This eliminates the "flash" on navigation and makes the site feel like an app -->
+    {/* ClientRouter enables Astro View Transitions for app-like page navigation. */}
     <ClientRouter />
   </head>
 
-  <!-- flex + min-h-screen + flex-col makes footer stick to the bottom even on short pages -->
-  <!-- --container drives the <main> width (set per page via the width prop). Header/footer -->
-  <!-- stay pinned to --width-prose so the site chrome is identical on every page. -->
   <body class="flex min-h-screen flex-col" style={`--container: ${containerWidth}; --chrome-container: ${chromeContainerWidth};`}>
-    <!-- Top scroll-progress bar: fills as the reader moves down long pages. -->
+    {/* Optional reading progress is useful for long-form content but can be disabled. */}
     {readingProgress && <ReadingProgress />}
-    <!-- Header component: nav bar with logo, links, theme toggle -->
     <Header />
 
-    <!-- <main> stays full-width and is the shared View Transition object, so the animated -->
-    <!-- box is the SAME size on every page — transitions are identical pure slides. -->
-    <!-- The inner wrapper carries the per-page width cap (--container), centering, and padding. -->
-    <!-- transition:name="main" gives this element a unique identity for the View Transitions API -->
+    {/* Keep <main> full-width as the shared View Transition object; constrain inside it. */}
     <main class="w-full flex-1" transition:name="main">
       <div class="mx-auto w-full max-w-[var(--container,var(--width-prose))] px-6 pt-6 pb-12">
-        <!-- <slot /> is where child content gets injected.
-             When a page does <Layout><h1>Hello</h1></Layout>,
-             the <h1>Hello</h1> appears here -->
+        {/* <slot /> is where the page using this layout injects its own content. */}
         <slot />
       </div>
     </main>
 
-    <!-- Footer component: copyright bar -->
     <Footer />
 
-    <!-- Floating scroll helper: appears after scrolling down on longer pages -->
     <BackToTop />
 
-    <!-- Directional navigation script: determines slide direction before each transition -->
-    <!-- This runs client-side and sets a data-transition attribute that CSS reads -->
+    <CollapsibleDetails />
+
+    {/* Client script sets a direction flag that transition CSS reads before navigation. */}
     <script>
       // Nav link order — used to determine "left vs right" for same-depth navigation
       const NAV_ORDER: Record<string, number> = {

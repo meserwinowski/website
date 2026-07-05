@@ -1,37 +1,37 @@
 ---
 /**
- * Projects index page — displays a grid of project cards.
- * Only shows projects with status "done" or "ongoing".
- * Sorted by date (newest first).
+ * projects.astro — Projects index page.
+ *
+ * File-based routing turns this file into `/projects/`. The route reads the
+ * generated Markdown collection, filters it to public projects, and renders a
+ * card grid that links to the dynamic project detail route at
+ * `src/pages/projects/[slug].astro`.
  */
 import { getCollection } from 'astro:content';
 import Layout from '../layouts/Base.astro';
 import ProjectCard from '../components/ProjectCard.astro';
 
-// getCollection('projects') reads all markdown files from src/content/projects/
-// and parses their frontmatter into typed data objects
+// getCollection('projects') reads all Markdown files from src/content/projects/
+// and returns entries whose frontmatter has already passed the Zod schema in
+// src/content.config.ts.
 const allProjects = await getCollection('projects');
 
-// Filter: only show public projects (not "planning" or "idea")
-// Sort: newest date first (descending order)
 const projects = allProjects
+  // Keep the index in sync with [slug].astro: only done/ongoing projects are
+  // public enough to appear in lists and receive generated detail pages.
   .filter((p) => ['done', 'ongoing'].includes(p.data.status))
+  // Newest first matches portfolio-reader expectations and mirrors the home feed.
   .sort((a, b) => b.data.date.getTime() - a.data.date.getTime());
 ---
 
-<!-- Layout wraps this page with the site header, footer, and <head> tags -->
 <Layout title="Projects - Matt Serwinowski" width="content" chrome="project-detail" description="A curated collection of software, hardware, and music projects by Matt Serwinowski.">
-  <!-- <section> groups related content together semantically -->
-  <!-- space-y-6 adds 1.5rem (24px) vertical gap between children -->
+  {/* Base.astro wraps this route with shared metadata, navigation, main content rails, and footer. */}
   <section class="space-y-6">
     <h1 class="text-4xl font-bold">Projects</h1>
 
-    <!-- Auto-filling grid: cards hold a ~18rem minimum and the column count grows with the -->
-    <!-- viewport (1 col on mobile → more on wide screens) instead of stretching to fill. -->
-    <!-- min(18rem,100%) prevents overflow on screens narrower than the card minimum. -->
+    {/* Auto-filling grid: cards keep a readable minimum width, and the column count grows with the viewport. */}
     <div class="grid gap-6 grid-cols-[repeat(auto-fill,minmax(min(18rem,100%),1fr))]">
-      <!-- .map() loops over the projects array and renders one ProjectCard per project -->
-      <!-- Each attribute (slug, title, etc.) is a "prop" passed to the ProjectCard component -->
+      {/* Each collection entry becomes one card; the props come from validated frontmatter plus the entry id slug. */}
       {projects.map((project) => (
         <ProjectCard
           slug={project.id}

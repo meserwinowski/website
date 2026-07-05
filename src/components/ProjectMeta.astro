@@ -44,7 +44,7 @@ const dtClass = 'font-mono text-xs uppercase tracking-wide text-[var(--color-mut
 
 {variant === 'rail' ? (
   <div>
-    <!-- Rail title mirrors the ToC's "On This Page" so both gutters read as a pair. -->
+    {/* Rail title mirrors the ToC's "On This Page" so both gutters read as a pair. */}
     <p class="mb-2 font-mono text-sm font-semibold leading-5 text-[var(--color-accent)]">Details</p>
     <dl class="space-y-4 border-l border-[var(--color-border)] pl-4">
       <div>
@@ -82,7 +82,7 @@ const dtClass = 'font-mono text-xs uppercase tracking-wide text-[var(--color-mut
 ) : (
   <div class="space-y-3">
     <ReadingTime minutes={readingMinutes} />
-    <!-- Metadata row: status badge, date, tags, and optional GitHub link -->
+    {/* Metadata row: status badge, date, tags, and optional GitHub link */}
     <div class="flex flex-wrap items-center gap-3">
       <span class={badgeClass}>{statusLabels[status] ?? status}</span>
       <time datetime={dateISO} class="text-xs text-[var(--color-muted)]">{formattedDate}</time>

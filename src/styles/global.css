@@ -1,15 +1,39 @@
-/* Design system: Tailwind v4 theme tokens and base styles */
+/*
+  global.css — Site-wide design tokens and base element defaults.
+
+  This is the design-system entry point. Tailwind v4 is wired through
+  @tailwindcss/vite (not @astrojs/tailwind), so `@theme` below is where CSS
+  custom properties become Tailwind tokens. Components can use those tokens
+  through utilities, or read the raw variables with `var(...)` when that is
+  clearer.
+
+  The values here are intentionally small and reusable: colors cascade for
+  theming, type and layout use golden-ratio relationships, and spacing follows
+  an 8-point grid so pages feel related without hardcoding one-off numbers.
+*/
+
+/* Tailwind first, then project layers for Markdown and page-transition rules. */
 @import "tailwindcss";
 @import "./prose.css";
 @import "./transitions.css";
 
-/* Custom theme tokens — use via var(--color-*) in Tailwind arbitrary values */
+/* --------------------------------------------------------------------------
+   Tailwind v4 theme tokens
+   --------------------------------------------------------------------------
+   In v4, `@theme` registers CSS custom properties as design tokens. For
+   example, `--font-size-xl` can feed Tailwind's `text-xl` utility, while
+   project CSS can still reference the same source of truth with `var()`.
+*/
 @theme {
-  /* Fonts */
+  /* Fonts: loaded in Base.astro, named here once so utilities and custom CSS agree. */
   --font-sans: "Inter", sans-serif;
   --font-mono: "JetBrains Mono", monospace;
 
-  /* Type scale: golden ratio (φ=1.618) up from base, minor third (1.2) down */
+  /*
+    Type scale: body text starts at 1rem. Display sizes climb with the golden
+    ratio (φ = 1.618), while small text steps down with a gentler minor third
+    (1.2) so captions stay readable.
+  */
   --font-size-xs: 0.75rem;     /* 12px — base / 1.2² */
   --font-size-sm: 0.875rem;    /* 14px — base / 1.2  */
   --font-size-base: 1rem;      /* 16px */
@@ -19,11 +43,19 @@
   --font-size-3xl: 2.618rem;   /* ~42px — base × φ²  */
   --font-size-4xl: 4.236rem;   /* ~68px — base × φ³  */
 
-  /* Layout widths — wide = prose × φ (golden ratio), both on the 8-point grid */
+  /*
+    Layout widths: `prose` is the comfortable reading measure; `wide` is for
+    grids and project pages. Both land on the 8-point grid, and wide is roughly
+    prose × φ so page widths scale from the same visual logic as the type.
+  */
   --width-prose: 45rem;   /* 720px — the reading measure (720 ÷ 8 = 90) */
   --width-wide: 72rem;    /* 1152px — structural/grid pages (720 × 1.6 ≈ φ; 1152 ÷ 8 = 144) */
 
-  /* 8-point spacing grid */
+  /*
+    8-point spacing grid: most page rhythm should compose from these steps.
+    The 4px half-step exists for small gaps and borders without breaking the
+    system.
+  */
   --spacing-1: 0.25rem;   /*  4px */
   --spacing-2: 0.5rem;    /*  8px */
   --spacing-3: 0.75rem;   /* 12px */
@@ -34,7 +66,11 @@
   --spacing-16: 4rem;     /* 64px */
   --spacing-24: 6rem;     /* 96px */
 
-  /* Color palette (dark theme — default) */
+  /*
+    Colors: dark is the default theme. Components read semantic tokens like
+    `--color-surface`, not raw hex values, so a theme switch only has to
+    override this same token set.
+  */
   --color-bg: #181a24;
   --color-surface: #1e2130;
   --color-border: #2d3348;
@@ -49,7 +85,14 @@
   --color-toc-3: #9ca3af;
 }
 
-/* Light theme overrides */
+/* --------------------------------------------------------------------------
+   Light theme overrides
+   --------------------------------------------------------------------------
+   Base.astro sets `data-theme` on <html> before paint and persists the choice in
+   localStorage. Because custom properties cascade, redefining every color token
+   here automatically updates anything that reads `var(--color-*)`. Keep this
+   list in lockstep with the dark tokens above.
+*/
 [data-theme="light"] {
   --color-bg: #ebe8df;
   --color-surface: #dedad0;
@@ -64,9 +107,14 @@
   --color-toc-3: #71717a;
 }
 
-/* Base element styles */
-/* html carries the background too, so view-transition snapshots never reveal
-   the browser's (white) canvas mid-crossfade — this prevents a flash on navigation */
+/* --------------------------------------------------------------------------
+   Base element styles
+   --------------------------------------------------------------------------
+   These low-level defaults are what every Astro page inherits before component
+   classes add layout or one-off behavior.
+*/
+/* `html` carries the background too, so view-transition snapshots never reveal
+   the browser's white canvas mid-crossfade. */
 html {
   background-color: var(--color-bg);
 }
@@ -78,7 +126,7 @@ body {
   line-height: 1.5;
 }
 
-/* Header uses monospace font and semibold */
+/* Header/navigation uses the mono face to contrast with the article prose. */
 header {
   font-family: var(--font-mono);
   font-weight: 600;
@@ -92,9 +140,14 @@ a:hover {
   color: var(--color-accent-hover);
 }
 
-/* Interactive elements: subtle spring scale. Hover is gated to real pointers so
-   the scaled-up state can't stick after a tap on touch devices; :active still
-   gives a quick press/spring feedback everywhere. */
+/* --------------------------------------------------------------------------
+   Shared interaction and motion helpers
+   --------------------------------------------------------------------------
+   Links and buttons get a small spring scale to make the static site feel
+   tactile. Hover is gated to real pointers so the scaled-up state cannot stick
+   after a tap on touch devices; :active still gives quick press feedback
+   everywhere.
+*/
 button, a {
   transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.3s ease;
 }
@@ -107,4 +160,36 @@ button, a {
 
 button:active, a:active {
   transform: scale(0.93);
+}
+
+/*
+  Smooth collapsible <details> (Obsidian callouts + mobile ToC), driven by
+  CollapsibleDetails.astro. Animating `height` is a main-thread layout property,
+  which can stutter on mobile. During the animation the controller adds
+  `.is-animating`; these hints keep it smooth:
+    - `will-change: height` lets the engine prep for the size change.
+    - The content block (the non-<summary> child) is promoted to its own
+      compositor layer and has its layout/paint contained, so shrinking the
+      parent's clip re-composites a cached layer instead of repainting the whole
+      subtree every frame.
+  The hints are scoped to the animation only, so they don't cost memory or blur
+  text while the disclosure is sitting idle.
+*/
+.is-animating {
+  will-change: height;
+}
+
+.is-animating > :not(summary) {
+  contain: layout paint;
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+/* Respect reduced-motion: remove the animation hints when motion is disabled. */
+@media (prefers-reduced-motion: reduce) {
+  .is-animating,
+  .is-animating > :not(summary) {
+    will-change: auto;
+    transform: none;
+  }
 }

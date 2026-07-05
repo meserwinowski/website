@@ -1,22 +1,38 @@
 ---
+/**
+ * about.astro — Vault-authored About page.
+ *
+ * File-based routing turns this file into `/about/`. The prose itself lives in
+ * the Obsidian vault, is synced into `src/content/pages/about.md`, and is read
+ * through Astro Content Collections so frontmatter is validated before build.
+ */
 import { getCollection, render } from 'astro:content';
 import Layout from '../layouts/Base.astro';
 import NowPlaying from '../components/NowPlaying.astro';
 import LikedSongs from '../components/LikedSongs.astro';
 
-// Get the "about" page content from the pages collection (sourced from Obsidian vault)
+// getCollection('pages') loads every generated page entry, including its
+// Zod-validated frontmatter. The `id` is derived from the Markdown filename, so
+// `about.md` is the entry this route renders.
 const allPages = await getCollection('pages');
 const aboutPage = allPages.find((p) => p.id === 'about');
 const baseTitle = aboutPage?.data.title ?? 'About';
-// Site convention: page titles are "PageName - Matt Serwinowski".
+// Site convention: page titles are "PageName - Matt Serwinowski"; this fallback
+// keeps the browser title in that shape if the synced vault file is missing.
 const aboutTitle = aboutPage?.data.title ?? 'About - Matt Serwinowski';
+// Description metadata also comes from frontmatter, with safe copy for the
+// missing-content path.
 const aboutDescription = aboutPage?.data.description ?? 'About - Matt Serwinowski';
+// render(entry) converts the Markdown body into a component that can be used in
+// the template below. If the vault content is unavailable, the route still
+// builds and shows the "Coming soon" fallback instead.
 const Content = aboutPage ? (await render(aboutPage)).Content : null;
+// These hero fields are optional frontmatter, so defaults keep the page
+// presentable while the vault remains the source of truth.
 const heroName = aboutPage?.data.heroName ?? 'Matthew Serwinowski';
 const heroTagline = aboutPage?.data.heroTagline ?? 'Handtyped artisanal thoughts and writing';
 ---
 
-<!-- About page: content managed in the Obsidian vault, synced at build time -->
 <Layout
   title={aboutTitle}
   width="wide"
@@ -25,10 +41,10 @@ const heroTagline = aboutPage?.data.heroTagline ?? 'Handtyped artisanal thoughts
   readingProgress={false}
   containerWidth="calc(var(--width-prose) + (2 * (18rem + 2rem)))"
 >
-  <!-- Wide reading layout: prose centered in column 2, with symmetric 1fr gutters.
-       The now-playing widget sits in the LEFT gutter on xl+ (like the project ToC). -->
+  {/* Base.astro supplies the shared shell; width/chrome/containerWidth opt this route into the wide, guttered layout. */}
+  {/* Prose stays in the center column, with symmetric gutters reserved for supporting widgets on large screens. */}
   <div class="grid gap-8 xl:items-start xl:grid-cols-[minmax(0,1fr)_minmax(0,var(--width-prose))_minmax(0,1fr)]">
-    <!-- Left gutter: sticky Spotify widgets (desktop only). -->
+    {/* Left gutter: sticky Spotify widgets on desktop, mirroring the project-detail side-rail pattern. */}
     <aside class="hidden xl:col-start-1 xl:block">
       <div class="sticky top-8 space-y-4">
         <NowPlaying />
@@ -37,20 +53,19 @@ const heroTagline = aboutPage?.data.heroTagline ?? 'Handtyped artisanal thoughts
     </aside>
 
     <section class="mx-auto w-full min-w-0 max-w-[var(--width-prose)] space-y-8 xl:col-start-2">
-      <!-- Hero: hardcoded name + tagline (Brittany Chiang-inspired), distinct from the Home landing -->
+      {/* Hero copy comes from page frontmatter when present, keeping vault metadata and page chrome together. */}
       <div class="space-y-2">
         <h1 class="text-5xl font-bold tracking-tight">{heroName}</h1>
         <p class="text-xl font-medium text-[var(--color-accent)] italic">{heroTagline}</p>
       </div>
 
-      <!-- Below xl there is no left gutter, so show the widgets inline instead —
-           as tap-to-expand dropdown cards to keep the mobile hero compact. -->
+      {/* Below xl there is no left gutter, so the same widgets move inline as compact collapsible cards. */}
       <div class="space-y-4 xl:hidden">
         <NowPlaying collapsible />
         <LikedSongs collapsible />
       </div>
 
-      <!-- Render markdown content from the Obsidian vault if available -->
+      {/* <Content /> is the rendered Markdown body from the collection entry; `.prose` applies article typography. */}
       {Content ? (
         <div class="prose about-headings">
           <Content />

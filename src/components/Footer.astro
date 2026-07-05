@@ -1,23 +1,29 @@
-<!-- Footer: copyright bar pinned to the bottom of every page -->
 ---
-// This runs at build time — calculates values shown in the footer.
+/**
+ * Footer.astro — Site-wide copyright and build metadata.
+ *
+ * Astro frontmatter (this `---` block) runs on the server at build time, not in
+ * the browser. That makes it a good place to stamp the static site with the
+ * year and build date that should be baked into every generated page.
+ */
+
+// Current year for the copyright line. This is evaluated once per build.
 const year = new Date().getFullYear();
 
-// Build timestamp: when this site was last generated/deployed.
-// Format the text in UTC so it always agrees with the UTC-based datetime attribute below.
+// Build timestamp: when this static site was generated. Format the visible text
+// in UTC so it agrees with the UTC-based `datetime` attribute below regardless
+// of the machine or CI runner timezone.
 const buildDate = new Date();
 const formattedBuildDate = buildDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' });
 const buildDateISO = buildDate.toISOString().split('T')[0];
 ---
 
-<!-- <footer> is semantic HTML telling browsers "this is the page footer" -->
-<!-- border-t adds a subtle line above the footer to separate it from content -->
+{/* Semantic footer landmark shared by every page via Base.astro. */}
 <footer class="border-t border-[var(--color-border)] py-8">
-  <!-- text-center centers the text. text-sm makes it smaller. The text color comes from our theme via a CSS custom property (--color-muted). -->
+  {/* Theme-aware color tokens come from global.css and work in both light/dark themes. */}
   <div class="mx-auto max-w-[var(--width-prose)] px-6 text-center text-sm text-[var(--color-muted)]">
-    <!-- &copy; renders the © symbol. {year} is the dynamic value from the frontmatter -->
     <p>&copy; {year} Matt Serwinowski</p>
-    <!-- Build date signals the site is actively maintained -->
+    {/* <time> gives machines an ISO date while humans get a friendly label. */}
     <p class="mt-1 text-xs">Last updated <time datetime={buildDateISO}>{formattedBuildDate}</time></p>
   </div>
 </footer>

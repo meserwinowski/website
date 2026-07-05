@@ -1,7 +1,15 @@
 ---
 /**
  * TableOfContents.astro — Section jump links for rendered Markdown pages.
- * Uses Astro's heading metadata so links match the generated Markdown heading IDs.
+ *
+ * Project pages pass Astro's rendered heading metadata into this component. The
+ * heading IDs are generated at build time by the rehype heading-ID pipeline, so
+ * every link here can be a real `href="#section"` anchor instead of a button.
+ * That keeps deep links, keyboard focus, and no-JS fallback behavior intact.
+ *
+ * The browser script is progressive enhancement: it intercepts normal clicks to
+ * run the same eased `requestAnimationFrame` scroll used elsewhere, updates the
+ * URL hash, and leaves modified clicks/native navigation alone.
  */
 interface Heading {
   // Markdown heading depth: 1 for h1, 2 for h2, etc.
@@ -30,8 +38,8 @@ const depthClasses: Record<number, string> = {
   3: 'pl-8 text-[var(--color-toc-3)]',
 };
 
-// Buttons look like text links but avoid native hash navigation. That lets the
-// custom scroll handler fully control the movement without browser/router jumps.
+// Anchor links preserve hash-based deep links while still letting the custom
+// smooth-scroll handler control movement.
 // appearance-none is required so iOS Safari doesn't override our text color with
 // its native button chrome (the ToC links would otherwise lose their color on mobile).
 // The accent hover color is applied via a scoped @media (hover: hover) rule below
@@ -41,10 +49,11 @@ const titleClasses = 'font-mono text-sm font-semibold leading-5 text-[var(--colo
 const title = 'On This Page';
 ---
 
+{/* A single heading does not need local navigation, so the ToC appears only for real outlines. */}
 {headings.length > 1 && (
   variant === 'mobile' ? (
     <details class="toc-mobile rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-4 xl:hidden">
-      <!-- Mobile ToC: collapsed by default so it does not take over the top of the page. -->
+      {/* Mobile ToC: collapsed by default so it does not take over the top of the page. */}
       <summary class:list={['flex cursor-pointer items-center justify-between gap-2', titleClasses]}>
         <span>{title}</span>
         <svg class="toc-chevron h-[1.35rem] w-[1.35rem] shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -55,14 +64,15 @@ const title = 'On This Page';
         <ol class="border-l border-[var(--color-border)] pl-4">
           {headings.map((heading) => (
             <li>
-              <!-- data-toc-target stores the heading id for the click handler below. -->
-              <button
-                type="button"
+              {/* data-toc-target stores the heading id for the click handler below. */}
+              <a
+                href={`#${heading.slug}`}
                 data-toc-target={heading.slug}
+                data-toc-depth={heading.depth}
                 class:list={[linkBaseClasses, depthClasses[heading.depth] ?? depthClasses[3]]}
               >
                 {heading.text}
-              </button>
+              </a>
             </li>
           ))}
         </ol>
@@ -70,21 +80,21 @@ const title = 'On This Page';
     </details>
   ) : (
     <nav aria-label="Table of contents" class="hidden xl:block">
-      <!-- Desktop ToC: hidden below xl; the project layout places it in the right gutter. -->
+      {/* Desktop ToC: hidden below xl; the project layout places it in the right gutter. */}
       <p class:list={['mb-2', titleClasses]}>
         {title}
       </p>
       <ol class="border-l border-[var(--color-border)] pl-4">
         {headings.map((heading) => (
           <li>
-            <!-- Buttons keep the URL hash/browser router from interrupting smooth scroll. -->
-            <button
-              type="button"
+            <a
+              href={`#${heading.slug}`}
               data-toc-target={heading.slug}
+              data-toc-depth={heading.depth}
               class:list={[linkBaseClasses, depthClasses[heading.depth] ?? depthClasses[3]]}
             >
               {heading.text}
-            </button>
+            </a>
           </li>
         ))}
       </ol>
@@ -98,20 +108,37 @@ const title = 'On This Page';
   // Incremented for each new click so repeated clicks cancel older animations.
   let activeAnimationFrame = 0;
 
-  // Same easing curve as BackToTop: gentle start/end, faster middle.
+  /**
+   * Same easing curve as BackToTop: gentle start/end, faster middle.
+   *
+   * The animation frame timestamp advances linearly, but this curve makes the
+   * perceived motion feel less abrupt than native hash jumping.
+   */
   function easeInOutCubic(progress: number) {
     return progress < 0.5
       ? 4 * progress * progress * progress
       : 1 - Math.pow(-2 * progress + 2, 3) / 2;
   }
 
-  // Respect the CSS scroll-margin-top set on prose headings so the target
-  // heading lands with a little breathing room instead of flush to the viewport.
+  /**
+   * Read the target heading's CSS scroll margin.
+   *
+   * Prose headings define `scroll-margin-top` in CSS so browser hash jumps and
+   * this custom scroller both land with breathing room below fixed UI.
+   */
   function getScrollMarginTop(target: HTMLElement) {
     const margin = Number.parseFloat(window.getComputedStyle(target).scrollMarginTop);
     return Number.isNaN(margin) ? 0 : margin;
   }
 
+  /**
+   * Animate to a document Y position using `requestAnimationFrame`.
+   *
+   * Snapshotting `startY` and `distance` makes each frame deterministic instead
+   * of accumulating pixel deltas. The `activeAnimationFrame` token cancels older
+   * animations when the reader clicks a different section before the first move
+   * finishes.
+   */
   function animateScrollTo(targetY: number) {
     // Snapshot start and distance so the animation always moves from the user's
     // current position to the target, regardless of direction.
@@ -140,31 +167,43 @@ const title = 'On This Page';
     window.requestAnimationFrame(step);
   }
 
-  // Delegated handler for both mobile and desktop ToC buttons.
+  /**
+   * Delegated handler for both mobile and desktop ToC links.
+   *
+   * Real anchors keep progressive enhancement intact: without JavaScript they
+   * jump to the hash normally; with JavaScript we prevent only plain left-clicks
+   * so command/control-clicks and other browser conventions still work.
+   */
   function handleTableOfContentsClick(event: MouseEvent) {
     // Let modified clicks behave normally if the browser ever receives them.
     if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
       return;
     }
 
-    const button = (event.target as Element | null)?.closest<HTMLButtonElement>('[data-toc-target]');
-    const targetId = button?.dataset.tocTarget;
+    const link = (event.target as Element | null)?.closest<HTMLAnchorElement>('a[data-toc-target]');
+    const targetId = link?.dataset.tocTarget;
 
-    if (!button || !targetId) {
+    if (!link || !targetId) {
       return;
     }
 
     const target = document.getElementById(targetId);
 
-    if (!target) {
+    if (!target || link.hash !== `#${targetId}`) {
       return;
     }
 
-    // Prevent native click/routing behavior so there is no instant jump or snap-back.
+    // Prevent native jump so the custom animation controls movement.
     event.preventDefault();
     event.stopImmediatePropagation();
 
     const targetY = target.getBoundingClientRect().top + window.scrollY - getScrollMarginTop(target);
+    const targetHash = `#${targetId}`;
+
+    if (window.location.hash !== targetHash) {
+      window.history.pushState(null, '', targetHash);
+    }
+
     animateScrollTo(targetY);
   }
 
@@ -173,6 +212,7 @@ const title = 'On This Page';
   const tocWindow = window as Window & { __tableOfContentsScrollBound?: boolean };
 
   if (!tocWindow.__tableOfContentsScrollBound) {
+    // Capture lets the enhancement prevent the native hash jump before it happens.
     document.addEventListener('click', handleTableOfContentsClick, { capture: true });
     tocWindow.__tableOfContentsScrollBound = true;
   }
@@ -193,11 +233,31 @@ const title = 'On This Page';
   .toc-mobile[open] > summary .toc-chevron {
     transform: rotate(90deg);
   }
+  /* Optional collapse-state hook: if a controller marks the details as closing,
+     rotate the chevron back before the `open` attribute is finally removed. */
+  .toc-mobile[data-collapsing] > summary .toc-chevron {
+    transform: rotate(0deg);
+  }
   /* Only apply the hover accent on devices with a real pointer. On touch the
      :hover state would otherwise stick after a tap until you tap elsewhere. */
   @media (hover: hover) {
     .toc-link:hover {
       color: var(--color-accent);
     }
+  }
+
+  .toc-link[data-toc-depth="1"],
+  .toc-link[data-toc-depth="1"]:visited {
+    color: var(--color-toc-1);
+  }
+
+  .toc-link[data-toc-depth="2"],
+  .toc-link[data-toc-depth="2"]:visited {
+    color: var(--color-toc-2);
+  }
+
+  .toc-link[data-toc-depth="3"],
+  .toc-link[data-toc-depth="3"]:visited {
+    color: var(--color-toc-3);
   }
 </style>

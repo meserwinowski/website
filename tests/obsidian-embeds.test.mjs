@@ -1,3 +1,17 @@
+/**
+ * obsidian-embeds.test.mjs — Unit tests for Obsidian image/embed handling.
+ *
+ * Obsidian embeds (`![[...]]`) are resolved at build time by a remark plugin and
+ * a companion asset-sync script. This suite protects that pipeline: project
+ * scoped image URLs, Excalidraw export selection, HEIC → WebP naming, intrinsic
+ * dimensions, blur-up placeholders, first-image loading priority, and incremental
+ * asset copying.
+ *
+ * The tests use small AST and filesystem fixtures instead of running a full
+ * Astro build. `describe` separates plugin rendering from asset syncing, `it`
+ * names the behavior being guarded, and `expect` checks the public output the
+ * generated HTML or synced asset tree must preserve.
+ */
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, utimesSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
@@ -8,13 +22,16 @@ import { syncObsidianAssets } from '../scripts/sync-obsidian-assets.mjs';
 
 // The plugin derives a per-project asset folder from the content file's path
 // relative to contentRoot, so embeds land in /images/<project>/ rather than the
-// shared root. These fixtures put the file at projects/stage-mixer.md.
+// shared root. These constants are fixtures that pretend the content file lives
+// at projects/stage-mixer.md without needing the real vault.
 const contentRoot = '/repo/src/content';
 const stageMixerFile = { path: '/repo/src/content/projects/stage-mixer.md' };
 const stageMixerPrefix = 'projects/stage-mixer';
 
 describe('Obsidian embed rendering', () => {
   it('renders a standalone Excalidraw embed under the project folder', async () => {
+    // Arrange: a minimal mdast paragraph whose only text is an Obsidian embed.
+    // Act happens when the async remark plugin mutates `tree` in place.
     const tree = {
       type: 'root',
       children: [
@@ -43,6 +60,8 @@ describe('Obsidian embed rendering', () => {
     const assetsDir = mkdtempSync(join(tmpdir(), 'obsidian-assets-'));
 
     try {
+      // Fixture asset: only a PNG export exists, so the plugin should pick it
+      // rather than assuming every Excalidraw drawing has an SVG sibling.
       mkdirSync(join(assetsDir, stageMixerPrefix), { recursive: true });
       writeFileSync(join(assetsDir, stageMixerPrefix, 'stage-mixer-view-front.png'), 'png');
 
@@ -109,6 +128,8 @@ describe('Obsidian embed rendering', () => {
     const assetsDir = mkdtempSync(join(tmpdir(), 'obsidian-dims-'));
 
     try {
+      // A tiny real WebP lets sharp read metadata, proving dimensions come from
+      // the image file when the markdown embed omits an explicit `800x600`.
       mkdirSync(join(assetsDir, stageMixerPrefix), { recursive: true });
       const webp = await sharp({
         create: { width: 320, height: 240, channels: 3, background: { r: 1, g: 2, b: 3 } },
@@ -181,6 +202,8 @@ describe('Obsidian asset sync', () => {
     const assetsDir = join(root, 'public', 'obsidian-assets');
 
     try {
+      // This fake vault includes a renderable SVG export, a raw Excalidraw file,
+      // a normal image, and one missing reference so each sync branch is visible.
       mkdirSync(vaultDir, { recursive: true });
       mkdirSync(projectsDir, { recursive: true });
 
@@ -301,6 +324,8 @@ describe('Obsidian asset sync', () => {
       // Pre-existing published output, marked newer than the source.
       const output = join(assetsDir, 'pages', 'about', 'stage-photo.jpg');
       writeFileSync(output, 'already-published');
+      // Newer output models an incremental sync where the published asset should
+      // be trusted and left byte-for-byte alone.
       const future = new Date(Date.now() + 60_000);
       utimesSync(output, future, future);
 

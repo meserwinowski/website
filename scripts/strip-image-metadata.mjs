@@ -1,3 +1,25 @@
+/**
+ * strip-image-metadata.mjs — Make synced images safer and cheaper to ship.
+ *
+ * Public images come from an Obsidian vault, which may include phone photos
+ * carrying EXIF/GPS metadata and large HEIC originals. This pass removes private
+ * metadata from raster images, converts HEIC/HEIF to browser-friendly WebP, and
+ * caps the longest edge so mobile browsers do less download and decode work.
+ *
+ * Node APIs used here:
+ *  - `execFileSync` runs macOS `sips` as a child process when sharp cannot
+ *    decode HEIC directly.
+ *  - synchronous `fs` helpers are fine for this one-shot maintenance script and
+ *    make each read/write/delete happen in a clear order.
+ *  - `path`, `os.tmpdir()`, and `fileURLToPath(import.meta.url)` provide
+ *    portable paths for repo files, scratch conversion files, and ESM modules.
+ *
+ * sharp APIs used here:
+ *  - `.metadata()` inspects EXIF/XMP/IPTC without rewriting pixels.
+ *  - `.rotate()` bakes EXIF orientation into pixels before metadata is removed.
+ *  - `.resize(..., fit: 'inside')` downsizes only images larger than the cap.
+ *  - `.webp()` emits a web-native image while dropping original metadata.
+ */
 import { execFileSync } from 'node:child_process';
 import { mkdtempSync, readdirSync, readFileSync, rmSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
 import { dirname, extname, join, relative, resolve } from 'node:path';
@@ -5,6 +27,8 @@ import { tmpdir } from 'node:os';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import sharp from 'sharp';
 
+// ESM exposes the current module as a `file://` URL; convert it before using
+// normal path helpers to locate scripts/ and the repository root.
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(scriptDir, '..');
 
@@ -22,6 +46,16 @@ const convertToWebExtensions = new Set(['.heic', '.heif']);
 // stutter.
 const maxImageEdge = 1600;
 
+/**
+ * Strip privacy metadata and convert non-web images below `imagesDir`.
+ *
+ * SVG is intentionally skipped because it is XML/vector content, not a raster
+ * container with EXIF GPS tags. The return value is designed for the sync script
+ * log: small counts for success and per-file messages for conversions that fail.
+ *
+ * @param {string} [imagesDir] Root directory of public image assets.
+ * @returns {Promise<{stripped: number, converted: number, failed: Array<{filePath: string, message: string}>, scanned: number}>}
+ */
 export async function stripImageMetadata(imagesDir = resolve(repoRoot, 'public', 'images')) {
   const allFiles = listFiles(imagesDir);
 
@@ -35,6 +69,8 @@ export async function stripImageMetadata(imagesDir = resolve(repoRoot, 'public',
   // Strip metadata from web-native raster images
   for (const filePath of strippable) {
     const input = readFileSync(filePath);
+    // `metadata()` reads headers only; it tells us whether a rewrite is needed
+    // before we pay the cost of re-encoding the image.
     const metadata = await sharp(input).metadata();
 
     // Only re-encode when there's actually privacy metadata to remove. Skipping
@@ -89,16 +125,19 @@ export async function stripImageMetadata(imagesDir = resolve(repoRoot, 'public',
   return { stripped, converted, failed, scanned: strippable.length + convertible.length };
 }
 
-// Convert a HEIC/HEIF file to a WebP buffer.
-// sharp's prebuilt libheif ships without an HEVC decoder ("Support for this
-// compression format has not been built in"), so it can't read HEIC directly.
-// On macOS we fall back to `sips`, which decodes via the OS codecs, to produce a
-// PNG that sharp can then encode to WebP.
-//
-// `.rotate()` auto-orients from EXIF so any rotation is baked into the pixels;
-// the WebP we emit carries no orientation tag, so without this the photo would
-// render rotated (sips preserves the orientation tag in the intermediate PNG).
-// `.resize()` caps the dimensions so we don't ship 24-megapixel photos.
+/**
+ * Convert a HEIC/HEIF file to a WebP buffer.
+ *
+ * sharp's prebuilt libheif ships without an HEVC decoder ("Support for this
+ * compression format has not been built in"), so it can't read HEIC directly.
+ * On macOS we fall back to `sips`, which decodes via the OS codecs, to produce a
+ * PNG that sharp can then encode to WebP.
+ *
+ * `.rotate()` auto-orients from EXIF so any rotation is baked into the pixels;
+ * the WebP we emit carries no orientation tag, so without this the photo would
+ * render rotated (sips preserves the orientation tag in the intermediate PNG).
+ * `.resize()` caps the dimensions so we don't ship 24-megapixel photos.
+ */
 async function convertToWebpBuffer(filePath) {
   const input = readFileSync(filePath);
 
@@ -113,10 +152,14 @@ async function convertToWebpBuffer(filePath) {
       throw sharpError;
     }
 
+    // `tmpdir()` asks the OS for its scratch area; `mkdtempSync` creates a
+    // private subfolder there so parallel conversions do not collide.
     const tmpDir = mkdtempSync(join(tmpdir(), 'heic-convert-'));
     const pngPath = join(tmpDir, 'frame.png');
 
     try {
+      // `execFileSync` runs the command without a shell, so arguments are passed
+      // directly to `sips` rather than being re-parsed by shell expansion.
       execFileSync('sips', ['-s', 'format', 'png', filePath, '--out', pngPath], { stdio: 'ignore' });
       return await sharp(readFileSync(pngPath))
         .rotate()
@@ -129,6 +172,12 @@ async function convertToWebpBuffer(filePath) {
   }
 }
 
+/**
+ * Recursively collect image paths to inspect.
+ *
+ * `withFileTypes` gives `Dirent` objects, letting the walk branch on
+ * `isDirectory()` / `isFile()` without a separate `stat` per entry.
+ */
 function listFiles(dir) {
   const results = [];
 
@@ -145,6 +194,7 @@ function listFiles(dir) {
   return results;
 }
 
+/** CLI entrypoint used after content/images sync. */
 async function main() {
   const result = await stripImageMetadata();
   const parts = [];
@@ -173,6 +223,8 @@ async function main() {
   }
 }
 
+// Keep the module importable for tests while still running when invoked as a
+// script. `pathToFileURL` puts Node's CLI path in the same URL form as import.meta.
 const isMain = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
 
 if (isMain) {

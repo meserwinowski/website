@@ -1,10 +1,36 @@
+/**
+ * sync-obsidian-assets.mjs — Copy only the Obsidian images this site embeds.
+ *
+ * Markdown content is synced from the vault into `src/content/`, but image
+ * embeds still point at Obsidian-style targets such as `![[photo.heic]]`. This
+ * script reads the generated markdown, finds those embed targets, resolves them
+ * back to files in the vault, and copies the publishable assets into
+ * `public/images/` using a stable folder layout that mirrors the content file.
+ *
+ * Project rationale:
+ *  - The site should not publish the entire vault image library — only images
+ *    referenced by public pages.
+ *  - HEIC/HEIF files are copied as source inputs but tracked as `.webp` outputs;
+ *    `strip-image-metadata.mjs` performs the actual web-friendly conversion.
+ *  - A manifest lets future syncs delete embeds that disappeared from markdown.
+ *
+ * Node APIs used here:
+ *  - synchronous `fs` helpers keep this short-lived script easy to reason about
+ *    by doing one filesystem operation at a time.
+ *  - `path` helpers normalize separators and safely resolve relative paths.
+ *  - `fileURLToPath(import.meta.url)` converts this ESM module's `file://` URL
+ *    into a real path so we can derive `scripts/` and the repo root.
+ */
 import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { basename, dirname, extname, isAbsolute, join, relative, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
+// ESM does not expose CommonJS's `__dirname`; derive it from the module URL.
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(scriptDir, '..');
 const homeDir = process.env.HOME ?? process.env.USERPROFILE ?? '';
+// Environment overrides make the script testable and let different machines
+// point at a vault without editing source code.
 const fromSubpath = (subpath) => (subpath ? join(homeDir, ...subpath.split('/').filter(Boolean)) : null);
 const defaultVaultDir = process.env.VAULT_DIR ?? fromSubpath(process.env.VAULT_SUBPATH) ?? join(homeDir, 'vault');
 const defaultExcalidrawDir =
@@ -16,6 +42,16 @@ const exactWebImageExtensions = new Set(webImageExtensions);
 // strip step can convert it to WebP; the embed manifest tracks the .webp result.
 const convertToWebpExtensions = new Set(['.heic', '.heif']);
 
+/**
+ * Return the clean file targets from Obsidian image embeds in a markdown string.
+ *
+ * Obsidian allows an optional display alias after a pipe
+ * (`![[image.png|Small caption]]`). The website only needs the file target, so
+ * aliases are stripped before paths are normalized and validated.
+ *
+ * @param {string} markdown Raw markdown content from a synced content file.
+ * @returns {string[]} Safe embed targets, in the order they appear.
+ */
 export function extractEmbedTargets(markdown) {
   const targets = [];
   const embedPattern = /!\[\[([^\]]+)\]\]/g;
@@ -32,6 +68,20 @@ export function extractEmbedTargets(markdown) {
   return targets;
 }
 
+/**
+ * Sync Obsidian embed assets into the website's public image directory.
+ *
+ * The function is exported so tests and other scripts can pass custom roots.
+ * Defaults point at the real repo/vault layout used by `npm run sync`.
+ *
+ * @param {object} [options]
+ * @param {string} [options.vaultDir] Root of the Obsidian vault to search.
+ * @param {string|string[]} [options.assetSearchDirs] Extra vault folders to scan.
+ * @param {string[]} [options.contentDirs] Generated markdown folders to read.
+ * @param {string} [options.contentRoot] Root used to mirror content paths.
+ * @param {string} [options.assetsDir] Destination under `public/images/`.
+ * @returns {object} Counts, missing targets, and paths used by the sync.
+ */
 export function syncObsidianAssets({
   vaultDir = defaultVaultDir,
   assetSearchDirs,
@@ -141,8 +191,12 @@ export function syncObsidianAssets({
   };
 }
 
-// An output is up to date when it exists and is at least as new as its source,
-// the same mtime heuristic incremental build tools use to skip unchanged work.
+/**
+ * Check whether a generated/copied asset can be reused.
+ *
+ * An output is up to date when it exists and is at least as new as its source,
+ * the same mtime heuristic incremental build tools use to skip unchanged work.
+ */
 function isUpToDate(outputPath, sourcePath) {
   try {
     return statSync(outputPath).mtimeMs >= statSync(sourcePath).mtimeMs;
@@ -151,6 +205,19 @@ function isUpToDate(outputPath, sourcePath) {
   }
 }
 
+/**
+ * Resolve one normalized Obsidian embed target to a source and public output.
+ *
+ * Web-native images can be copied as-is. HEIC/HEIF files are copied under their
+ * original name for the metadata script to consume, but this function reports
+ * the eventual `.webp` path because that is what markdown should reference and
+ * what stale-cleanup should track.
+ *
+ * @param {string|string[]} assetSearchDirs Vault directories to inspect.
+ * @param {string} target Normalized embed target from markdown.
+ * @param {string} [prefix] Public folder derived from the content file.
+ * @returns {{sourcePath: string, publicPath: string, copyPublicPath?: string} | null}
+ */
 export function resolveAssetReference(assetSearchDirs, target, prefix = '') {
   const searchDirs = Array.isArray(assetSearchDirs) ? assetSearchDirs : [assetSearchDirs];
   const extension = extname(target).toLowerCase();
@@ -193,6 +260,13 @@ export function resolveAssetReference(assetSearchDirs, target, prefix = '') {
   return null;
 }
 
+/**
+ * Resolve an Excalidraw drawing to one of its exported web images.
+ *
+ * Obsidian embeds often point at `diagram.excalidraw`, but the browser needs an
+ * exported PNG/WebP/JPEG/SVG. Check both common export naming patterns:
+ * `diagram.png` and `diagram.excalidraw.png`.
+ */
 function resolveExcalidrawExport(searchDirs, target, prefix = '') {
   const withoutExtension = target.slice(0, -extname(target).length);
   const base = basename(withoutExtension);
@@ -213,8 +287,13 @@ function resolveExcalidrawExport(searchDirs, target, prefix = '') {
   return null;
 }
 
-// Place a project's embedded assets under a folder mirroring the content file's
-// location, e.g. src/content/projects/stage-mixer.md -> images/projects/stage-mixer/.
+/**
+ * Build the public image subfolder for a content file.
+ *
+ * Place a project's embedded assets under a folder mirroring the content file's
+ * location, e.g. `src/content/projects/stage-mixer.md` becomes
+ * `images/projects/stage-mixer/`.
+ */
 function assetFolderForContentFile(contentRoot, filePath) {
   if (!contentRoot || !filePath) {
     return '';
@@ -229,10 +308,19 @@ function assetFolderForContentFile(contentRoot, filePath) {
   return relativePath.replace(/\.[^./\\]+$/, '').split(/[\\/]/).join('/');
 }
 
+/** Join a normalized public folder prefix with a filename for manifest/storage. */
 function joinAssetPath(prefix, file) {
   return prefix ? `${prefix}/${file}` : file;
 }
 
+/**
+ * Find a vault file by exact relative path, then by basename.
+ *
+ * The exact lookup preserves foldered embeds. The basename fallback matches
+ * Obsidian's common behavior where `![[photo.jpg]]` can resolve from anywhere
+ * in the vault. `isPathInside` prevents a crafted target from escaping a search
+ * root before `existsSync` checks the filesystem.
+ */
 function findVaultFile(searchDirs, target) {
   for (const searchDir of searchDirs) {
     const exactPath = resolve(searchDir, target);
@@ -248,6 +336,7 @@ function findVaultFile(searchDirs, target) {
     .find((filePath) => basename(filePath).toLowerCase() === targetName) ?? null;
 }
 
+/** Default search roots: the vault plus the Excalidraw export folder when known. */
 function getDefaultAssetSearchDirs(vaultDir) {
   const searchDirs = [vaultDir];
 
@@ -258,10 +347,17 @@ function getDefaultAssetSearchDirs(vaultDir) {
   return searchDirs;
 }
 
+/** Resolve and deduplicate search directories so repeated inputs do not rescan. */
 function normalizeAssetSearchDirs(assetSearchDirs, vaultDir) {
   return [...new Set([vaultDir, ...assetSearchDirs].map((dir) => resolve(dir)))];
 }
 
+/**
+ * Recursively list files under a directory, optionally filtered by extension.
+ *
+ * `readdirSync(..., { withFileTypes: true })` returns `Dirent` objects, so the
+ * walk can tell files from directories without an extra `stat` call per entry.
+ */
 function listFiles(rootDir, allowedExtensions) {
   if (!existsSync(rootDir)) {
     return [];
@@ -286,6 +382,13 @@ function listFiles(rootDir, allowedExtensions) {
   return files;
 }
 
+/**
+ * Normalize an Obsidian embed target into a safe relative path.
+ *
+ * Backslashes become `/` so Windows-authored links work on macOS/Linux too.
+ * Absolute paths, URLs, `.` and `..` segments are rejected because embeds should
+ * only name files inside configured vault search roots.
+ */
 function normalizeEmbedTarget(rawTarget) {
   const target = rawTarget.trim().replaceAll('\\', '/').replace(/^\/+/, '');
 
@@ -302,11 +405,18 @@ function normalizeEmbedTarget(rawTarget) {
   return parts.join('/');
 }
 
+/**
+ * Return true when `child` resolves below `parent`.
+ *
+ * `path.relative` is the safety check: a result beginning with `..` means the
+ * child would walk outside the parent, which should never be copied.
+ */
 function isPathInside(parent, child) {
   const relativePath = relative(resolve(parent), resolve(child));
   return Boolean(relativePath) && !relativePath.startsWith('..') && !statSync(parent).isFile();
 }
 
+/** CLI entrypoint used by the sync shell scripts. */
 function main() {
   const result = syncObsidianAssets();
   const relativeAssetsDir = relative(repoRoot, result.assetsDir) || result.assetsDir;
@@ -329,6 +439,8 @@ function main() {
   }
 }
 
+// ESM "am I the main script?" check: compare this module URL to the CLI path
+// converted back into a file URL. This keeps exports importable without running.
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   main();
 }

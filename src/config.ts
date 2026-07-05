@@ -1,5 +1,8 @@
 /**
- * Site-wide runtime config resolved at build time.
+ * config.ts — Public endpoints resolved by Astro during build/render.
+ *
+ * These URLs are safe to expose in page HTML: the Cloudflare Worker owns the
+ * Spotify secrets, while the site only needs to know where to fetch JSON from.
  */
 
 /**
@@ -16,10 +19,13 @@
  */
 const DEFAULT_NOW_PLAYING_ENDPOINT = 'https://api.mattserwinowski.com/now-playing';
 
+// Astro injects `import.meta.env`; the `process.env` fallback keeps CI and
+// local Node-driven tooling on the same precedence path.
 const fromEnv =
   import.meta.env.PUBLIC_NOW_PLAYING_URL ??
   (typeof process !== 'undefined' ? process.env?.PUBLIC_NOW_PLAYING_URL : undefined);
 
+/** Final now-playing Worker URL after environment precedence and trimming. */
 export const NOW_PLAYING_ENDPOINT = (fromEnv || DEFAULT_NOW_PLAYING_ENDPOINT).trim();
 
 /**
@@ -29,8 +35,11 @@ export const NOW_PLAYING_ENDPOINT = (fromEnv || DEFAULT_NOW_PLAYING_ENDPOINT).tr
  */
 const DEFAULT_LIKED_SONGS_ENDPOINT = 'https://api.mattserwinowski.com/liked-songs';
 
+// Kept separate from NOW_PLAYING so either Worker route can be staged or
+// migrated independently without changing component code.
 const likedFromEnv =
   import.meta.env.PUBLIC_LIKED_SONGS_URL ??
   (typeof process !== 'undefined' ? process.env?.PUBLIC_LIKED_SONGS_URL : undefined);
 
+/** Final liked-songs Worker URL after environment precedence and trimming. */
 export const LIKED_SONGS_ENDPOINT = (likedFromEnv || DEFAULT_LIKED_SONGS_ENDPOINT).trim();

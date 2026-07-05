@@ -248,6 +248,7 @@ Tests run against the built `dist/` output (static HTML files) using [Vitest](ht
 
 - **Dark/light theme** — toggle with localStorage persistence, no flash on load
 - **Projects portfolio** — Astro Content Collections with Markdown, status badges, tags, and project-page tables of contents
+- **Heading permalinks** — Markdown headings render clickable `#` anchor links, and table-of-contents jumps update URL hashes for deep-linking
 - **Reading-time metadata** — Markdown detail pages estimate reading time from body word count and show it near the article header
 - **View Transitions** — directional slide animations between pages (no full reload)
 - **Back-to-top widget** — fixed scroll helper for long pages

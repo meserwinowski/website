@@ -1,15 +1,24 @@
 ---
+/**
+ * posts.astro — Placeholder route for future writing.
+ *
+ * By living in `src/pages/`, this file already creates `/posts/` even before a
+ * posts content collection exists. Keeping the shell in place lets navigation
+ * and tests point at a stable route while the vault-backed writing pipeline is
+ * added later.
+ */
 import Layout from '../layouts/Base.astro';
 ---
 
-<!-- Posts page: placeholder until Phase 5 adds content collection for posts -->
 <Layout title="Posts - Matt Serwinowski">
+  {/* Page titles outside the home page follow "PageName - Matt Serwinowski". */}
+  {/* Base.astro provides the shared document shell; this route only supplies the page-specific section. */}
   <section class="space-y-6">
     <h1 class="text-4xl font-bold">Posts</h1>
     <p class="text-[var(--color-muted)]">
       Thoughts on engineering, making, and music.
     </p>
-    <!-- italic = slanted text style -->
+    {/* Placeholder copy stays explicit so the static page is useful before the posts collection exists. */}
     <p class="text-sm text-[var(--color-muted)] italic">Coming soon.</p>
   </section>
 </Layout>

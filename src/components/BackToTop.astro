@@ -1,16 +1,25 @@
 ---
 /**
  * BackToTop.astro — A fixed scroll helper for long pages.
- * Hidden near the top of the page, then fades in once there is useful distance to scroll.
- * On desktop it rests at the centered reading column's right edge (see the style block).
+ *
+ * The markup starts hidden and inert, so the page still works if JavaScript never
+ * runs. The client script progressively enhances it: after the reader scrolls a
+ * meaningful distance, the button becomes visible/focusable and uses
+ * `requestAnimationFrame` for a custom eased scroll-to-top motion.
+ *
+ * Desktop trackpads can keep sending wheel momentum after a scripted scroll.
+ * `matchMedia` limits that guard to fine-pointer desktop layouts, while the
+ * accessibility state (`aria-hidden` + `tabIndex`) stays synchronized with the
+ * visual state. On desktop the button rests at the centered reading column's
+ * right edge (see the style block).
  */
 ---
 
-<!--
+{/*
   Fixed-position button:
   - starts hidden/inert so it doesn't distract near the top of the page
   - becomes visible/focusable from JavaScript after the reader scrolls down
--->
+*/}
 <button
   id="back-to-top"
   type="button"
@@ -74,14 +83,26 @@
   // Timestamp until which post-animation momentum should be pinned at the top.
   let momentumGuardUntil = 0;
 
-  // Smooth acceleration/deceleration: starts gently, moves fastest in the middle,
-  // then eases into the final position instead of stopping abruptly.
+  /**
+   * Map linear time (0→1) to eased motion.
+   *
+   * `requestAnimationFrame` gives us a timestamp for each paint; this curve keeps
+   * the scripted scroll from feeling mechanical by accelerating in the middle and
+   * decelerating near the destination.
+   */
   function easeInOutCubic(progress: number) {
     return progress < 0.5
       ? 4 * progress * progress * progress
       : 1 - Math.pow(-2 * progress + 2, 3) / 2;
   }
 
+  /**
+   * Scroll from the current position to the top over `scrollDurationMs`.
+   *
+   * Each click increments `activeAnimationFrame`. The inner frame loop checks
+   * that token before doing work, which is a lightweight cancellation strategy
+   * when a second click or route change supersedes an older animation.
+   */
   function animateScrollToTop() {
     // Snapshot the current scroll position so the animation can interpolate from
     // "where the user is now" to 0 over scrollDurationMs.
@@ -127,13 +148,18 @@
     window.requestAnimationFrame(step);
   }
 
-  // Whether the post-animation lock is currently active.
+  /** Whether the desktop-only post-animation momentum lock is currently active. */
   function isGuardingAgainstMomentum() {
     return guardMediaQuery.matches && performance.now() < momentumGuardUntil;
   }
 
-  // Animation-frame loop that pins the page to the very top while the fixed
-  // momentum guard is active.
+  /**
+   * Pin the page to the top while leftover wheel/trackpad momentum expires.
+   *
+   * This runs on animation frames instead of a timer so correction happens in
+   * sync with browser paints and stops as soon as `isGuardingAgainstMomentum`
+   * says the fixed guard window is over.
+   */
   function guardAgainstMomentum() {
     if (!isGuardingAgainstMomentum()) {
       momentumGuardUntil = 0;
@@ -148,11 +174,13 @@
     window.requestAnimationFrame(guardAgainstMomentum);
   }
 
-  // Capture scroll inputs while the animation/guard is active so user-device
-  // momentum cannot fight the scripted scroll-to-top behavior. These listeners
-  // are non-passive (they may preventDefault), which disables the browser's
-  // threaded scrolling and makes touch scrolling stutter — so they are attached
-  // ONLY while the scripted scroll is running, never during normal reading.
+  /**
+   * Suppress scroll-producing input only while the scripted motion owns scroll.
+   *
+   * Wheel/touch listeners must be non-passive in order to call `preventDefault`.
+   * Non-passive listeners can make normal scrolling slower, so the code attaches
+   * them only for the animation/guard window and removes them immediately after.
+   */
   function blockScrollInput(event: WheelEvent | TouchEvent | KeyboardEvent) {
     if (!isAnimatingScroll && !isGuardingAgainstMomentum()) {
       return;
@@ -169,6 +197,7 @@
 
   let scrollInputBlocked = false;
 
+  /** Attach temporary capture-phase blockers before starting scripted scrolling. */
   function enableScrollInputBlocking() {
     if (scrollInputBlocked) {
       return;
@@ -182,6 +211,7 @@
     window.addEventListener('touchmove', blockScrollInput, { capture: true, passive: false });
   }
 
+  /** Remove temporary blockers so normal browser scrolling stays fast and native. */
   function disableScrollInputBlocking() {
     if (!scrollInputBlocked) {
       return;
@@ -195,6 +225,12 @@
     window.removeEventListener('touchmove', blockScrollInput, { capture: true });
   }
 
+  /**
+   * Stop any in-flight scroll work before Astro swaps the page.
+   *
+   * Astro's View Transition lifecycle can replace the DOM without a full reload;
+   * cleanup prevents a stale animation from manipulating the next page's scroll.
+   */
   function cancelBackToTopMotion() {
     activeAnimationFrame += 1;
     isAnimatingScroll = false;
@@ -202,7 +238,12 @@
     disableScrollInputBlocking();
   }
 
-  // Shows/hides the button and keeps its accessibility state in sync.
+  /**
+   * Reveal the button after enough scroll distance and keep accessibility in sync.
+   *
+   * `aria-hidden` hides the control from assistive tech when it is not useful,
+   * and `tabIndex = -1` removes it from the keyboard tab order while invisible.
+   */
   function updateBackToTopVisibility() {
     // If momentum sneaks in through a path we didn't prevent, immediately pin
     // back to top and keep the guard alive.
@@ -225,8 +266,12 @@
     button.tabIndex = isVisible ? 0 : -1;
   }
 
-  // Delegated click handler. Binding at document level keeps it working across
-  // Astro view-transition swaps without rebinding directly to replaced buttons.
+  /**
+   * Delegated click handler for the button.
+   *
+   * Binding at document level keeps it working across Astro View Transition
+   * swaps without rebinding directly to buttons that may be replaced.
+   */
   function handleBackToTopClick(event: MouseEvent) {
     const button = (event.target as Element | null)?.closest<HTMLButtonElement>('#back-to-top');
 

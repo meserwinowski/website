@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * One-time Spotify refresh-token helper.
+ * spotify-refresh-token.mjs — One-time Spotify refresh-token helper.
  *
  * Spotify's "currently playing" / "recently played" endpoints require a user
  * refresh token, which you mint once via the Authorization Code flow. This
@@ -9,6 +9,22 @@
  * refresh token. Store that token in Cloudflare with:
  *
  *   wrangler secret put SPOTIFY_REFRESH_TOKEN --config worker/wrangler.toml
+ *
+ * Learner version of the OAuth flow:
+ *   1. Build an authorization URL with this app's Client ID, the requested
+ *      scopes, a redirect URI, and a random `state` value.
+ *   2. The browser sends you to Spotify, where you approve those scopes.
+ *   3. Spotify redirects back to `http://127.0.0.1:8888/callback` with a short-
+ *      lived `code` and the same `state`.
+ *   4. This script verifies `state`, then exchanges the `code` plus Client
+ *      Secret for tokens. The access token is short-lived; the refresh token is
+ *      the durable secret the Cloudflare Worker can use later.
+ *
+ * Node APIs used here:
+ *  - `http.createServer` listens only on localhost for Spotify's redirect.
+ *  - `crypto.randomBytes` makes the anti-CSRF `state` value unpredictable.
+ *  - `readline` prompts for credentials when args/env vars are not provided.
+ *  - `spawn` launches the system browser without blocking this process.
  *
  * PREREQUISITES (see worker/README.md):
  *   1. Create a Spotify app at https://developer.spotify.com/dashboard
@@ -32,15 +48,36 @@ const REDIRECT_URI = 'http://127.0.0.1:8888/callback';
 const PORT = 8888;
 const SCOPES = 'user-read-currently-playing user-read-recently-played user-library-read';
 
+/**
+ * Parse `--name=value` CLI flags into a small object.
+ *
+ * This intentionally supports only the two flags the helper needs; keeping the
+ * parser tiny avoids pulling in a dependency for a one-time script.
+ *
+ * @param {string[]} argv Arguments after the script name.
+ * @returns {Record<string, string>} Parsed flag names and values.
+ */
 function parseArgs(argv) {
   const out = {};
   for (const arg of argv) {
+    // Capture everything after the first `=` so secrets containing `=` survive.
     const match = /^--([^=]+)=(.*)$/.exec(arg);
     if (match) out[match[1]] = match[2];
   }
   return out;
 }
 
+/**
+ * Ask one question on stdin/stdout and resolve with the trimmed answer.
+ *
+ * `readline.createInterface` handles line editing and Enter detection. When
+ * `silent` is true we add a lightweight `data` listener that prints `*` instead
+ * of echoing the secret characters directly.
+ *
+ * @param {string} question Prompt text shown in the terminal.
+ * @param {{silent?: boolean}} [options]
+ * @returns {Promise<string>} The user's answer without surrounding whitespace.
+ */
 function prompt(question, { silent = false } = {}) {
   const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
   return new Promise((resolve) => {
@@ -64,6 +101,15 @@ function prompt(question, { silent = false } = {}) {
   });
 }
 
+/**
+ * Open the authorization URL in the user's default browser.
+ *
+ * `spawn` starts a child process asynchronously. `detached: true` plus
+ * `.unref()` lets the browser opener keep running independently while this
+ * script continues listening for the localhost callback.
+ *
+ * @param {string} url Spotify authorization URL to open.
+ */
 function openBrowser(url) {
   const platform = process.platform;
   const cmd = platform === 'darwin' ? 'open' : platform === 'win32' ? 'cmd' : 'xdg-open';
@@ -75,6 +121,7 @@ function openBrowser(url) {
   }
 }
 
+/** Run the full Authorization Code flow and print the refresh token. */
 async function main() {
   const args = parseArgs(process.argv.slice(2));
 
@@ -94,6 +141,8 @@ async function main() {
     process.exit(1);
   }
 
+  // `state` is sent to Spotify and must come back unchanged. That binds the
+  // callback to this terminal session and prevents accepting a forged redirect.
   const state = crypto.randomBytes(16).toString('hex');
   const authUrl = new URL('https://accounts.spotify.com/authorize');
   authUrl.searchParams.set('client_id', clientId);
@@ -103,7 +152,11 @@ async function main() {
   authUrl.searchParams.set('state', state);
 
   const code = await new Promise((resolve, reject) => {
+    // Local, throwaway callback server. It never leaves 127.0.0.1; Spotify only
+    // needs the browser to reach it after the user grants access.
     const server = http.createServer((req, res) => {
+      // `new URL` needs an absolute base because request URLs from Node's HTTP
+      // server are path-only strings like `/callback?code=...`.
       const url = new URL(req.url, `http://127.0.0.1:${PORT}`);
       if (url.pathname !== '/callback') {
         res.writeHead(404);
@@ -115,6 +168,8 @@ async function main() {
       const error = url.searchParams.get('error');
       const receivedCode = url.searchParams.get('code');
 
+      // Always send a friendly browser response before resolving/rejecting the
+      // terminal promise, then close the temporary server.
       const finish = (message) => {
         res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
         res.end(
@@ -155,7 +210,9 @@ async function main() {
     });
   });
 
-  // Exchange the authorization code for tokens.
+  // Exchange the authorization code for tokens. Spotify uses HTTP Basic auth
+  // here: base64(client_id:client_secret) in the Authorization header, and the
+  // code details in a form-encoded POST body.
   const basic = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
   const res = await fetch('https://accounts.spotify.com/api/token', {
     method: 'POST',
@@ -178,6 +235,8 @@ async function main() {
   }
 
   const data = await res.json();
+  // A refresh token is the valuable long-lived credential; without it the worker
+  // could only use the short-lived access token returned by this one exchange.
   if (!data.refresh_token) {
     console.error('\n❌ No refresh_token in the response:', data);
     process.exit(1);

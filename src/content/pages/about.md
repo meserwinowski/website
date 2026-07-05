@@ -8,13 +8,15 @@ tags:
 ---
 Hello and welcome to my personal site!
 
-I assembled this website in order to better showcase the various projects I am currently working on, and some projects I have worked in the past. I feel that I do a lot of things, but I haven't had the right space to share the outcomes and learnings with those that might find it interesting.
+I assembled this website in order to better showcase the various projects I am currently working on, and some projects I have worked on in the past. I feel that I do a lot of things, but I haven't had the right space to share the outcomes and learnings with anyone that might find it interesting.
 
-For a long time now I have had this desire to curate a space where I can share the thoughts and ideas that bounce around in my head. I feel that I come across a lot of interesting, cool, and helpful ideas, and at the very least I should do my part to critique and relay them.
+For many years now I have had a desire to curate a space where I can share the thoughts and ideas that bounce around in my head. I feel that I come across a lot of interesting, cool, and helpful ideas. At the very least I should do my part to critique and relay them.
 
-You might ask "why not just post on social media or the top blogging platforms?". As much as I appreciate the positive aspects of these channels, I find the downsides distasteful. The inherent limitations of how you must present and communicate on these platforms is not something I enjoy engaging with. They are hyper competitive spaces vying for every users attention, and I believe this is not conducive to genuine interest and productive contemplation.
+You might ask "why not just post on social media or the top blogging platforms?". As much as I appreciate the positive aspects of these channels, I find the downsides distasteful. The inherent limitations of how you must present and communicate on these platforms is not something I enjoy engaging with. They are hyper competitive spaces vying for every drop of attention, and I believe this is not conducive to genuine interest and productive contemplation.
 
 I find [Publish (on your) Own Site, Syndicate Elsewhere](https://indieweb.org/POSSE) to be a more attractive approach for sharing things online, and the intention is to make posts on other platforms that link back here.
+
+Finally, if there is one thing I have learned from performing music: having an audience is a real forcing function that brings out the best in us.
 
 ## What I'm Into
 ### **Software**
@@ -22,9 +24,9 @@ Been working full time the last six years at Microsoft. My team owns power manag
 ### **Snowboarding**
 Started snowboarding in 2022. Working on my 360 and hitting park features. My most recent trip was to Niseko in Japan. I would love to ski in Austria or Norway someday!
 ### **Music**
-I've been playing guitar longer than anything else in my life outside of things like walking or using the internet. I've taught myself and have had some great teacher along the way.
+I've been playing guitar longer than anything else in my life outside of things like walking or using the internet. I've taught myself a ton, and have had some great teachers along the way.
 
-At the end of college I started to learn how to use a DAW to record and since then I've learned about and worked through the entire process of writing, arranging, recording, preproduction, mixing, mastering, and publishing.
+At the end of college I started to learn how to use a DAW to record and since then I've learned and worked through the entire process of writing, arranging, recording, preproduction, mixing, mastering, and publishing.
 
 During the COVID pandemic I picked up bass, singing, and drum programming. Have gotten into synthesizers a bit more recently, but they are difficult. Most recently I was in the band [Violent Beauregarde](https://www.instagram.com/violent_beauregarde_/), but left to get more time to pursue other projects.
 

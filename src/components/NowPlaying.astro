@@ -26,12 +26,12 @@ const { collapsible = false } = Astro.props;
 const bodyId = `now-playing-body-${Math.random().toString(36).slice(2, 8)}`;
 ---
 
-<!--
-  Starts hidden (data-state="loading" + hidden) so there is no visible skeleton
-  flash if the fetch is fast or returns nothing. The client script reveals it
-  only once real data arrives. When `collapsible`, the label becomes a toggle
-  button and the body collapses (mobile dropdown card).
--->
+{/*
+  Starts hidden (data-state="loading" + hidden) so the fail/empty path leaves no
+  empty box behind. `data-endpoint` is the server-to-client handoff for the
+  Worker URL, and aria-live politely announces the late-arriving track metadata.
+  When `collapsible`, the label becomes a mobile dropdown toggle.
+*/}
 <section
   class:list={['now-playing', collapsible && 'now-playing--collapsible']}
   data-now-playing
@@ -405,6 +405,12 @@ const bodyId = `now-playing-body-${Math.random().toString(36).slice(2, 8)}`;
   const CACHE_TTL_MS = 10 * 60 * 1000;
   let memoryCache: NowPlayingData | null = null;
 
+  /**
+   * Read the last successful Spotify payload from this tab's session cache.
+   *
+   * View Transitions reuse the same browser tab, so this small cache lets the
+   * next About-page render start with real data instead of an empty placeholder.
+   */
   function readCache(): NowPlayingData | null {
     if (memoryCache) return memoryCache;
     try {
@@ -419,6 +425,12 @@ const bodyId = `now-playing-body-${Math.random().toString(36).slice(2, 8)}`;
     }
   }
 
+  /**
+   * Store a successful Worker response without making storage a requirement.
+   *
+   * If sessionStorage is unavailable (private mode, quota, blocked storage), the
+   * in-memory copy still improves the current navigation session.
+   */
   function writeCache(data: NowPlayingData) {
     memoryCache = data;
     try {
@@ -462,11 +474,23 @@ const bodyId = `now-playing-body-${Math.random().toString(36).slice(2, 8)}`;
   function bindToggle(root: HTMLElement) {
     const toggle = root.querySelector<HTMLButtonElement>('[data-toggle]');
     if (!toggle) return;
+    // The grid body element; adding `is-animating` opts its inner content into the
+    // global compositor/containment hints (see global.css) so the grid-rows
+    // animation paints cheaply on mobile. Scoped to the transition window only, so
+    // the text is never permanently layer-promoted (which can look blurry).
+    const body = root.querySelector<HTMLElement>('.now-playing__body');
+    let animateTimer = 0;
     toggle.addEventListener('click', () => {
       const open = root.dataset.open === 'true';
       root.dataset.open = open ? 'false' : 'true';
       toggle.setAttribute('aria-expanded', open ? 'false' : 'true');
       if (!open) requestAnimationFrame(() => measureRoot(root));
+      if (body) {
+        body.classList.add('is-animating');
+        window.clearTimeout(animateTimer);
+        // Slightly longer than the 0.3s grid transition so hints outlast it.
+        animateTimer = window.setTimeout(() => body.classList.remove('is-animating'), 340);
+      }
     });
   }
 
@@ -527,6 +551,13 @@ const bodyId = `now-playing-body-${Math.random().toString(36).slice(2, 8)}`;
     });
   }
 
+  /**
+   * Fetch now-playing JSON after Astro has painted the page.
+   *
+   * The widget is progressive enhancement: one network request updates every
+   * matching card, while failures/no-track responses simply leave the pre-hidden
+   * markup hidden and quiet.
+   */
   async function loadNowPlaying() {
     // There may be more than one instance on a page (e.g. a left-gutter copy for
     // desktop and an inline copy for mobile). Bind each once, fetch a single
@@ -540,6 +571,7 @@ const bodyId = `now-playing-body-${Math.random().toString(36).slice(2, 8)}`;
       bindToggle(el);
     });
 
+    // Read the Worker URL from markup instead of inlining client-side env vars.
     const endpoint = roots[0].dataset.endpoint;
     if (!endpoint) return;
 
