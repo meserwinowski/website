@@ -544,7 +544,13 @@ const rows = [0, 1, 2, 3, 4];
       return;
     }
 
+    // Force a style/layout flush before flipping `data-revealed`: populateLiked
+    // just removed the `hidden` attribute (display:none → flex), and without
+    // committing that pre-reveal state the display change and the opacity:0 → 1
+    // change coalesce into one recalc, so the fade never plays and the card
+    // "pops" in.
     requestAnimationFrame(() => {
+      void root.offsetHeight;
       root.dataset.revealed = 'true';
       measureWhenReady(root);
     });

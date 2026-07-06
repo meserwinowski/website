@@ -140,6 +140,14 @@
   background-color: var(--color-accent);
 }
 
+/* Suppress heading permalinks on the flanked about headers: the centered flex
+   layout balances the text between the two decorative rules, but the permalink
+   anchor is an extra flex item that occupies space on one side, pushing the
+   heading text off-center. The ids remain in the DOM for TOC/deep links. */
+.prose.about-headings .heading-permalink {
+  display: none;
+}
+
 @media (max-width: 40rem) {
   .prose.about-headings h2 {
     gap: 0.32em;
