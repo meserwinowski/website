@@ -39,12 +39,14 @@ const strippableExtensions = new Set(['.jpg', '.jpeg', '.png', '.webp', '.tiff',
 // Formats that browsers can't render — auto-convert to WebP
 const convertToWebExtensions = new Set(['.heic', '.heif']);
 
-// Cap the longest edge of converted photos. Phone cameras shoot ~5712px wide,
+// Cap the longest edge of published photos. Phone cameras shoot ~5712px wide,
 // but the site never displays an image wider than the ~720px reading column
-// (≈1440–2160px on hi-DPI screens). Downscaling shrinks files ~5–10× and, more
-// importantly, slashes the per-image decode cost that makes mobile scrolling
-// stutter.
-const maxImageEdge = 1600;
+// (≈1440–2160px on hi-DPI screens). This cap applies to every raster image —
+// HEIC conversions and already-web-native photos alike — so a full-resolution
+// WebP/JPEG exported straight from the vault gets downscaled here instead of
+// shipped as-is. Downscaling shrinks files ~10–100× and slashes the per-image
+// decode cost that makes mobile scrolling stutter.
+const maxImageEdge = 2048;
 
 /**
  * Strip privacy metadata and convert non-web images below `imagesDir`.
@@ -66,17 +68,22 @@ export async function stripImageMetadata(imagesDir = resolve(repoRoot, 'public',
   let converted = 0;
   const failed = [];
 
-  // Strip metadata from web-native raster images
+  // Strip metadata from web-native raster images, and cap oversized ones.
   for (const filePath of strippable) {
     const input = readFileSync(filePath);
     // `metadata()` reads headers only; it tells us whether a rewrite is needed
     // before we pay the cost of re-encoding the image.
     const metadata = await sharp(input).metadata();
 
-    // Only re-encode when there's actually privacy metadata to remove. Skipping
-    // already-clean files keeps the pass idempotent and avoids needlessly
-    // recompressing images (which degrades JPEGs and bloats WebP) on every sync.
-    if (!metadata.exif && !metadata.xmp && !metadata.iptc) {
+    const hasPrivacyMetadata = Boolean(metadata.exif || metadata.xmp || metadata.iptc);
+    const oversized =
+      (metadata.width ?? 0) > maxImageEdge || (metadata.height ?? 0) > maxImageEdge;
+
+    // Re-encode only when there's privacy metadata to remove OR the image is
+    // larger than the display cap. Skipping already-clean, already-small files
+    // keeps the pass idempotent and avoids needlessly recompressing images
+    // (which degrades JPEGs and bloats WebP) on every sync.
+    if (!hasPrivacyMetadata && !oversized) {
       continue;
     }
 
@@ -85,16 +92,33 @@ export async function stripImageMetadata(imagesDir = resolve(repoRoot, 'public',
     // leaving the raw pixels un-rotated, which visibly rotates the image.
     let pipeline = sharp(input).rotate();
 
-    // Preserve format and quality — we only want to strip metadata, not degrade
-    switch (metadata.format) {
-      case 'jpeg':
-        pipeline = pipeline.jpeg({ quality: 100 });
+    // Downscale phone-camera originals so we never publish a 24-megapixel photo,
+    // even when it arrives already in a web-native format.
+    if (oversized) {
+      pipeline = pipeline.resize({
+        width: maxImageEdge,
+        height: maxImageEdge,
+        fit: 'inside',
+        withoutEnlargement: true,
+      });
+    }
+
+    // Encode to match the file's extension, not its detected format: the site
+    // serves images by extension, so a mislabeled file (e.g. PNG bytes saved as
+    // ".webp") must be rewritten to the real format its name promises. Keep max
+    // quality when only stripping metadata; when we downscale a photo we
+    // re-encode lossily (a lossless full-res WebP/PNG is enormous), which is
+    // invisible at the sizes the site actually displays.
+    switch (extname(filePath).toLowerCase()) {
+      case '.jpg':
+      case '.jpeg':
+        pipeline = pipeline.jpeg({ quality: oversized ? 82 : 100 });
         break;
-      case 'png':
+      case '.png':
         pipeline = pipeline.png();
         break;
-      case 'webp':
-        pipeline = pipeline.webp({ lossless: true });
+      case '.webp':
+        pipeline = oversized ? pipeline.webp({ quality: 82 }) : pipeline.webp({ lossless: true });
         break;
     }
 
