@@ -36,7 +36,7 @@ const statusLabels: Record<string, string> = {
 const formattedDate = date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' });
 const dateISO = date.toISOString().split('T')[0];
 
-const badgeClass = `text-xs px-2 py-0.5 rounded-full font-medium ${statusColors[status] ?? ''}`;
+const badgeClass = `status-badge text-xs px-2 py-0.5 rounded-full font-medium ${statusColors[status] ?? ''}`;
 const tagClass = 'text-xs px-2 py-0.5 rounded bg-[var(--color-surface)] text-[var(--color-muted)]';
 // Small mono label above each spec value, mirroring the ToC title treatment.
 const dtClass = 'font-mono text-xs uppercase tracking-wide text-[var(--color-muted)]';
@@ -49,7 +49,7 @@ const dtClass = 'font-mono text-xs uppercase tracking-wide text-[var(--color-mut
     <dl class="space-y-4 border-l border-[var(--color-border)] pl-4">
       <div>
         <dt class={dtClass}>Status</dt>
-        <dd class="mt-1"><span class={badgeClass}>{statusLabels[status] ?? status}</span></dd>
+        <dd class="mt-1"><span class={badgeClass} data-status={status}>{statusLabels[status] ?? status}</span></dd>
       </div>
       <div>
         <dt class={dtClass}>Published</dt>
@@ -84,7 +84,7 @@ const dtClass = 'font-mono text-xs uppercase tracking-wide text-[var(--color-mut
     <ReadingTime minutes={readingMinutes} />
     {/* Metadata row: status badge, date, tags, and optional GitHub link */}
     <div class="flex flex-wrap items-center gap-3">
-      <span class={badgeClass}>{statusLabels[status] ?? status}</span>
+      <span class={badgeClass} data-status={status}>{statusLabels[status] ?? status}</span>
       <time datetime={dateISO} class="text-xs text-[var(--color-muted)]">{formattedDate}</time>
       {tags.map((tag) => <span class={tagClass}>{tag}</span>)}
       {repo && (

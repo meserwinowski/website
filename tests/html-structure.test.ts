@@ -252,7 +252,7 @@ describe('Projects page - content collection', () => {
   });
 
   it('renders the project thumbnail when one is set', () => {
-    expect(projectsHtml).toMatch(/<img[^>]*src="\/assets\/stage-mixer\/matt-vb-show\.webp"/);
+    expect(projectsHtml).toMatch(/<img[^>]*src="\/assets\/stage-mixer\/mixer-front\.webp"/);
   });
 });
 

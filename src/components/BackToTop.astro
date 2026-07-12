@@ -35,9 +35,12 @@
   /* Mobile default: keep the widget in the safe lower-right corner. */
   .back-to-top {
     right: 1rem;
+    /* Glow tracks the theme accent (warm in light, blue in dark) instead of a
+       hardcoded blue; the neutral drop shadow is kept shallow so it can't bleed
+       past the viewport's bottom edge at the mobile 1rem offset. */
     box-shadow:
-      0 0 24px rgba(96, 165, 250, 0.28),
-      0 8px 24px rgba(0, 0, 0, 0.24);
+      0 0 20px color-mix(in srgb, var(--color-accent) 30%, transparent),
+      0 6px 16px rgba(0, 0, 0, 0.22);
   }
 
   /* Small screens get a little more breathing room from the edge. */

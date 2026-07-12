@@ -74,7 +74,7 @@ const statusLabels: Record<string, string> = {
 
     <div class="flex items-center justify-between gap-2">
       {/* Dynamic class picks the badge color from the frontmatter status. */}
-      <span class={`text-xs px-2 py-0.5 rounded-full font-medium ${statusColors[status]}`}>
+      <span class={`status-badge text-xs px-2 py-0.5 rounded-full font-medium ${statusColors[status]}`} data-status={status}>
         {statusLabels[status]}
       </span>
       {/* <time> keeps the date understandable to parsers while remaining readable. */}

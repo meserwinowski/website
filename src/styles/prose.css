@@ -518,3 +518,59 @@
   --callout-accent: #22d3ee;
   --callout-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3'/%3E%3Cpath d='M12 17h.01'/%3E%3C/svg%3E");
 }
+
+/* --------------------------------------------------------------------------
+   Light-theme callout tuning
+   --------------------------------------------------------------------------
+   The variant accents above are tuned for the dark theme; on the sandy light
+   background those bright hues wash out both the title text and the tint. Under
+   the light theme we swap in deeper, fully-saturated shades that clear WCAG AA
+   (>=4.5:1 on the callout surface) so the titles stay legible, then firm up the
+   border so each callout reads as a distinct panel instead of a faint wash.
+*/
+[data-theme="light"] .prose .callout-info,
+[data-theme="light"] .prose .callout-note,
+[data-theme="light"] .prose .callout-todo {
+  --callout-accent: #175aad;
+}
+
+[data-theme="light"] .prose .callout-tip,
+[data-theme="light"] .prose .callout-hint,
+[data-theme="light"] .prose .callout-success,
+[data-theme="light"] .prose .callout-check {
+  --callout-accent: #136c42;
+}
+
+[data-theme="light"] .prose .callout-warning,
+[data-theme="light"] .prose .callout-caution,
+[data-theme="light"] .prose .callout-important {
+  --callout-accent: #845009;
+}
+
+[data-theme="light"] .prose .callout-danger,
+[data-theme="light"] .prose .callout-error,
+[data-theme="light"] .prose .callout-failure,
+[data-theme="light"] .prose .callout-missing,
+[data-theme="light"] .prose .callout-bug {
+  --callout-accent: #b91c1c;
+}
+
+[data-theme="light"] .prose .callout-example,
+[data-theme="light"] .prose .callout-quote {
+  --callout-accent: #6d28d9;
+}
+
+[data-theme="light"] .prose .callout-abstract,
+[data-theme="light"] .prose .callout-summary,
+[data-theme="light"] .prose .callout-tldr,
+[data-theme="light"] .prose .callout-question,
+[data-theme="light"] .prose .callout-help,
+[data-theme="light"] .prose .callout-faq {
+  --callout-accent: #0a6073;
+}
+
+@supports (color: color-mix(in srgb, black 50%, white)) {
+  [data-theme="light"] .prose .callout {
+    border-color: color-mix(in srgb, var(--callout-accent) 45%, var(--color-border));
+  }
+}
