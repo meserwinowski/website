@@ -21,8 +21,8 @@ const projects = defineCollection({
     title: z.string(),
     description: z.string(),
     // Draft-like statuses can exist in the vault; page generation filters to
-    // `done` and `ongoing` so ideas do not publish accidentally.
-    status: z.enum(['done', 'ongoing', 'planning', 'idea']),
+    // `completed` and `ongoing` so ideas do not publish accidentally.
+    status: z.enum(['completed', 'ongoing', 'planning', 'draft']),
     tags: z.array(z.string()),
     // `nullish()` accepts either an omitted value or explicit `null` from YAML.
     thumbnail: z.string().nullish(),

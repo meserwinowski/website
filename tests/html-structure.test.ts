@@ -251,8 +251,8 @@ describe('Projects page - content collection', () => {
     expect(projectsHtml).toContain('music');
   });
 
-  it('shows a placeholder for projects without a thumbnail', () => {
-    expect(projectsHtml).toMatch(/font-mono[^"]*">Is a Stage Mixer Punk Rock\?</);
+  it('renders the project thumbnail when one is set', () => {
+    expect(projectsHtml).toMatch(/<img[^>]*src="\/assets\/stage-mixer\/matt-vb-show\.webp"/);
   });
 });
 

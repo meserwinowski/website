@@ -262,7 +262,7 @@
   font-weight: 600;
 }
 
-/* Obsidian embeds are resolved upstream into `/images/` URLs with intrinsic
+/* Obsidian embeds are resolved upstream into `/assets/` URLs with intrinsic
    dimensions/LQIP; this layer just keeps rendered images responsive. */
 .prose img {
   border-radius: 0.5rem;
@@ -271,7 +271,7 @@
   height: auto;
 }
 
-.prose img[src^="/images/"] {
+.prose img[src^="/assets/"] {
   display: block;
   width: 100%;
   height: auto;

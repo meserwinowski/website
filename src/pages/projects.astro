@@ -17,9 +17,9 @@ import ProjectCard from '../components/ProjectCard.astro';
 const allProjects = await getCollection('projects');
 
 const projects = allProjects
-  // Keep the index in sync with [slug].astro: only done/ongoing projects are
+  // Keep the index in sync with [slug].astro: only completed/ongoing projects are
   // public enough to appear in lists and receive generated detail pages.
-  .filter((p) => ['done', 'ongoing'].includes(p.data.status))
+  .filter((p) => ['completed', 'ongoing'].includes(p.data.status))
   // Newest first matches portfolio-reader expectations and mirrors the home feed.
   .sort((a, b) => b.data.date.getTime() - a.data.date.getTime());
 ---

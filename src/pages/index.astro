@@ -23,7 +23,7 @@ const allProjects = await getCollection('projects');
 const recentProjects = allProjects
   // Match the detail route's public-project rule: only done/ongoing projects
   // should appear in navigation or receive generated project pages.
-  .filter((p) => ['done', 'ongoing'].includes(p.data.status))
+  .filter((p) => ['completed', 'ongoing'].includes(p.data.status))
   // Newest first keeps the landing page feeling like a lightweight activity log.
   .sort((a, b) => b.data.date.getTime() - a.data.date.getTime())
   .slice(0, RECENT_LIMIT);

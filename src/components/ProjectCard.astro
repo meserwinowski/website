@@ -15,7 +15,7 @@ interface Props {
   /** Short summary copied from project frontmatter. */
   description: string;
   /** Project lifecycle state; the union keeps badges limited to known values. */
-  status: 'done' | 'ongoing' | 'planning' | 'idea';
+  status: 'completed' | 'ongoing' | 'planning' | 'draft';
   /** Category labels rendered as small design-token badges. */
   tags: string[];
   /** Optional preview image path; missing images fall back to a text tile. */
@@ -35,18 +35,18 @@ const dateISO = date.toISOString().split('T')[0];
 // Status badge styling. These semantic colors mirror ProjectMeta so cards and
 // detail pages speak the same visual language.
 const statusColors: Record<string, string> = {
-  'done': 'bg-green-500/20 text-green-400',
+  'completed': 'bg-green-500/20 text-green-400',
   'ongoing': 'bg-blue-500/20 text-blue-400',
   'planning': 'bg-yellow-500/20 text-yellow-400',
-  'idea': 'bg-purple-500/20 text-purple-400',
+  'draft': 'bg-purple-500/20 text-purple-400',
 };
 
 // Human-readable labels keep content data terse while the UI reads naturally.
 const statusLabels: Record<string, string> = {
-  'done': 'Done',
+  'completed': 'Completed',
   'ongoing': 'Ongoing',
   'planning': 'Planning',
-  'idea': 'Idea',
+  'draft': 'Draft',
 };
 ---
 

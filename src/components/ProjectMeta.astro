@@ -21,13 +21,13 @@ interface Props {
 
 const { status, tags, date, repo, readingMinutes, variant = 'inline' } = Astro.props;
 
-// Status badge styling (kept in sync with ProjectCard). Only done/ongoing get pages.
+// Status badge styling (kept in sync with ProjectCard). Only completed/ongoing get pages.
 const statusColors: Record<string, string> = {
-  done: 'bg-green-500/20 text-green-400',
+  completed: 'bg-green-500/20 text-green-400',
   ongoing: 'bg-blue-500/20 text-blue-400',
 };
 const statusLabels: Record<string, string> = {
-  done: 'Done',
+  completed: 'Completed',
   ongoing: 'Ongoing',
 };
 

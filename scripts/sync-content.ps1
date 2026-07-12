@@ -42,7 +42,7 @@ if ($cfg['EXCALIDRAW_SUBPATH']) { $env:EXCALIDRAW_SUBPATH = $cfg['EXCALIDRAW_SUB
 # delete files here if the vault no longer has them.
 $ProjectsDir = Join-Path $RepoRoot 'src\content\projects'
 $PagesDir    = Join-Path $RepoRoot 'src\content\pages'
-$ImagesDir   = Join-Path $RepoRoot 'public\images'
+$ImagesDir   = Join-Path $RepoRoot 'public\assets'
 
 # Create destinations before mirroring; -Force makes this idempotent.
 New-Item -ItemType Directory -Path $ProjectsDir -Force | Out-Null
@@ -103,7 +103,7 @@ if (Test-Path $VaultPages) {
 # --- Embedded images ---
 # Embedded images and Excalidraw exports are published per-project by
 # sync-obsidian-assets.mjs (only assets referenced via ![[...]] embeds are
-# copied, grouped under public/images/<project>/). HEIC/HEIF embeds are then
+# copied, grouped under public/assets/<slug>/). HEIC/HEIF embeds are then
 # converted to WebP by strip-image-metadata.mjs. We intentionally don't mirror
 # the whole vault images/ folder, so unreferenced assets stay out of public/.
 # These Node scripts inherit VAULT_DIR/EXCALIDRAW_SUBPATH from $env: above.

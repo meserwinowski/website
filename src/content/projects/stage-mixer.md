@@ -6,7 +6,7 @@ tags:
   - hardware
   - music
   - website
-thumbnail:
+thumbnail: /assets/stage-mixer/mixer-front.webp
 date: 2026-06-15
 ---
 ---
@@ -79,15 +79,15 @@ Everyone loves a good visual, so I'll start with a bunch you can use as a refere
 
 ### Original Whiteboard
 
-![[whiteboard.HEIC]]
+![[whiteboard.webp|332]]
 
 ### Front View
 
-![[mixer-front.HEIC]]
+![[mixer-front.webp|361]]
 
 ### Back View
 
-![[mixer-back.HEIC]]
+![[mixer-back.webp|353]]
 
 > [!note]- The current pictures look a bit different than the diagram views.
 > At time of writing it’s been over a year since I last used my stage mixer - I decided a better use of the power conditioner would be for my desk. I also got a Quad Cortex Mini as a gift, which is also on my desk, so the AF3 is still currently racked in the rig.
@@ -118,7 +118,7 @@ I mentioned I already had a **Fractal Axe-Fx 3 (3U)** - a lovely graduation gift
 
 **Power** - Due to playing with the Axe-Fx 3 (AF3) I had already racked it in a smaller 6U case with a **Furman PL-PLUS DMC power conditioner (1U)**. 15 amps, surge protection, and AC filtering this power conditioner was already perfect for what I needed.
 
-![[power-conditioner.HEIC]]
+![[power-conditioner.webp]]
 
 >[!info]- Voltage and Current
 >You don’t need an engineering degree to understand that your equipment needs power. A good power conditioner can protect your equipment from faulty venue power, and filter out noise.
@@ -145,7 +145,7 @@ For the mixer there were a couple of attributes that stood out to me as importan
 #### **I/O**
 After some research and browsing I purchased a **Midas MR18 (3U)**. The MR18 actually had a little more I/O than I needed, but just the right amount for expandability which I'll discuss with more detail in the patch bay section.
 
-![[mixer.HEIC]]
+![[mixer.webp|261]]
 
 **Inputs** - I ended up using 8 of the 16 inputs. The connectors are balanced mono XLR 1/4" combo inputs.
 
@@ -162,7 +162,7 @@ I knew that since the outputs were mono, I would need to pair them up, and pan o
 
 So I bought some XLR connectors + cable, and cut and soldered everything together to get 3 mono-to-stereo XLR cables. Why 3? Because I could just duplicate the stereo output for two of these custom cables I created. I would do this with a stereo splitter cable. Effectively I would now have 5 stereo outputs.
 
-![[custom-cable.HEIC]]
+![[custom-cable.webp|287]]
 
 Another upside was that I had the Main L and R outputs still free. I simply routed those out as a dedicated "band mix" that could be shared with the FOH if needed. The main benefit here was to be able to share not just a band mix, but also any audio from a laptop connected to the Digital I/O for the mixer over USB. More on that later.
 
@@ -233,7 +233,7 @@ The first patch bay I chose was a **Hosa XLR Balanced Patchbay (1U)**. This patc
 - One XLR for my AF3 foot controller (FC6)
 - Two XLRs for the Main L/R output from the mixer.
 
-![[output-bay.HEIC]]
+![[output-bay.webp|387]]
 
 Setting up this component is quite easy, but here are some extra tips:
 1) You can unscrew the XLR ports and flip them around - this is why I put input in quote earlier: my FC6 uses an XLR for power and signal, and it technically had an input setup.
@@ -242,7 +242,7 @@ Setting up this component is quite easy, but here are some extra tips:
 #### **Input Bay (S8 Splitter)**
 For the input bay I got the **ART S8 (1U)**. It’s a three-way mic splitter with 8 channels. More than enough for what I wanted to do.
 
-![[s8.HEIC]]
+![[s8.webp|388]]
 
 What I really like about this unit is that you get a front facing output, and the build quality is really nice too. The front facing output is key to forwarding the band’s signals to the FOH. The way that was most recommended to do this is with a *cable snake*.
 
@@ -250,7 +250,7 @@ A cable snake is a bunch of individual cables all bound together except for the 
 
 Inside the rig, the S8 produces two more copies. I used a tiny internal cable snake to connect 8 internal outputs to the first 8 internal inputs of my mixer.
 
-![[s8-and-mixer.HEIC]]
+![[s8-and-mixer.webp|286]]
 
 Finally, I also had to wire up my AF3. I used two internal XLRs for the Left and Right outputs, that then looped to the front of S8 using right-angled low-profile connectors. Those channels went to the mixer, but since I had a third copy I routed that directly to the *output bay*, which then made it easy to connect my Line 6 FRFR speaker.
 
@@ -290,7 +290,7 @@ While this setup is a relatively cheap way to get stereo IEMs, it's quite clunky
 ### Testing
 With any good system you should be testing it as you go. Solving problems as they arise is a lot easier than debugging something that has been completely assembled.
 
-![[testing.HEIC]]
+![[testing.webp|349]]
 
 Test that each component is working as you go through the assembly. Dial in your mixer's configuration over multiple practice sessions. The routing software for the mixers can be kind of a pain so get familiar with using it.
 
@@ -308,7 +308,7 @@ One thing I didn't talk about is that the stage mixer essentially doubles as a p
 
 I unfortunately failed to get a good picture of the rig in action. The closet I have is this nice photo a friend took at a show. The rig is barely visible behind me!
 
-![[matt-vb-show.jpg]]
+![[matt-vb-show.webp|225]]
 
 If you found this article helpful, or you end up building your own stage mixer, I'd love to hear about it.
 
