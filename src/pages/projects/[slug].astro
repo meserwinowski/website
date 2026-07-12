@@ -33,7 +33,7 @@ export async function getStaticPaths() {
   return projects
     // Only public projects get detail pages; this mirrors the index and home
     // feeds so drafts/planning notes never become reachable routes.
-    .filter((p) => ['done', 'ongoing'].includes(p.data.status))
+    .filter((p) => ['completed', 'ongoing'].includes(p.data.status))
     .map((project) => ({
       params: { slug: project.id },  // Fills the `[slug]` segment in the URL.
       props: { project },            // Passed to this template as Astro.props.

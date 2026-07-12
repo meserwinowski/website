@@ -20,13 +20,13 @@ import sharp from 'sharp';
 import remarkObsidianEmbeds from '../src/plugins/remark-obsidian-embeds.mjs';
 import { syncObsidianAssets } from '../scripts/sync-obsidian-assets.mjs';
 
-// The plugin derives a per-project asset folder from the content file's path
-// relative to contentRoot, so embeds land in /images/<project>/ rather than the
-// shared root. These constants are fixtures that pretend the content file lives
-// at projects/stage-mixer.md without needing the real vault.
+// The plugin derives a per-project asset folder from the content file's slug,
+// so embeds land in /assets/<slug>/ rather than the shared root. These
+// constants are fixtures that pretend the content file lives at
+// projects/stage-mixer.md without needing the real vault.
 const contentRoot = '/repo/src/content';
 const stageMixerFile = { path: '/repo/src/content/projects/stage-mixer.md' };
-const stageMixerPrefix = 'projects/stage-mixer';
+const stageMixerPrefix = 'stage-mixer';
 
 describe('Obsidian embed rendering', () => {
   it('renders a standalone Excalidraw embed under the project folder', async () => {
@@ -52,7 +52,7 @@ describe('Obsidian embed rendering', () => {
     expect(tree.children[0]).toEqual({
       type: 'html',
       value:
-        '<img src="/images/projects/stage-mixer/stage-mixer-diagram.svg" alt="stage mixer diagram" width="800" height="600" loading="eager" fetchpriority="high" decoding="async" />',
+        '<img src="/assets/stage-mixer/stage-mixer-diagram.svg" alt="stage mixer diagram" width="800" height="600" loading="eager" fetchpriority="high" decoding="async" />',
     });
   });
 
@@ -77,7 +77,7 @@ describe('Obsidian embed rendering', () => {
 
       await remarkObsidianEmbeds({ assetsDir, contentRoot })(tree, stageMixerFile);
 
-      expect(tree.children[0].value).toContain('src="/images/projects/stage-mixer/stage-mixer-view-front.png"');
+      expect(tree.children[0].value).toContain('src="/assets/stage-mixer/stage-mixer-view-front.png"');
       expect(tree.children[0].value).toContain('width="600"');
       expect(tree.children[0].value).toContain('height="400"');
     } finally {
@@ -101,7 +101,7 @@ describe('Obsidian embed rendering', () => {
     expect(tree.children[0]).toEqual({
       type: 'html',
       value:
-        '<img src="/images/projects/stage-mixer/whiteboard.webp" alt="whiteboard" loading="eager" fetchpriority="high" decoding="async" />',
+        '<img src="/assets/stage-mixer/whiteboard.webp" alt="whiteboard" loading="eager" fetchpriority="high" decoding="async" />',
     });
   });
 
@@ -120,7 +120,7 @@ describe('Obsidian embed rendering', () => {
 
     expect(tree.children[0]).toEqual({
       type: 'html',
-      value: '<img src="/images/whiteboard.webp" alt="whiteboard" loading="eager" fetchpriority="high" decoding="async" />',
+      value: '<img src="/assets/whiteboard.webp" alt="whiteboard" loading="eager" fetchpriority="high" decoding="async" />',
     });
   });
 
@@ -152,7 +152,7 @@ describe('Obsidian embed rendering', () => {
 
       const { value } = tree.children[0];
       expect(tree.children[0].type).toBe('html');
-      expect(value).toContain('src="/images/projects/stage-mixer/mixer.webp"');
+      expect(value).toContain('src="/assets/stage-mixer/mixer.webp"');
       expect(value).toContain('alt="mixer"');
       expect(value).toContain('width="320"');
       expect(value).toContain('height="240"');
@@ -229,11 +229,11 @@ describe('Obsidian asset sync', () => {
 
       expect(result.copied).toBe(2);
       expect(result.missing).toEqual(['missing-diagram.excalidraw']);
-      expect(existsSync(join(assetsDir, 'projects', 'stage-mixer', 'stage-mixer-view-front.svg'))).toBe(true);
-      expect(existsSync(join(assetsDir, 'projects', 'stage-mixer', 'stage-photo.jpg'))).toBe(true);
+      expect(existsSync(join(assetsDir, 'stage-mixer', 'stage-mixer-view-front.svg'))).toBe(true);
+      expect(existsSync(join(assetsDir, 'stage-mixer', 'stage-photo.jpg'))).toBe(true);
       // Nothing is written to the shared root any more.
       expect(existsSync(join(assetsDir, 'stage-photo.jpg'))).toBe(false);
-      expect(existsSync(join(assetsDir, 'projects', 'stage-mixer', 'stage-mixer-view-front.excalidraw'))).toBe(false);
+      expect(existsSync(join(assetsDir, 'stage-mixer', 'stage-mixer-view-front.excalidraw'))).toBe(false);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
@@ -270,7 +270,7 @@ describe('Obsidian asset sync', () => {
       expect(result.copied).toBe(1);
       expect(result.missing).toEqual([]);
       // The Excalidraw/ prefix is dropped; the export lands in the project folder.
-      expect(existsSync(join(assetsDir, 'projects', 'stage-mixer', 'stage-mixer-diagram.svg'))).toBe(true);
+      expect(existsSync(join(assetsDir, 'stage-mixer', 'stage-mixer-diagram.svg'))).toBe(true);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
@@ -298,9 +298,9 @@ describe('Obsidian asset sync', () => {
       });
 
       expect(result.missing).toEqual([]);
-      expect(result.synced).toContain('projects/stage-mixer/whiteboard.webp');
+      expect(result.synced).toContain('stage-mixer/whiteboard.webp');
       // The raw HEIC is copied so the metadata strip step can convert it to WebP.
-      expect(existsSync(join(assetsDir, 'projects', 'stage-mixer', 'whiteboard.HEIC'))).toBe(true);
+      expect(existsSync(join(assetsDir, 'stage-mixer', 'whiteboard.HEIC'))).toBe(true);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
@@ -316,13 +316,13 @@ describe('Obsidian asset sync', () => {
     try {
       mkdirSync(vaultDir, { recursive: true });
       mkdirSync(pagesDir, { recursive: true });
-      mkdirSync(join(assetsDir, 'pages', 'about'), { recursive: true });
+      mkdirSync(join(assetsDir, 'about'), { recursive: true });
 
       writeFileSync(join(vaultDir, 'stage-photo.jpg'), 'source', { flag: 'wx' });
       writeFileSync(join(pagesDir, 'about.md'), '![[stage-photo.jpg]]', { flag: 'wx' });
 
       // Pre-existing published output, marked newer than the source.
-      const output = join(assetsDir, 'pages', 'about', 'stage-photo.jpg');
+      const output = join(assetsDir, 'about', 'stage-photo.jpg');
       writeFileSync(output, 'already-published');
       // Newer output models an incremental sync where the published asset should
       // be trusted and left byte-for-byte alone.
@@ -338,7 +338,7 @@ describe('Obsidian asset sync', () => {
 
       expect(result.upToDate).toBe(1);
       expect(result.copied).toBe(0);
-      expect(result.synced).toContain('pages/about/stage-photo.jpg');
+      expect(result.synced).toContain('about/stage-photo.jpg');
       // The output is left untouched (not re-copied from the source).
       expect(readFileSync(output, 'utf-8')).toBe('already-published');
     } finally {

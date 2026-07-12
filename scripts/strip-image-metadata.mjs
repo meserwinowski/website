@@ -56,7 +56,7 @@ const maxImageEdge = 1600;
  * @param {string} [imagesDir] Root directory of public image assets.
  * @returns {Promise<{stripped: number, converted: number, failed: Array<{filePath: string, message: string}>, scanned: number}>}
  */
-export async function stripImageMetadata(imagesDir = resolve(repoRoot, 'public', 'images')) {
+export async function stripImageMetadata(imagesDir = resolve(repoRoot, 'public', 'assets')) {
   const allFiles = listFiles(imagesDir);
 
   const strippable = allFiles.filter((f) => strippableExtensions.has(extname(f).toLowerCase()));

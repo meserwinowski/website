@@ -3,7 +3,7 @@
 # sync-content.sh — Mirror Obsidian-authored content into the Astro project.
 #
 # The vault is the source of truth. This script copies markdown into
-# src/content/ and publishes only referenced image assets into public/images/.
+# src/content/ and publishes only referenced image assets into public/assets/.
 # Because the folder syncs use rsync --delete, destination folders are made to
 # match the vault exactly — hand-edits in generated content are wiped next sync.
 #
@@ -31,7 +31,7 @@ export VAULT_DIR
 # images are written by the asset pipeline below.
 PROJECTS_DIR="./src/content/projects"
 PAGES_DIR="./src/content/pages"
-IMAGES_DIR="./public/images"
+IMAGES_DIR="./public/assets"
 
 # Terminal colors for compact, readable progress output.
 DIM="\033[2m"
@@ -74,7 +74,7 @@ fi
 
 # Embedded images and Excalidraw exports are published per-project by
 # sync-obsidian-assets.mjs (only assets referenced via ![[...]] embeds are
-# copied, grouped under public/images/<project>/). HEIC/HEIF embeds are then
+# copied, grouped under public/assets/<slug>/). HEIC/HEIF embeds are then
 # converted to WebP by strip-image-metadata.mjs. We intentionally don't mirror
 # the whole vault images/ folder, so unreferenced assets stay out of public/.
 # These Node scripts inherit VAULT_DIR from the exported shell environment above.

@@ -5,7 +5,7 @@
  * embeds still point at Obsidian-style targets such as `![[photo.heic]]`. This
  * script reads the generated markdown, finds those embed targets, resolves them
  * back to files in the vault, and copies the publishable assets into
- * `public/images/` using a stable folder layout that mirrors the content file.
+ * `public/assets/` using a stable folder layout named for each content file.
  *
  * Project rationale:
  *  - The site should not publish the entire vault image library — only images
@@ -79,7 +79,7 @@ export function extractEmbedTargets(markdown) {
  * @param {string|string[]} [options.assetSearchDirs] Extra vault folders to scan.
  * @param {string[]} [options.contentDirs] Generated markdown folders to read.
  * @param {string} [options.contentRoot] Root used to mirror content paths.
- * @param {string} [options.assetsDir] Destination under `public/images/`.
+ * @param {string} [options.assetsDir] Destination under `public/assets/`.
  * @returns {object} Counts, missing targets, and paths used by the sync.
  */
 export function syncObsidianAssets({
@@ -87,13 +87,13 @@ export function syncObsidianAssets({
   assetSearchDirs,
   contentDirs = [resolve(repoRoot, 'src', 'content', 'projects'), resolve(repoRoot, 'src', 'content', 'pages')],
   contentRoot = resolve(repoRoot, 'src', 'content'),
-  assetsDir = resolve(repoRoot, 'public', 'images'),
+  assetsDir = resolve(repoRoot, 'public', 'assets'),
 } = {}) {
   const searchDirs = normalizeAssetSearchDirs(assetSearchDirs ?? getDefaultAssetSearchDirs(vaultDir), vaultDir);
   const markdownFiles = contentDirs.flatMap((contentDir) => listFiles(contentDir, markdownExtensions));
 
-  // Group each embed under a folder derived from its content file, so a project's
-  // assets land in images/<project-folder>/ instead of scattered at the root.
+  // Group each embed under a folder named for its content file's slug, so a
+  // project's assets land in assets/<slug>/ instead of scattered at the root.
   const references = new Map();
 
   for (const filePath of markdownFiles) {
@@ -247,7 +247,7 @@ export function resolveAssetReference(assetSearchDirs, target, prefix = '') {
       return null;
     }
 
-    // Copy the raw HEIC/HEIF into public/images (at copyPublicPath); the metadata
+    // Copy the raw HEIC/HEIF into public/assets (at copyPublicPath); the metadata
     // strip step converts it to publicPath (.webp) and deletes the source. The
     // manifest tracks the .webp so stale-cleanup removes it when the embed goes away.
     return {
@@ -288,11 +288,10 @@ function resolveExcalidrawExport(searchDirs, target, prefix = '') {
 }
 
 /**
- * Build the public image subfolder for a content file.
+ * Build the public asset subfolder for a content file.
  *
- * Place a project's embedded assets under a folder mirroring the content file's
- * location, e.g. `src/content/projects/stage-mixer.md` becomes
- * `images/projects/stage-mixer/`.
+ * Group a content file's embedded assets under a folder named for its slug,
+ * e.g. `src/content/projects/stage-mixer.md` becomes `assets/stage-mixer/`.
  */
 function assetFolderForContentFile(contentRoot, filePath) {
   if (!contentRoot || !filePath) {
@@ -305,7 +304,7 @@ function assetFolderForContentFile(contentRoot, filePath) {
     return '';
   }
 
-  return relativePath.replace(/\.[^./\\]+$/, '').split(/[\\/]/).join('/');
+  return basename(filePath).replace(/\.[^.]+$/, '');
 }
 
 /** Join a normalized public folder prefix with a filename for manifest/storage. */

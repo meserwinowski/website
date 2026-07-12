@@ -38,7 +38,8 @@ export default defineConfig({
           {
             // The embed plugin resolves synced vault assets from disk so it can
             // emit stable URLs plus intrinsic image metadata.
-            assetsDir: resolve(projectDir, 'public', 'images'),
+            assetsDir: resolve(projectDir, 'public', 'assets'),
+            assetBaseUrl: '/assets/',
             contentRoot: resolve(projectDir, 'src', 'content'),
           },
         ],

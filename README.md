@@ -89,7 +89,7 @@ Content lives in your Obsidian vault (set `VAULT_SUBPATH` in `deploy.env`):
 |--------------|-------------|---------|
 | `projects/` | `src/content/projects/` | Project markdown files (with frontmatter) |
 | `pages/` | `src/content/pages/` | Page content (home, about) |
-| Referenced image embeds | `public/images/<project>/` | Web-renderable assets referenced by Obsidian embeds, grouped per content file |
+| Referenced image embeds | `public/assets/<slug>/` | Web-renderable assets referenced by Obsidian embeds, grouped per content-file slug |
 
 Edit markdown in Obsidian → run `npm run deploy` to ship directly, **or** `npm run sync`,
 commit, and push to deploy via CI.
@@ -97,11 +97,11 @@ commit, and push to deploy via CI.
 Obsidian image embeds are supported with the `![[...]]` syntax. During sync, the
 site scans committed Markdown for referenced embeds and copies only web-renderable
 asset exports (`.svg`, `.png`, `.webp`, `.jpg`, `.jpeg`, `.gif`) into
-`public/images/`. Only assets that are actually embedded are published — the
+`public/assets/`. Only assets that are actually embedded are published — the
 whole vault `images/` folder is **not** mirrored, so unreferenced files stay out
-of the site. Each embed is placed in a folder mirroring its content file's
-location, so a project's assets all live together (e.g. embeds in
-`src/content/projects/stage-mixer.md` land in `public/images/projects/stage-mixer/`).
+of the site. Each embed is placed in a folder named for its content file's slug,
+so a project's assets all live together (e.g. embeds in
+`src/content/projects/stage-mixer.md` land in `public/assets/stage-mixer/`).
 Raw `.excalidraw` drawing files are intentionally not published. `.heic`/`.heif`
 photos (e.g. straight from an iPhone) are converted to `.webp` during sync —
 browsers can't render HEIC — and the embeds are rewritten to point at the `.webp`
@@ -124,7 +124,7 @@ the drawing normally:
 ```
 
 If an SVG export exists, that renders (from `stage-mixer.md`) as
-`/images/projects/stage-mixer/stage-mixer-diagram.svg`; otherwise the renderer
+`/assets/stage-mixer/stage-mixer-diagram.svg`; otherwise the renderer
 uses another copied web export when available.
 
 Obsidian callouts are also supported. Markdown such as
@@ -279,9 +279,9 @@ Create a Markdown file in `src/content/projects/` with this frontmatter:
 ---
 title: "Project Name"
 description: "Short one-liner for the card"
-status: "done"       # done | ongoing | planning | idea
+status: "completed"  # completed | ongoing | planning | draft
 tags: ["software", "hardware"]
-thumbnail: "/images/projects/project-name.svg"
+thumbnail: "/assets/project-name/thumbnail.webp"
 date: 2026-06-01
 repo: "https://github.com/..."  # optional
 ---
@@ -289,7 +289,7 @@ repo: "https://github.com/..."  # optional
 Your markdown content here...
 ```
 
-Only `done` and `ongoing` projects are shown publicly. Project thumbnails are committed directly to `public/images/projects/` (e.g. `public/images/projects/project-name.svg`); they aren't pulled from the vault. Embedded images referenced with `![[...]]` are published separately under a per-project folder like `public/images/projects/project-name/`.
+Only `completed` and `ongoing` projects are shown publicly. A project's `thumbnail` is any path served from `public/`. The convention is to point it at an image in that project's per-slug asset folder — `/assets/<slug>/<file>` — so it can reuse a photo already synced from the vault via an `![[...]]` embed (e.g. `stage-mixer.md` uses `/assets/stage-mixer/matt-vb-show.webp`). You can also commit a standalone image (such as an `.svg`) directly under `public/assets/` and reference it as `/assets/<name>.svg`. Embedded images referenced with `![[...]]` are published under the same per-slug folder, so a project's thumbnail and body images live together.
 
 ## Project Structure
 
@@ -316,8 +316,8 @@ Only `done` and `ongoing` projects are shown publicly. Project thumbnails are co
 | `package.json` | Dependencies and npm scripts |
 | `nginx/default.conf` | nginx config (AI/scraper UA blocking + rate limiting); rsynced to the NAS by `deploy.sh` |
 | `scripts/run-local-script.mjs` | Cross-platform npm dispatcher that chooses PowerShell on Windows and Bash elsewhere |
-| `scripts/sync-obsidian-assets.mjs` | Copies only web-renderable assets referenced by Obsidian embeds into per-project folders under `public/images/`; uses a manifest to clean up stale files |
-| `scripts/strip-image-metadata.mjs` | Strips EXIF/GPS metadata from raster images in `public/images/`, auto-orients them (baking in EXIF rotation), resizes down to a 1600px longest edge, and converts `.heic`/`.heif` to `.webp` (via `sips` on macOS, since sharp can't decode HEIC) so the photos render fast in browsers |
+| `scripts/sync-obsidian-assets.mjs` | Copies only web-renderable assets referenced by Obsidian embeds into per-slug folders under `public/assets/`; uses a manifest to clean up stale files |
+| `scripts/strip-image-metadata.mjs` | Strips EXIF/GPS metadata from raster images in `public/assets/`, auto-orients them (baking in EXIF rotation), resizes down to a 1600px longest edge, and converts `.heic`/`.heif` to `.webp` (via `sips` on macOS, since sharp can't decode HEIC) so the photos render fast in browsers |
 | `scripts/sync-content.sh` / `scripts/sync-content.ps1` | Pull markdown content from the Obsidian vault |
 | `scripts/spotify-refresh-token.mjs` | One-time OAuth helper that mints the Spotify refresh token for the widgets' Worker (scopes: currently-playing, recently-played, library-read) |
 | `scripts/deploy.sh` / `scripts/deploy.ps1` | Sync + build + rsync deployment scripts |

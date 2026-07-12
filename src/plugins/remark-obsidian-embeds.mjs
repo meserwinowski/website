@@ -3,7 +3,7 @@
  *
  * The plugin runs in the remark phase (mdast), before markdown becomes HTML. It
  * resolves vault-style `![[image]]` references against synced files in
- * `public/images/`, rewrites browser-hostile formats to their WebP exports, and
+ * `public/assets/`, rewrites browser-hostile formats to their WebP exports, and
  * adds dimensions plus a tiny LQIP blur-up placeholder for standalone images.
  */
 import { existsSync, readFileSync } from 'node:fs';
@@ -13,7 +13,7 @@ import sharp from 'sharp';
 // This plugin rewrites Obsidian-style embeds (`![[...]]`) into normal markdown
 // image nodes / HTML img tags so Astro can render them like first-class web
 // images with dimensions, loading hints, and optional blur placeholders.
-const defaultAssetBaseUrl = '/images/';
+const defaultAssetBaseUrl = '/assets/';
 const webImageExtensions = ['.svg', '.png', '.webp', '.jpg', '.jpeg', '.gif'];
 const directImageExtensions = new Set(webImageExtensions);
 // Browsers can't render HEIC/HEIF; the sync pipeline converts them to WebP, so
@@ -41,7 +41,7 @@ export default function remarkObsidianEmbeds(options = {}) {
 
   return async function transform(tree, file) {
     // Use the current markdown file path to determine where its synced assets
-    // live under public/images (e.g. projects/stage-mixer/*).
+    // live under public/assets (e.g. stage-mixer/*).
     const filePath = file?.path ?? file?.history?.[file.history.length - 1] ?? null;
     const prefix = assetFolderForContentFile(contentRoot, filePath);
     // Shared across the page so the first embedded image can load eagerly while
@@ -217,7 +217,7 @@ function parseEmbed(rawEmbed, options) {
 }
 
 /**
- * Resolve a normalized vault target to a public `/images/...` URL.
+ * Resolve a normalized vault target to a public `/assets/...` URL.
  *
  * The website only publishes synced web assets, so this step maps HEIC/HEIF to
  * WebP conversion output and Excalidraw source files to their exported images.
@@ -307,13 +307,13 @@ function resolveExcalidrawExportFile(name, assetsDir, prefix) {
   return `${base}.svg`;
 }
 
-// Place a project's embedded assets under a folder mirroring the content file's
-// location, e.g. src/content/projects/stage-mixer.md -> images/projects/stage-mixer/.
+// Group a content file's embedded assets under a folder named for its slug,
+// e.g. src/content/projects/stage-mixer.md -> assets/stage-mixer/.
 /**
  * Derive the image subfolder that belongs to the current markdown file.
  *
- * Mirroring content paths keeps assets for each project/page grouped together
- * under `public/images/` without authors having to write those folders in embeds.
+ * Grouping by slug keeps each project/page's assets together under
+ * `public/assets/` without authors having to write those folders in embeds.
  */
 function assetFolderForContentFile(contentRoot, filePath) {
   if (!contentRoot || !filePath) {
@@ -326,7 +326,7 @@ function assetFolderForContentFile(contentRoot, filePath) {
     return '';
   }
 
-  return relativePath.replace(/\.[^./\\]+$/, '').split(/[\\/]/).join('/');
+  return basename(filePath).replace(/\.[^.]+$/, '');
 }
 
 /** Join a content-derived asset prefix with a filename, avoiding a leading slash. */
