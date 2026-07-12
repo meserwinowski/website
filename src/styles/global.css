@@ -97,14 +97,46 @@
   --color-bg: #ebe8df;
   --color-surface: #dedad0;
   --color-border: #c8c2b8;
-  --color-text: #505055;
+  /* Near-black ink on warm paper (Blueyard-style) — the old mid-gray read as
+     washed out. ~9:1 on the sandy bg keeps body copy crisp and legible. */
+  --color-text: #3a3a40;
   --color-muted: #71717a;
-  --color-accent: #2563eb;
-  --color-accent-hover: #1d4ed8;
+  /* Burnt orange sampled from the quilted-maple guitar. Brown is just a
+     desaturated orange, so we push saturation to the max and let the value sit
+     dark enough to clear WCAG AA (4.5:1 on the bg) — vivid *and* readable. */
+  --color-accent: #b24700;
+  --color-accent-hover: #8f3800;
 
-  --color-toc-1: #2563eb;
-  --color-toc-2: #3a3a3e;
+  /* ToC levels descend the guitar's amber → brown → muted gray gradient. */
+  --color-toc-1: #b24700;
+  --color-toc-2: #6e4724;
   --color-toc-3: #71717a;
+}
+
+/* --------------------------------------------------------------------------
+   Project status badges (light-theme legibility)
+   --------------------------------------------------------------------------
+   ProjectCard/ProjectMeta render the badge with Tailwind color utilities tuned
+   for the dark theme; on the sandy light background their light `-400` text
+   washes out. These overrides keep the same semantic hues but swap in deeper
+   text plus a firmer tint so each status stays readable. Dark theme is
+   untouched — the utility classes still win there.
+*/
+[data-theme="light"] .status-badge[data-status="completed"] {
+  background: color-mix(in srgb, #15803d 16%, var(--color-surface));
+  color: #136c42;
+}
+[data-theme="light"] .status-badge[data-status="ongoing"] {
+  background: color-mix(in srgb, #1d6fd6 16%, var(--color-surface));
+  color: #175aad;
+}
+[data-theme="light"] .status-badge[data-status="planning"] {
+  background: color-mix(in srgb, #a16207 18%, var(--color-surface));
+  color: #845009;
+}
+[data-theme="light"] .status-badge[data-status="draft"] {
+  background: color-mix(in srgb, #6d28d9 16%, var(--color-surface));
+  color: #6d28d9;
 }
 
 /* --------------------------------------------------------------------------
