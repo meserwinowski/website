@@ -147,13 +147,11 @@ TODO
 
 ---
 
-## Development
-
 ## Deployment
 
-My entire deployment setup is pretty modern while also committing (pun intended) the cardinal sin of pushing directly to prod.
+My entire deployment setup is pretty modern (I think?) while also committing (pun intended) the cardinal sin of pushing directly to prod.
 
-What I've done is scripted some automation that links the following pieces together:
+What I've done is vibe-scripted some automation that links the following pieces together:
 1) Obsidian
 2) My local `website` repository
 3) My remote `website` repository + GitHub Actions
@@ -161,15 +159,79 @@ What I've done is scripted some automation that links the following pieces toget
 
 ### Obsidian
 
+All the text for this website is written in [Markdown](https://en.wikipedia.org/wiki/Markdown).
 
+In recent months I have [migrated all of my notes and writing to Markdown for use in Obsidian](https://obsidian.md/). Obsidian's interface is very clean, extendable, and configurable. I cannot sing its praises enough.
+
+I have a directory that contains all of the writing and assets for this website. All I have to do is create a new project note, give it the right frontmatter, write the article, and upload any media to the `assets` subdirectory in the vault.
+
+Because my Obsidian vault is synced across all of my devices, I can work on website material whenever I feel like it. Works great on my Windows devices, my MacBook, and my iPhone. Markdown syntax is super simple too so I don't have to fiddle with all of the tools like most editors.
 
 ### Local Repo
 
+#### Synchronization
+To get my Obsidian articles and assets into the actual website I have a bunch of `.mjs`, `.sh`, and `.ps1` scripts that pull binaries from the Obsidian vault, do some cleaning / conversion, and then put them in the expected paths in the repository. Next, there are scripts and infrastructure for local and remote deployment.
+
+Since I am using Astro and `npm` I have my `package.json` configured to create define execution aliases that make deployment super easy.
+
+First I run `npm run sync` which is what synchronizes the content in the Obsidian vault to my local repo.
+- It does this by kicking off a `.mjs` wrapper script that determines if we are on Windows or macOS / Linux, and which scripts to kick off (`sync-content.sh` / `sync-content.ps1`).
+- Once we chose our platform, the script pulls in `deploy.env` which has all of the relevant local paths/credentials and even the Spotify API URL. You can see details in `deploy.env.example` which is what is pushed to the public repository.
+- The article markdowns are copied from `VAULT_SUBPATH` and any SVGs from `EXCALIDRAW_SUBPATH`, and put into the local repository paths.
+- Another script is then called: `sync-obsidian-assets.mjs`. This script copies over media, which is a much heavier lift. It has logic to check if we have already sync'd an image, so we don't needlessly copy it every time.
+- Next ANOTHER script is called: `strip-image-metadata.mjs`. This script removes metadata from images (so y'all can't data mine my pictures...), and converts the annoying Apple HEIC images into WebP for performance / compatibility reasons.
+
+And now the repository is in sync with the Obsidian version of the project. This is a one way synchronization, so nothing goes into the vault.
+
+#### Local Deploy
+At the very beginning I did not have an established workflow or enough experience to start with good footing. I wanted to stand up something I could look at as soon as I could.
+
+Given the web server was running on my NAS, but my development was on my MacBook or Windows desktop, I had to script a bridge between the two for local deployment.
 
 ### GitHub Actions
 
 
-## Back to the Host
+### Back to the Host
+
+## Development
+
+### Preamble
+I originally had this as the third main section, but decided it would make more sense to talk about last.
+
+I'm not a web developer - I had a very basic understanding of what went into a website at the start of this project.
+
+> [!info]- Now I did have a slight edge
+> I had a bunch of experience working on the [Windows' Settings app](https://en.wikipedia.org/wiki/Settings_(Windows)) during my Microsoft tenure. Because the Settings app has an [MVVM architecture](https://en.wikipedia.org/wiki/Model%E2%80%93view%E2%80%93viewmodel), I was exposed to some conceptual things around front-end, back-end, Views, Models, frameworks, etc. These concepts made the web jump a lot easier than I think it would have been otherwise.
+
+And of course this website is pretty much [completely vibe coded.](https://en.wikipedia.org/wiki/Vibe_coding)
+
+Though I think I prefer the term [agentic engineering](https://simonwillison.net/guides/agentic-engineering-patterns/what-is-agentic-engineering/). The rest of this article will be details about practices and design patterns I experimented with for this website.
+
+### Getting Started
+
+#### Research
+
+#### Documentation
+
+#### Tests
+
+### Program Manager Vibes
+
+#### Colors
+
+#### Feel
+
+#### Bug Fixes
+
+### Help Me Understand
+
+#### Comments
+
+### Copycat
+
+#### LLMs Can See
+
+
 
 ---
 

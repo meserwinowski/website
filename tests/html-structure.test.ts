@@ -243,7 +243,9 @@ describe('Projects page - content collection', () => {
   });
 
   it('displays status badges', () => {
-    expect(projectsHtml).toContain('Ongoing');
+    // Assert a published-status badge renders, not a specific label — the status
+    // is vault-driven and flips between ongoing/completed over a project's life.
+    expect(projectsHtml).toMatch(/class="[^"]*status-badge[^"]*"\s+data-status="(completed|ongoing)"/);
   });
 
   it('displays tags', () => {

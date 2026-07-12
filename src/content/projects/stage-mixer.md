@@ -1,7 +1,7 @@
 ---
 title: Is a Stage Mixer Punk Rock?
 description: Building and using a mixer rig for live music performance.
-status: ongoing
+status: completed
 tags:
   - hardware
   - music
@@ -20,7 +20,7 @@ If you've ever wondered what's in the black boxes that musicians tour around wit
 - Mixers / Consoles
 - All the wires and other miscellaneous items to pull everything together
 
-Of all the audio engineering topics I have read about I think **stage mixers** have been discussed the least.
+Of all the audio engineering topics I have read about I think **stage mixers** have been one of the least discussed.
 
 ---
 # What is a stage mixer?
