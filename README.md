@@ -89,7 +89,7 @@ Content lives in your Obsidian vault (set `VAULT_SUBPATH` in `deploy.env`):
 |--------------|-------------|---------|
 | `projects/` | `src/content/projects/` | Project markdown files (with frontmatter) |
 | `pages/` | `src/content/pages/` | Page content (home, about) |
-| Referenced image embeds | `public/assets/<slug>/` | Web-renderable assets referenced by Obsidian embeds, grouped per content-file slug |
+| Referenced image embeds & thumbnails | `public/assets/<slug>/` | Web-renderable assets referenced by Obsidian embeds (and frontmatter thumbnails), pulled from the vault and grouped per content-file slug |
 
 Edit markdown in Obsidian → run `npm run deploy` to ship directly, **or** `npm run sync`,
 commit, and push to deploy via CI.
@@ -102,12 +102,18 @@ whole vault `images/` folder is **not** mirrored, so unreferenced files stay out
 of the site. Each embed is placed in a folder named for its content file's slug,
 so a project's assets all live together (e.g. embeds in
 `src/content/projects/stage-mixer.md` land in `public/assets/stage-mixer/`).
+A project's frontmatter `thumbnail` is pulled the same way: a site-local
+`/assets/...` thumbnail is resolved against the vault and copied to exactly that
+path, so you can point a card at a vault image without also embedding it in the
+body (external URLs and legacy `/images/...` paths are left untouched).
 Raw `.excalidraw` drawing files are intentionally not published. `.heic`/`.heif`
 photos (e.g. straight from an iPhone) are converted to `.webp` during sync —
 browsers can't render HEIC — and the embeds are rewritten to point at the `.webp`
-result. During that step photos are also auto-oriented (EXIF rotation is baked in,
-so portrait shots don't render sideways), resized down to a 1600px longest edge,
-and stripped of EXIF/GPS metadata. Assets whose published output is already newer
+result. During that step **every** raster image is auto-oriented (EXIF rotation is
+baked in, so portrait shots don't render sideways), downscaled to a 2048px longest
+edge if larger (full-resolution WebP/JPEG exported straight from the vault included,
+not just HEIC), re-encoded to match its file extension (repairing a mislabeled file
+such as PNG bytes saved as `.webp`), and stripped of EXIF/GPS metadata. Assets whose published output is already newer
 than the vault source are skipped, so re-syncing is fast and only new or changed
 images are re-copied/reconverted. The sync searches the website content folder and an optional shared
 Excalidraw export folder (`EXCALIDRAW_SUBPATH` in `deploy.env`), so Excalidraw
@@ -289,7 +295,7 @@ repo: "https://github.com/..."  # optional
 Your markdown content here...
 ```
 
-Only `completed` and `ongoing` projects are shown publicly. A project's `thumbnail` is any path served from `public/`. The convention is to point it at an image in that project's per-slug asset folder — `/assets/<slug>/<file>` — so it can reuse a photo already synced from the vault via an `![[...]]` embed (e.g. `stage-mixer.md` uses `/assets/stage-mixer/matt-vb-show.webp`). You can also commit a standalone image (such as an `.svg`) directly under `public/assets/` and reference it as `/assets/<name>.svg`. Embedded images referenced with `![[...]]` are published under the same per-slug folder, so a project's thumbnail and body images live together.
+Only `completed` and `ongoing` projects are shown publicly. A project's `thumbnail` is any path served from `public/`. The convention is to point it at a site-local `/assets/...` path — either an image in that project's per-slug asset folder (`/assets/<slug>/<file>`, reusing a photo already synced via an `![[...]]` embed, e.g. `stage-mixer.md` uses `/assets/stage-mixer/matt-vb-show.webp`) or a standalone image at the assets root (`/assets/<name>.png`). Either way the sync **pulls the referenced file from the vault to that exact path** — resolving it by name and downscaling/optimizing it like any other asset — so the thumbnail no longer has to also be embedded in the body or hand-committed. Embedded images referenced with `![[...]]` are published under the same per-slug folder, so a project's thumbnail and body images live together.
 
 ## Project Structure
 
@@ -316,8 +322,8 @@ Only `completed` and `ongoing` projects are shown publicly. A project's `thumbna
 | `package.json` | Dependencies and npm scripts |
 | `nginx/default.conf` | nginx config (AI/scraper UA blocking + rate limiting); rsynced to the NAS by `deploy.sh` |
 | `scripts/run-local-script.mjs` | Cross-platform npm dispatcher that chooses PowerShell on Windows and Bash elsewhere |
-| `scripts/sync-obsidian-assets.mjs` | Copies only web-renderable assets referenced by Obsidian embeds into per-slug folders under `public/assets/`; uses a manifest to clean up stale files |
-| `scripts/strip-image-metadata.mjs` | Strips EXIF/GPS metadata from raster images in `public/assets/`, auto-orients them (baking in EXIF rotation), resizes down to a 1600px longest edge, and converts `.heic`/`.heif` to `.webp` (via `sips` on macOS, since sharp can't decode HEIC) so the photos render fast in browsers |
+| `scripts/sync-obsidian-assets.mjs` | Copies web-renderable assets referenced by Obsidian embeds **and frontmatter thumbnails** from the vault into per-slug folders under `public/assets/`; uses a manifest to clean up stale files |
+| `scripts/strip-image-metadata.mjs` | Strips EXIF/GPS metadata from raster images in `public/assets/`, auto-orients them (baking in EXIF rotation), downscales any image over a 2048px longest edge, re-encodes each to match its file extension (repairing mislabeled formats), and converts `.heic`/`.heif` to `.webp` (via `sips` on macOS, since sharp can't decode HEIC) so the photos render fast in browsers |
 | `scripts/sync-content.sh` / `scripts/sync-content.ps1` | Pull markdown content from the Obsidian vault |
 | `scripts/spotify-refresh-token.mjs` | One-time OAuth helper that mints the Spotify refresh token for the widgets' Worker (scopes: currently-playing, recently-played, library-read) |
 | `scripts/deploy.sh` / `scripts/deploy.ps1` | Sync + build + rsync deployment scripts |

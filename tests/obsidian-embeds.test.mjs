@@ -345,4 +345,74 @@ describe('Obsidian asset sync', () => {
       rmSync(root, { recursive: true, force: true });
     }
   });
+
+  it('pulls a frontmatter thumbnail from the vault to its authored path', () => {
+    const root = mkdtempSync(join(tmpdir(), 'obsidian-thumbnail-'));
+    const vaultDir = join(root, 'vault');
+    const contentDir = join(root, 'content');
+    const projectsDir = join(contentDir, 'projects');
+    const assetsDir = join(root, 'public', 'obsidian-assets');
+
+    try {
+      // The thumbnail lives in a nested vault folder and is referenced only from
+      // frontmatter (no body embed), so the old embed-only sync would miss it.
+      mkdirSync(join(vaultDir, 'projects', 'assets', 'demo'), { recursive: true });
+      mkdirSync(projectsDir, { recursive: true });
+
+      writeFileSync(join(vaultDir, 'projects', 'assets', 'demo', 'cover.png'), 'png-bytes', { flag: 'wx' });
+      writeFileSync(
+        join(projectsDir, 'demo.md'),
+        ['---', 'title: Demo', 'thumbnail: /assets/cover.png', '---', '', 'No embeds here.'].join('\n'),
+        { flag: 'wx' },
+      );
+
+      const result = syncObsidianAssets({
+        vaultDir,
+        contentDirs: [projectsDir],
+        contentRoot: contentDir,
+        assetsDir,
+      });
+
+      expect(result.missing).toEqual([]);
+      // The file lands at exactly the authored URL (assets root, not a slug folder)
+      // so `/assets/cover.png` resolves in the browser.
+      expect(result.synced).toContain('cover.png');
+      expect(existsSync(join(assetsDir, 'cover.png'))).toBe(true);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('does not duplicate an asset referenced as both an embed and a thumbnail', () => {
+    const root = mkdtempSync(join(tmpdir(), 'obsidian-thumb-embed-'));
+    const vaultDir = join(root, 'vault');
+    const contentDir = join(root, 'content');
+    const projectsDir = join(contentDir, 'projects');
+    const assetsDir = join(root, 'public', 'obsidian-assets');
+
+    try {
+      mkdirSync(vaultDir, { recursive: true });
+      mkdirSync(projectsDir, { recursive: true });
+
+      writeFileSync(join(vaultDir, 'hero.jpg'), 'jpg', { flag: 'wx' });
+      writeFileSync(
+        join(projectsDir, 'stage-mixer.md'),
+        ['---', 'thumbnail: /assets/stage-mixer/hero.jpg', '---', '', '![[hero.jpg]]'].join('\n'),
+        { flag: 'wx' },
+      );
+
+      const result = syncObsidianAssets({
+        vaultDir,
+        contentDirs: [projectsDir],
+        contentRoot: contentDir,
+        assetsDir,
+      });
+
+      // Same published file from two references: copied once, listed once.
+      expect(result.synced.filter((p) => p === 'stage-mixer/hero.jpg')).toHaveLength(1);
+      expect(existsSync(join(assetsDir, 'stage-mixer', 'hero.jpg'))).toBe(true);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
 });

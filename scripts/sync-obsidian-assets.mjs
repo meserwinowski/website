@@ -2,14 +2,16 @@
  * sync-obsidian-assets.mjs — Copy only the Obsidian images this site embeds.
  *
  * Markdown content is synced from the vault into `src/content/`, but image
- * embeds still point at Obsidian-style targets such as `![[photo.heic]]`. This
- * script reads the generated markdown, finds those embed targets, resolves them
- * back to files in the vault, and copies the publishable assets into
- * `public/assets/` using a stable folder layout named for each content file.
+ * references still point at Obsidian-style targets such as `![[photo.heic]]` in
+ * the body, and site-absolute URLs such as `/assets/cover.png` in a page's
+ * `thumbnail` frontmatter. This script reads the generated markdown, finds both
+ * kinds of reference, resolves them back to files in the vault, and copies the
+ * publishable assets into `public/assets/` using a stable folder layout named
+ * for each content file.
  *
  * Project rationale:
  *  - The site should not publish the entire vault image library — only images
- *    referenced by public pages.
+ *    referenced by public pages (embeds and thumbnails alike).
  *  - HEIC/HEIF files are copied as source inputs but tracked as `.webp` outputs;
  *    `strip-image-metadata.mjs` performs the actual web-friendly conversion.
  *  - A manifest lets future syncs delete embeds that disappeared from markdown.
@@ -69,7 +71,70 @@ export function extractEmbedTargets(markdown) {
 }
 
 /**
- * Sync Obsidian embed assets into the website's public image directory.
+ * Extract the `thumbnail` value from a content file's YAML frontmatter.
+ *
+ * Thumbnails are authored as site-absolute URLs (e.g. `/assets/cover.png`)
+ * rather than Obsidian `![[...]]` embeds, so they need their own lightweight
+ * extraction. Only the leading `---` frontmatter block is inspected, and a
+ * simple single-line scalar value (optionally quoted) is supported — which is
+ * all the content schema allows for this field.
+ *
+ * @param {string} markdown Raw markdown content from a synced content file.
+ * @returns {string|null} The raw thumbnail value, or null when absent.
+ */
+export function extractThumbnail(markdown) {
+  const frontmatter = /^---\r?\n([\s\S]*?)\r?\n---/.exec(markdown);
+
+  if (!frontmatter) {
+    return null;
+  }
+
+  const line = /^thumbnail:[ \t]*(.+?)[ \t]*$/m.exec(frontmatter[1]);
+
+  if (!line) {
+    return null;
+  }
+
+  const value = line[1].trim().replace(/^["']|["']$/g, '');
+  return value || null;
+}
+
+/**
+ * Turn a frontmatter thumbnail value into a syncable asset reference.
+ *
+ * Only site-local `/assets/...` thumbnails are pulled from the vault: the path
+ * the author wrote is the published URL, so the file must land at exactly that
+ * location. Any authored subfolder becomes the asset prefix and the remainder
+ * resolves against the vault by name, reusing the same copy/convert pipeline as
+ * embeds. External URLs and non-`/assets` paths (e.g. legacy `/images/...`) are
+ * intentionally left untouched.
+ *
+ * @param {string|null} thumbnail Raw frontmatter thumbnail value.
+ * @returns {{prefix: string, target: string}|null}
+ */
+export function thumbnailReference(thumbnail) {
+  const assetsPrefix = '/assets/';
+
+  if (!thumbnail || !thumbnail.startsWith(assetsPrefix)) {
+    return null;
+  }
+
+  const assetRelative = normalizeEmbedTarget(thumbnail.slice(assetsPrefix.length));
+
+  if (!assetRelative) {
+    return null;
+  }
+
+  const folder = dirname(assetRelative);
+
+  return {
+    prefix: folder === '.' ? '' : folder,
+    target: assetRelative,
+  };
+}
+
+/**
+ * Sync Obsidian embed and thumbnail assets into the website's public image directory.
  *
  * The function is exported so tests and other scripts can pass custom roots.
  * Defaults point at the real repo/vault layout used by `npm run sync`.
@@ -98,9 +163,20 @@ export function syncObsidianAssets({
 
   for (const filePath of markdownFiles) {
     const prefix = assetFolderForContentFile(contentRoot, filePath);
+    const markdown = readFileSync(filePath, 'utf-8');
 
-    for (const target of extractEmbedTargets(readFileSync(filePath, 'utf-8'))) {
+    for (const target of extractEmbedTargets(markdown)) {
       references.set(`${prefix}\u0000${target}`, { prefix, target });
+    }
+
+    // A frontmatter thumbnail is a published URL, not an embed, but it still has
+    // to be pulled from the vault or the project card's image 404s. Resolve it
+    // through the same machinery so it is copied, downscaled by the metadata
+    // step, and tracked in the manifest for stale cleanup.
+    const thumbnail = thumbnailReference(extractThumbnail(markdown));
+
+    if (thumbnail) {
+      references.set(`${thumbnail.prefix}\u0000${thumbnail.target}`, thumbnail);
     }
   }
 
@@ -147,11 +223,15 @@ export function syncObsidianAssets({
     copied += 1;
   }
 
+  // A thumbnail and a body embed can resolve to the same published file, so
+  // dedupe before writing the manifest and computing stale-cleanup membership.
+  const uniqueSynced = [...new Set(syncedPaths)];
+
   // Write manifest so future syncs can clean up stale embed files
-  writeFileSync(manifestPath, JSON.stringify(syncedPaths.sort(), null, 2) + '\n');
+  writeFileSync(manifestPath, JSON.stringify(uniqueSynced.sort(), null, 2) + '\n');
 
   // Remove embed files from previous sync that are no longer referenced
-  const currentSet = new Set(syncedPaths);
+  const currentSet = new Set(uniqueSynced);
   let staleRemoved = 0;
 
   for (const oldPath of previousEmbedFiles) {
@@ -184,7 +264,7 @@ export function syncObsidianAssets({
     upToDate,
     missing,
     staleRemoved,
-    synced: syncedPaths,
+    synced: uniqueSynced,
     targets: [...references.values()].map(({ target }) => target),
     assetsDir,
     searchDirs,
