@@ -5,7 +5,7 @@ status: draft
 tags:
   - software
   - website
-thumbnail: /assets/about-page.png
+thumbnail: /assets/personal-website-1/about-page.png
 date: 2026-06-07
 repo: https://github.com/meserwinowski/website
 ---
