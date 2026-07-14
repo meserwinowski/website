@@ -168,11 +168,10 @@ When the gateway receives a request it now knows where to forward that request t
 ### NAS
 Besides hosting the web server there were a couple of additional configurations I needed to make. More details on the NAS in the dedicated home lab post (TODO).
 
-#### Reverse Proxy
-Reverse proxies honestly took me a minute to wrap my head around, but once it clicked a lot of things about the web made much more sense.
+The NAS should be receiving  [HTTP](https://en.wikipedia.org/wiki/HTTP) and [HTTPS](https://en.wikipedia.org/wiki/HTTPS) requests from the gateway, and as the web server host the NAS needs to figure out how to respond to them.
 
 #### Let’s Encrypt
-So while I understood the conceptual difference between [HTTP](https://en.wikipedia.org/wiki/HTTP) and [HTTPS](https://en.wikipedia.org/wiki/HTTPS), I did not understand how a website actually knew which one to use until this project.
+So while I understood the conceptual difference between HTTP and HTTPS I did not understand how a website actually knew which one to use until this project.
 
 The key thing’s I learned:
 - HTTPS and HTTP are serviced over [different standardized ports](https://en.wikipedia.org/wiki/List_of_TCP_and_UDP_port_numbers#Well-known_ports)
@@ -187,6 +186,13 @@ I also configured CloudFlare to automatically try and route HTTP to an HTTPS con
 A critical feature to get right when exposing your systems to the internet.
 
 The DSM interface was a little confusing, but once I had a sense of the flow it was easy to only expose the ports and IP ranges that I needed to allow my website and my containers to function.
+
+#### Reverse Proxy
+Reverse proxies honestly took me a minute to wrap my head around, but once it clicked a lot of things about the web made much more sense.
+
+This proxy, internal to the NAS, can direct HTTPS traffic (port 443) to the correct internal port using the domain as a map key. It is critical for me in exposed my web site on my domain, but also my personal services like Plex and Synology DSM itself.
+
+The reverse proxy also supports these access profiles which seem to be Access Control Lists (ACLs) for IP ranges/addresses. [CIDR](https://en.wikipedia.org/wiki/Classless_Inter-Domain_Routing) bit masking for sub nets has now also become a lot clearer for me between this and configuring the firewall.
 
 ### Visual
 Here is a fun graph of the network route that should help mentally map the sections mentioned above. Its a simplification, but accurate to my current knowledge:
@@ -380,12 +386,12 @@ I originally had this as the third main section, but decided it would make more 
 
 I'm not a web developer - I had a very basic understanding of what went into a website at the start of this project.
 
-> [!info]- Now I did have a slight edge
-> I had a bunch of experience working on the [Windows' Settings app](https://en.wikipedia.org/wiki/Settings_(Windows)) during my Microsoft tenure. Because the Settings app has an [MVVM architecture](https://en.wikipedia.org/wiki/Model%E2%80%93view%E2%80%93viewmodel), I was exposed to some conceptual things around front-end, back-end, views, models, frameworks, etc. These concepts made the web jump a lot easier than I think it would have been otherwise.
-
 And of course this website is pretty much [completely vibe coded.](https://en.wikipedia.org/wiki/Vibe_coding)
 
 Though I think I prefer the term [agentic engineering](https://simonwillison.net/guides/agentic-engineering-patterns/what-is-agentic-engineering/). The rest of this article will be details about practices and design patterns I experimented with for this website.
+
+> [!info]- Now I did have a slight edge
+> I had a bunch of experience working on the [Windows' Settings app](https://en.wikipedia.org/wiki/Settings_(Windows)) during my Microsoft tenure. Because the Settings app has an [MVVM architecture](https://en.wikipedia.org/wiki/Model%E2%80%93view%E2%80%93viewmodel), I was exposed to some conceptual things around front-end, back-end, views, models, frameworks, etc. These concepts made the web jump a lot easier than I think it would have been otherwise.
 
 ### Getting Started
 
@@ -411,7 +417,13 @@ Though I think I prefer the term [agentic engineering](https://simonwillison.net
 
 #### LLMs Can See
 
+# Final Thoughts
 
+Wow, what a great project. I learned a ton doing this and feel pretty good about the results. Its been a long time since I've been obsessed with a software project. If you do home lab stuff and are even a little interested I highly recommend doing something similar.
+
+The followup to this article will focus more on specific things I encountered around using LLMs to build the website.
+
+Thanks for reading!
 
 ---
 
