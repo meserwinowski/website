@@ -102,10 +102,12 @@ if (Test-Path $VaultPages) {
 
 # --- Embedded images ---
 # Embedded images and Excalidraw exports are published per-project by
-# sync-obsidian-assets.mjs (only assets referenced via ![[...]] embeds are
-# copied, grouped under public/assets/<slug>/). HEIC/HEIF embeds are then
-# converted to WebP by strip-image-metadata.mjs. We intentionally don't mirror
-# the whole vault images/ folder, so unreferenced assets stay out of public/.
+# sync-obsidian-assets.mjs (assets referenced via ![[...]] embeds are copied and
+# grouped under public/assets/<slug>/; frontmatter thumbnails like
+# /assets/cover.png are also pulled from the vault to their authored path).
+# HEIC/HEIF embeds are then converted to WebP and oversized photos are downscaled
+# by strip-image-metadata.mjs. We intentionally don't mirror the whole vault
+# images/ folder, so unreferenced assets stay out of public/.
 # These Node scripts inherit VAULT_DIR/EXCALIDRAW_SUBPATH from $env: above.
 node .\scripts\sync-obsidian-assets.mjs
 node .\scripts\strip-image-metadata.mjs
