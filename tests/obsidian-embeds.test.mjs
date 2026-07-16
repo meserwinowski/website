@@ -191,6 +191,89 @@ describe('Obsidian embed rendering', () => {
     expect(second).toContain('loading="lazy"');
     expect(second).not.toContain('fetchpriority');
   });
+
+  it('resolves a standalone markdown image and uses its text as a tooltip', async () => {
+    // `![hello](about-page.png)` renders in Obsidian by resolving the bare path
+    // against the vault's attachments; the plugin maps it to the synced asset and
+    // promotes the bracket text to the hover tooltip (title attribute).
+    const tree = {
+      type: 'root',
+      children: [
+        {
+          type: 'paragraph',
+          children: [{ type: 'image', url: 'about-page.png', alt: 'hello', title: null }],
+        },
+      ],
+    };
+
+    await remarkObsidianEmbeds({ contentRoot })(tree, stageMixerFile);
+
+    expect(tree.children[0]).toEqual({
+      type: 'html',
+      value:
+        '<img src="/assets/stage-mixer/about-page.png" alt="hello" title="hello" loading="eager" fetchpriority="high" decoding="async" />',
+    });
+  });
+
+  it('prefers an explicit markdown title over the alt text for the tooltip', async () => {
+    const tree = {
+      type: 'root',
+      children: [
+        {
+          type: 'paragraph',
+          children: [{ type: 'image', url: 'diagram.png', alt: 'alt text', title: 'Hover me' }],
+        },
+      ],
+    };
+
+    await remarkObsidianEmbeds({ contentRoot })(tree, stageMixerFile);
+
+    expect(tree.children[0].value).toContain('alt="alt text"');
+    expect(tree.children[0].value).toContain('title="Hover me"');
+  });
+
+  it('leaves external markdown images untouched', async () => {
+    const externalImage = { type: 'image', url: 'https://example.com/a.png', alt: 'x', title: null };
+    const tree = {
+      type: 'root',
+      children: [{ type: 'paragraph', children: [externalImage] }],
+    };
+
+    await remarkObsidianEmbeds({ contentRoot })(tree, stageMixerFile);
+
+    // Still a plain image node pointing at the original URL — not rewritten to a
+    // local asset and not converted to a raw <img> HTML node.
+    expect(tree.children[0].type).toBe('paragraph');
+    expect(tree.children[0].children[0]).toMatchObject({ type: 'image', url: 'https://example.com/a.png' });
+  });
+
+  it('rewrites an inline markdown image mixed into prose', async () => {
+    const tree = {
+      type: 'root',
+      children: [
+        {
+          type: 'paragraph',
+          children: [
+            { type: 'text', value: 'before ' },
+            { type: 'image', url: 'inline-pic.png', alt: 'pic', title: null },
+            { type: 'text', value: ' after' },
+          ],
+        },
+      ],
+    };
+
+    await remarkObsidianEmbeds({ contentRoot })(tree, stageMixerFile);
+
+    // The paragraph is preserved (mixed content), but the image node's relative
+    // path is resolved and its tooltip is filled in from the bracket text.
+    expect(tree.children[0].type).toBe('paragraph');
+    expect(tree.children[0].children[1]).toMatchObject({
+      type: 'image',
+      url: '/assets/stage-mixer/inline-pic.png',
+      alt: 'pic',
+      title: 'pic',
+    });
+  });
 });
 
 describe('Obsidian asset sync', () => {

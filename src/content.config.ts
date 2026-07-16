@@ -29,7 +29,10 @@ const projects = defineCollection({
     // Coercion lets authors write normal YAML date strings while pages receive
     // real Date objects.
     date: z.coerce.date(),
-    repo: z.string().url().optional(),
+    // `nullish()` accepts an omitted value or an explicit `null` — draft notes
+    // created from the Website Project template carry an empty `repo:` field,
+    // which YAML parses as `null` rather than a URL string.
+    repo: z.string().url().nullish(),
   }),
 });
 
