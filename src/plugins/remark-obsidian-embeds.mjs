@@ -5,6 +5,13 @@
  * resolves vault-style `![[image]]` references against synced files in
  * `public/assets/`, rewrites browser-hostile formats to their WebP exports, and
  * adds dimensions plus a tiny LQIP blur-up placeholder for standalone images.
+ *
+ * It also resolves *standard* markdown images (`![text](image.png)`) the same
+ * way: Obsidian renders a bare relative path against the vault's attachments, so
+ * the plugin maps that filename onto the synced `public/assets/<slug>/` copy and
+ * treats the bracket text as the image's hover tooltip (the `title` attribute).
+ * Without this, Astro would try to resolve the path next to the markdown file and
+ * fail the build.
  */
 import { existsSync, readFileSync } from 'node:fs';
 import { basename, extname, isAbsolute, relative, resolve } from 'node:path';
@@ -75,9 +82,27 @@ async function transformChildren(parent, options) {
       continue;
     }
 
-    // Case 2: inline embed mixed into prose -> split text into text/image nodes.
+    // Case 2: paragraph that is *only* a standard markdown image
+    // (`![text](image.png)`) -> same optimized standalone <img> treatment as an
+    // embed once its relative path is resolved against the synced assets.
+    const blockImage = await parseBlockImage(child, options);
+
+    if (blockImage) {
+      nextChildren.push(blockImage);
+      continue;
+    }
+
+    // Case 3: inline embed mixed into prose -> split text into text/image nodes.
     if (child.type === 'text') {
       nextChildren.push(...splitTextNode(child, options));
+      continue;
+    }
+
+    // Case 4: inline standard markdown image -> rewrite its relative path to the
+    // resolved asset URL and carry the bracket text through as a hover tooltip.
+    if (child.type === 'image') {
+      rewriteInlineMarkdownImage(child, options);
+      nextChildren.push(child);
       continue;
     }
 
@@ -138,6 +163,113 @@ async function parseBlockEmbed(node, options) {
   return {
     type: 'html',
     value: renderImageHtml(image, { eager }),
+  };
+}
+
+/**
+ * Convert a paragraph containing only one standard markdown image into raw HTML.
+ *
+ * `![text](image.png)` parses to an mdast image node whose `url` is a bare
+ * relative path — Obsidian resolves that against the vault's attachments, so we
+ * resolve it against the synced `public/assets/<slug>/` copy and give it the same
+ * dimensions/blur-up/eager treatment standalone embeds receive. External or
+ * already-absolute images return `null` so they pass through unchanged.
+ */
+async function parseBlockImage(node, options) {
+  if (node.type !== 'paragraph' || node.children?.length !== 1 || node.children[0]?.type !== 'image') {
+    return null;
+  }
+
+  const image = resolveMarkdownImage(node.children[0], options);
+
+  if (!image) {
+    return null;
+  }
+
+  // Intrinsic dimensions + inline placeholder, mirroring parseBlockEmbed so both
+  // embed styles reserve layout space and blur up identically.
+  if (options.assetsDir && image.publicPath) {
+    const info = await readImageInfo(resolve(options.assetsDir, image.publicPath));
+
+    if (info) {
+      image.width = image.width ?? info.width;
+      image.height = image.height ?? info.height;
+      image.placeholder = info.placeholder;
+    }
+  }
+
+  const eager = !options.state?.firstImageEmitted;
+
+  if (options.state) {
+    options.state.firstImageEmitted = true;
+  }
+
+  return {
+    type: 'html',
+    value: renderImageHtml(image, { eager }),
+  };
+}
+
+/**
+ * Rewrite an inline markdown image node in place to point at the synced asset.
+ *
+ * Inline images keep their mdast node (no blur-up/eager treatment); we only swap
+ * the relative `url` for the resolved `/assets/...` URL and reflect the bracket
+ * text as the hover tooltip. Unresolvable targets are left untouched.
+ */
+function rewriteInlineMarkdownImage(node, options) {
+  const image = resolveMarkdownImage(node, options);
+
+  if (!image) {
+    return;
+  }
+
+  node.url = image.src;
+  node.alt = image.alt;
+
+  if (image.title) {
+    node.title = image.title;
+  }
+}
+
+/**
+ * Resolve a standard markdown image node against the synced vault assets.
+ *
+ * Only bare, relative targets are handled — external URLs, protocol-relative
+ * paths, and site-absolute (`/...`) or fragment (`#...`) hrefs are left alone so
+ * they keep working as authored. The bracket text becomes the accessible `alt`
+ * and, unless an explicit markdown title is supplied, the hover tooltip too.
+ */
+function resolveMarkdownImage(node, options) {
+  const rawUrl = typeof node.url === 'string' ? node.url.trim() : '';
+
+  if (!rawUrl || /^[a-z][a-z0-9+.-]*:/i.test(rawUrl) || rawUrl.startsWith('/') || rawUrl.startsWith('#')) {
+    return null;
+  }
+
+  const target = normalizeTarget(rawUrl);
+
+  if (!target) {
+    return null;
+  }
+
+  const asset = toAssetUrl(target, options);
+
+  if (!asset) {
+    return null;
+  }
+
+  const explicitAlt = typeof node.alt === 'string' ? node.alt.trim() : '';
+  const explicitTitle = typeof node.title === 'string' ? node.title.trim() : '';
+
+  return {
+    src: asset.url,
+    publicPath: asset.publicPath,
+    // Author-written alt is kept verbatim; only the filename fallback is cleaned.
+    alt: explicitAlt || cleanAltText(target),
+    // An explicit markdown title (`![alt](src "title")`) wins as the tooltip;
+    // otherwise the bracket text doubles as one, matching the Obsidian preview.
+    title: explicitTitle || explicitAlt || null,
   };
 }
 
@@ -371,6 +503,7 @@ function renderImageHtml(image, { eager = false } = {}) {
   const attributes = [
     ['src', image.src],
     ['alt', image.alt],
+    ['title', image.title],
     ['width', image.width],
     ['height', image.height],
     ['style', style],
