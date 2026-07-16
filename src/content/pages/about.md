@@ -26,9 +26,9 @@ Started snowboarding in 2022. Working on my 360 and hitting park features. My mo
 ### **Music**
 I've been playing guitar longer than anything else in my life outside of things like walking or using the internet. I've taught myself a ton, and have had some great teachers along the way.
 
-At the end of college I started to learn how to use a DAW to record and since then I've learned and worked through the entire process of writing, arranging, recording, preproduction, mixing, mastering, and publishing.
+At the end of college I started to learn how to use a DAW to record and since then I've learned how to work through the entire process of writing, arranging, recording, preproduction, mixing, mastering, and publishing.
 
-During the COVID pandemic I picked up bass, singing, and drum programming. Have gotten into synthesizers a bit more recently, but they are difficult. Most recently I was in the band [Violent Beauregarde](https://www.instagram.com/violent_beauregarde_/), but left to get more time to pursue other projects.
+During the COVID pandemic I picked up bass, singing, and drum programming. Have gotten into synthesizers a bit more recently, but they are difficult. Most recently I was in the band [Violent Beauregarde](https://www.instagram.com/violent_beauregarde_/).
 
 Current stack / Arsenal:
 - Schecter Omen 6 - Bareknuckle Nailbomb Pickups

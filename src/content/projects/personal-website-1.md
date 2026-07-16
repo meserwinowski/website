@@ -1,7 +1,7 @@
 ---
 title: The Self-Hosters Guide to Vibe Coding a Website
 description: On the technical details of this website
-status: draft
+status: ongoing
 tags:
   - software
   - website
@@ -16,8 +16,6 @@ Six months ago I would not have attempted to build this website.
 For all the flak that AI tools have been getting, I don't really agree with the criticisms of their use in software. The latest tool's abilities to script and develop [greenfield projects](https://en.wikipedia.org/wiki/Greenfield_project) is nothing short of amazing.
 
 I figured a website would be an excellent project to experiment with the available tools and compute at my disposal.
-
-In this article I‘ll walk through the path I took for creating this website, and enumerate my AI tool usage with the hopes of inspiring others to integrate them into their own workflows.
 
 > [!warning]- *Disclaimer*
 > Views, statements, and opinions expressed here are solely my own and do not reflect any positions or policies of Microsoft.
@@ -53,20 +51,32 @@ I neglected to actually track this, but I can definitely say its in the 10,000 t
 
 That said, my preference for framing costs is in *time*. If I think about how much time I would have spent learning, searching resources / documentation, and writing code I would be massively over that $500.
 
+I ran with Opus 4.6 and Opus 4.8 for most of this project, with GPT 5.5 as a rubber ducky. I did an unrigorous study tried out a couple of smaller models and Copilot's `Auto` mode on some simple problems and I was **not** very impressed with the results.
+
 ---
 
 ## Design
 
 The original intent of the site was to be a dual portfolio where I could showcase music and engineering projects. I'm not a well versed UI / UX designer, so my design sense has been in large part cherry picking things I liked from other similar websites.
 
+### Minimal Requirements
+The site should:
+- Be able to host text, images, and video.
+- Ingest markdown and support hyperlinks.
+- Be self-hosted and portable.
+- Not be a massive expense.
+
+From a layout perspective I just wanted a `Projects` directory page, an `About` page, and some buttons to link to my social media, LinkedIn, GitHub, etc.
+
 ### Ideals
-When imaging my ideal personal site, here are some descriptors I was drawn towards:
+When imaging my ideal personal site, here are some principles I was drawn towards:
 - Performant
 - Secure
 - Maintainable
 - Reliable
 - Aesthetic
 - Reflective
+
 #### Performant, Secure, Maintainable, and Reliable
 Clearly my analytical side speaking. I think these really don't need elaboration, but I'll be clear for completeness.
 - **Performant** - The website should be smooth. It should load quickly. Memory and execution footprints should be as small as possible.
@@ -78,16 +88,31 @@ For better or for worse, I have an overriding aesthetic sense that I try to fulf
 #### Reflective
 Not literally in the material sense, but reflective of who I am. Widgets that make the site more accessible and interesting. Creative elements to distinguish the site from others like it. Much of this reflective component is handled by the aesthetics and material published on the site.
 
-### Minimal Requirements
-The site should:
-- Be able to host text, images, and video.
-- Ingest markdown and support hyperlinks.
-- Be self-hosted and portable.
-- Not be a massive expense.
+### Widgets
+Every website needs a light / dark mode toggle. Its 2026, and it drives me nuts when a site or application does not support dark mode. This was the only widget I knew I needed to have. As the project evolved I added widgets I started to notice on other websites. They definitely bring a static site to life!
 
-From a layout perspective I just wanted a `Projects` directory page, an `About` page, and some buttons to link to my social media, LinkedIn, GitHub, etc.
+The widgets I added for version 1.0:
+- Light / Dark toggle button
+- ‘Back to Top’ button to bring you back to the top of the page
+- Reading progress bar at the top edge
+- The Spotify workers on the About page which pull my latest activity
 
+![hello](about-page.png)
 
+### Research
+Essentially all I knew going into this was that I was going to containerize the server, and I was going to be messing with JavaScript, CSS, and HTML.
+
+The first thing that became clear from trying to figure out what to do was that I was going to want a [static web page](https://en.wikipedia.org/wiki/Static_web_page). This is in contrast to a [dynamic web page](https://en.wikipedia.org/wiki/Dynamic_web_page), which admittedly is still intimidating.
+
+The second thing that became abundantly clear is that writing HTML is definitely not a thing people have done for quite some time. Instead [site generators](https://en.wikipedia.org/wiki/Static_web_page#Static_site_generators), or frameworks, are used to *compile* the HTML from a bunch of source binaries and content. Past conversations around Node/React/Next/Vue and other front end technologies have started to make a lot more sense.
+
+Now I needed to choose some frameworks.
+
+Focusing on runtime performance and development loop speed a quick web search suggested [Astro](https://astro.build/) and [Hugo](https://gohugo.io/) as my options for modern frameworks. I ended up choosing Astro, probably because of marketing copy.
+
+The third thing I had to decide was how build the site and to generate [CSS](https://en.wikipedia.org/wiki/CSS). [Tailwind](https://tailwindcss.com/docs/installation/using-vite) seems to be the most popular so I went with that. [Vite](https://vite.dev/) appeared to be the native build tool behind Astro and Tailwind, so I defaulted to that without looking at possible alternatives. For testing, [Vitest](https://vitest.dev/) followed from the Vite dependency.
+
+And finally `git` for source control.
 
 ---
 
@@ -98,7 +123,7 @@ My Network Attached Storage (NAS) unit is the current host of the website - it's
 
 Over the years I've developed a basic familiarity with Docker, and I've learned that a web server is a pretty good application to containerize. It helps keep configuration and deployment simple.
 
-For the web server I opted to go for [nginx](https://nginx.org/). I'm not a diehard open source software (OSS) guy (I've mained Windows my whole life), but small memory footprints and OSS fit my preferences.
+For the web server I opted to go for [nginx](https://nginx.org/). I'm not a diehard open source software (OSS) guy (I've mained Windows my whole life), but small memory footprints fit my preferences. Also its popular
 
 I'm using the `nginx:alpine` image provided via the Synology Container App, and then I have a `compose.yaml` I deploy from my OneDrive and use to spin up the container. The compose file is surprising straight forward: you configure a port, connect the paths for the website distribution files (`dist`) to the containers html, and the paths for the `.conf` configuration file.
 
@@ -158,12 +183,7 @@ Now that I have traffic resolving to my home network I had to get a bit more ser
 
 I'm using a Unifi Cloud Gateway as the router for my local network. Hate to fanboy, but I've been seriously impressed with Unifi equipment (price tag aside).
 
-[Intrusion Protection](https://help.ui.com/hc/en-us/articles/360006893234-UniFi-Gateway-Intrusion-Detection-and-Prevention-IDS-IPS) - Enabled
-Network -> Flow Control -> Enabled
-
-The only real thing I configured for the gateway was port forwarding so that HTTP/HTTPS worked correctly.
-
-When the gateway receives a request it now knows where to forward that request to my NAS.
+The only real thing I configured for the gateway was port forwarding so that HTTP / HTTPS worked correctly. When the gateway receives a request on my public IP it now knows to forward that request to my NAS.
 
 ### NAS
 Besides hosting the web server there were a couple of additional configurations I needed to make. More details on the NAS in the dedicated home lab post (TODO).
@@ -243,7 +263,9 @@ All the text for this website is written in [Markdown](https://en.wikipedia.org/
 
 In recent months I have [migrated all of my notes and writing to Markdown for use in Obsidian](https://obsidian.md/). Obsidian's interface is very clean, extendable, and configurable. I cannot sing its praises enough.
 
-I have a directory that contains all of the writing and assets for this website. All I have to do is create a new project note, give it the right frontmatter, write the article, and upload any media to the `assets` subdirectory in the vault.
+![[obsidian-view.png|600x400]]
+
+I have a directory that contains all of the writing and assets for this website. All I have to do is create a new project note, give it the right front matter, write the article, and upload any media to the `assets` subdirectory in the vault.
 
 Because my Obsidian vault is synced across all of my devices, I can work on website material whenever I feel like it. Works great on my Windows devices, my MacBook, and my iPhone. Markdown syntax is super simple too so I don't have to fiddle with all of the tools like most editors.
 
@@ -285,7 +307,7 @@ From my perspective, I'm just running `git push` and then my website updates in 
 #### `Deploy Website`
 GA is super easy to setup: you just drop a `.yml` file in `<repo>/.github/workflows` and GitHub will just pick and up.
 
-The Action dispatch uses `secrets` that were manually added to the remote repo when creating the runner. The most interesting as a fine grained OAuth token from my Tailscale network - this allows the GitHub runner to actually resolve the local hostname that my NAS uses as if the runner were on my local network.
+The Action dispatch uses `secrets` that were manually added to the remote repo when creating the runner. The most interesting detail to me is the fine grained OAuth token from my Tailscale network - this allows the GitHub runner to actually resolve the local hostname that my NAS uses as if the runner were on my local network.
 
 The deploy script I generated with Copilot is below.
 
@@ -395,69 +417,101 @@ Though I think I prefer the term [agentic engineering](https://simonwillison.net
 
 ### Getting Started
 
-#### Specification
+Standard `git init` to start the project. Using `gh` (GitHub CLI) to configure my remote repository. Link them together with `origin`. Using VS Code as my IDE. Setup my workspace.
 
-#### Documentation
+Now obviously where this deviates is that I wasn't intending to write any code. I've got two harnesses configured: 1) The Copilot chat window in VS Code and 2) Copilot CLI in one of my terminal tabs.
 
-#### Tests
+![[terminal-screenshot.png|600x400]]
 
-### Program Manager Vibes
+I've been particularly interested in new ways of thinking about software development. I don't want to get sidetracked, so I'll just say [this blog post](https://aicoding.leaflet.pub/3mjfruwwuck2d) has been on my mind in particular.
+
+#### Standup
+
+My first goal is to get some `localhost` version of the website spun up, and to evolve + learn a new development cycle along the way.
+
+So the first prompt is requesting Copilot to scaffold a project structure and a basic "Hello World" site using Astro. Unfortunately, I did not capture progress pictures as I was doing this, so my textual descriptions will have to suffice.
+
+> [!idea]- Here's an idea
+> Since the repository is public, maybe replaying the commit history would yield a visual history.
+
+Conveniently, Astro + Vite can spin up a development or `preview` server that let's me see how the website is progressing without having to worry about deployment. Copilot quickly turned these into nice `npm` aliases:
+
+`npm run dev` - build the static site, and Vite spins up something on the backend that hosts the server on my laptop. With realtime updates and debug tools!
+
+![[npm-run-dev.png|400x200]]
+
+`npm run preview` - does the same as dev, but exposes the development site to my local network so I could render and play with the site on my phone.
+
+#### Tests & Docs
+
+Asking for tests and documentations from the AI has been a pretty solid strategy so far. Early on I made sure that was a part of the development flow - Copilot quickly adapted and created instructions + memories that persisted across sessions. Every feature I added Copilot would automatically handle text execution, and it investigated any failures. Incredible really.
+
+For documentation I opted for just a `README.md` on this project. From this frame the site is definitely more vibe-coded than engineered. I didn't create any design or specification documents. I prompted design iteratively and solved problems as they arose. Documentation and tests have been really helpful for mitigating [drift](https://docs.aws.amazon.com/prescriptive-guidance/latest/gen-ai-lifecycle-operational-excellence/prod-monitoring-drift.html).
+
+Now I did make heavy use of the agent *Plan* mode so I could review any AI actions / intentions before I let the LLM loose. Allowing the agent to run on autopilot was only used after approving a set of changes.
+
+> [!info]- I did a trial run of an "external docs" pattern
+>  I kept design, TODO, and planning documents in my obsidian vault, and just symlink'd them into the repository. [Symbolic linking](https://en.wikipedia.org/wiki/Symbolic_link) made it a bit easier for me to mentally shift into design / planning and implementation mindsets. The initial impulse for this was to to keep all of these documents private, yet still publish the repository and keep them easily consumable by an agent. It also allows artifacts and learnings to persist beyond the project, within my own notes, for potential reuse in future projects.
+
+#### Content Synchronization
+
+Synchronizing and importing my Obsidian notes was one of the first systems I spun up. This is what I went over in the deployment section. TODO: weblink
+### Project Manager?
+
+Once I had the basic website going and ironed out major issues I felt my role pivot to being more of a project manager.
 
 #### Colors
 
+This was very fun - I essentially got to dial in the colors and themes of the website by just asking the LLM. Worked surprisingly well.
+
+The blue highlights on a dark mode is probably my favorite combination. The burnt orange for light mode was inspired by [one of my guitars](https://www.mattserwinowski.com/projects/stage-mixer/#final-thoughts).
+
+I put a bit of time into messing around with brightness and contrast to make sure the website was easy on the eyes.
+
 #### Feel
 
-#### Bug Fixes
+Navigating a website is so important. I really don't like some older sites that haven't upgraded and everything is very static or doesn't dynamically resize.
+
+I spent some time with the springy-ness of button clicks. On making sure the scrolling on mobile worked properly. Where things were placed. Golden ratios galore.
+
+I also really like the [Obsidian callouts](https://obsidian.md/help/callouts) so I instructed the AI to pretty much copy them verbatim.
 
 ### Help Me Understand
 
+One of my greatest worries with using AI is [deskilling](https://en.wikipedia.org/wiki/Deskilling) - I actually put in my global Copilot instructions that agents should be aware of this and communicate in ways that help me stay sharp.
+
+I'm definitely in the camp of people who believe that domain knowledge and system / code comprehension are the real bottlenecks.
+
+In my experience, project velocity is tied to how much you actually understand the system and how detailed your mental map of the codebase is. You will also burn less tokens if you can really specify what you need an agent to do, and guide it away from costly tools like [Playwright MCP](https://github.com/microsoft/playwright-mcp).
+
 #### Comments
+
+Asking the LLM to leave comments was helpful while perusing the code base. I also found that sometimes doc strings would be overly technical or repetitive. The [model will fixate on certain ideas or patterns in ways that remind me of dynamic attractors](https://en.wikipedia.org/wiki/Attractor). Still navigating that, but I haven't found a good solution.
 
 ### Copycat
 
+Doing is really the best way to learn. It also is the gateway to noticing. I've read a lot of blogs and I've been to many websites, but recently I've had a fresh set of eyes and little details and features have started to pop.
+
+Reading progress bar at the top was one. Spotify widget was one. Layouts. Whats in the headers and footers. Dynamic effects that respond to your mouse.
+
+My response has gone from "[thats pretty neat](https://youtu.be/Hm3JodBR-vs?t=57)", to "thats pretty neat, I wonder how it was implemented / I would guess its being done this way".
+
 #### LLMs Can See
+
+Nothing new here, but it really is incredible how well LLMs can handle visual modalities. I didn't initially intend to use Playwright MCP, but when debugging some visual issues the model requested I install it so it could:
+1) spin up the dev server
+2) navigate the website using playwright
+3) reproduce the issue I was seeing
+4) and then actually fix the issue, and verify it was fixed.
+
+---
 
 # Final Thoughts
 
 Wow, what a great project. I learned a ton doing this and feel pretty good about the results. Its been a long time since I've been obsessed with a software project. If you do home lab stuff and are even a little interested I highly recommend doing something similar.
 
+I have many more fun ideas for the site which I intend to work on sporadically. Its a very empowering experience to manage the site (almost) completely end to end.
+
 The followup to this article will focus more on specific things I encountered around using LLMs to build the website.
 
 Thanks for reading!
-
----
-
-The website is enabled by the following components:
-- Hardware
-  - Synology NAS
-  - Unifi Cloud Gateway
-- Virtualization
-  - Operating System - [Synology DiskStation Manager (DSM)](https://www.synology.com/en-global/dsm)
-  - Sandbox - Docker
-  - Webserver - nginx
-- Software
-  - Astro - JS Framework
-  - Tailwind - CSS
-  - Vite - Testing
-  - Git - Source Control
-  - GitHub Actions / rsync - CI/CD
-- Network
-  - Domain - Namecheap
-  - DNS Records - CloudFlare
-
-## Features
-
-- Dark/light theme toggle with localStorage persistence
-- Responsive design with mobile hamburger menu
-- Spring-easing micro-interactions on buttons and links
-- View Transitions with directional slide animations
-- Content collections for projects and (future) blog posts
-
-## What I Learned
-
-Building this site taught me the basics of HTML, CSS, static site generators, DNS configuration, reverse proxies, and deployment automation with rsync.
-
-```bash
-# Deploy with a single command
-npm run deploy
-```
