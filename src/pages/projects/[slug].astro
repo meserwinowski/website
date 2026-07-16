@@ -15,6 +15,7 @@
  * shared markdown pipeline.
  */
 import { getCollection, render } from 'astro:content';
+import HeadingPermalinks from '../../components/HeadingPermalinks.astro';
 import ProjectMeta from '../../components/ProjectMeta.astro';
 import TableOfContents from '../../components/TableOfContents.astro';
 import Layout from '../../layouts/Base.astro';
@@ -109,6 +110,9 @@ const readingTime = estimateReadingTime(project.body);
       <div class="prose">
         <Content />
       </div>
+
+      {/* Progressive enhancement: copy a section's URL to the clipboard when its heading permalink is clicked. */}
+      <HeadingPermalinks />
     </article>
 
     {/* Right gutter: sticky project spec sheet balances the ToC rail and keeps the reading column centered. */}

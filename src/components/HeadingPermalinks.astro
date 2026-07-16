@@ -1,0 +1,120 @@
+---
+/**
+ * HeadingPermalinks.astro — Copy-to-clipboard behavior for heading permalinks.
+ *
+ * The rehype-heading-permalinks plugin injects `<a data-heading-permalink>`
+ * anchors into rendered Markdown. Those anchors are real `#section` hash links so
+ * deep links and no-JS navigation keep working. This component is the progressive
+ * enhancement layered on top: a single delegated click handler copies the
+ * section's absolute URL to the clipboard and flashes a brief "Copied!"
+ * confirmation, instead of the anchor only jumping to the hash.
+ *
+ * The component renders no markup — it exists purely to ship the browser script
+ * alongside pages that render permalinked prose.
+ */
+---
+
+<script>
+  // How long the "Copied!" confirmation stays visible after a successful copy.
+  const copiedFeedbackMs = 1200;
+  // Per-anchor reset timers so rapid re-clicks don't leave stale confirmations.
+  const resetTimers = new WeakMap<HTMLElement, number>();
+
+  /**
+   * Write text to the clipboard, preferring the async Clipboard API.
+   *
+   * `navigator.clipboard` requires a secure context (https/localhost), which the
+   * LAN/Tailscale preview server (plain http) does not provide. The execCommand
+   * fallback keeps copy working there so the button behaves identically in every
+   * environment.
+   */
+  async function copyText(text: string): Promise<boolean> {
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+        return true;
+      }
+    } catch {
+      // Secure-context write failed (e.g. permission); fall through to legacy path.
+    }
+
+    try {
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.setAttribute('readonly', '');
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      const ok = document.execCommand('copy');
+      document.body.removeChild(textarea);
+      return ok;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Flash the "Copied!" confirmation on the clicked anchor.
+   *
+   * A `data-copied` attribute drives a CSS bubble (see prose.css). The timer is
+   * tracked per-anchor so clicking again restarts the confirmation cleanly.
+   */
+  function showCopiedFeedback(anchor: HTMLElement) {
+    anchor.setAttribute('data-copied', 'true');
+
+    const existing = resetTimers.get(anchor);
+    if (existing) {
+      window.clearTimeout(existing);
+    }
+
+    const timer = window.setTimeout(() => {
+      anchor.removeAttribute('data-copied');
+      resetTimers.delete(anchor);
+    }, copiedFeedbackMs);
+    resetTimers.set(anchor, timer);
+  }
+
+  /**
+   * Delegated handler: copy the section URL when a permalink is clicked.
+   *
+   * Progressive enhancement is preserved by ignoring modified/middle clicks, so
+   * command/control-click and other browser conventions still navigate normally.
+   */
+  async function handlePermalinkClick(event: MouseEvent) {
+    if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+      return;
+    }
+
+    const anchor = (event.target as Element | null)?.closest<HTMLAnchorElement>('a[data-heading-permalink]');
+    if (!anchor) {
+      return;
+    }
+
+    // Prevent the native hash jump: the reader already clicked the section's own
+    // icon, so copying the link (not scrolling) is the intended action.
+    event.preventDefault();
+    event.stopImmediatePropagation();
+
+    // Resolve the anchor's `#section` href against the current page to build the
+    // full shareable URL, and reflect it in the address bar for consistency.
+    const url = new URL(anchor.getAttribute('href') ?? '', window.location.href);
+    if (url.hash && window.location.hash !== url.hash) {
+      window.history.pushState(null, '', url.hash);
+    }
+
+    const copied = await copyText(url.href);
+    if (copied) {
+      showCopiedFeedback(anchor);
+    }
+  }
+
+  // Astro re-runs inline scripts after view-transition swaps; bind the delegated
+  // listener a single time so a click isn't handled twice. Capture phase mirrors
+  // the Table of Contents handler so enhancements run before default navigation.
+  const permalinkWindow = window as Window & { __headingPermalinkCopyBound?: boolean };
+  if (!permalinkWindow.__headingPermalinkCopyBound) {
+    document.addEventListener('click', handlePermalinkClick, { capture: true });
+    permalinkWindow.__headingPermalinkCopyBound = true;
+  }
+</script>

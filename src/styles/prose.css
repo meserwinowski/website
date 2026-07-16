@@ -59,6 +59,7 @@
   align-items: center;
   justify-content: center;
   flex: 0 0 auto;
+  position: relative;
   width: 1.15rem;
   height: 1.15rem;
   /* Hide any text fallback; the masked SVG supplies the visible link icon. */
@@ -94,6 +95,33 @@
 .prose .heading-permalink:hover,
 .prose .heading-permalink:focus-visible {
   color: var(--color-accent);
+}
+
+/* The copy script (HeadingPermalinks.astro) toggles data-copied after writing
+   the section URL to the clipboard. Keep the icon visible while the "Copied!"
+   bubble shows, even if the pointer has already left the heading. The bubble
+   overrides the icon's font-size: 0 so its label is actually rendered. */
+.prose .heading-permalink[data-copied] {
+  opacity: 1;
+  color: var(--color-accent);
+}
+
+.prose .heading-permalink[data-copied]::after {
+  content: "Copied!";
+  position: absolute;
+  bottom: calc(100% + 0.4rem);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0.2rem 0.4rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.3rem;
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  font-size: 0.7rem;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+  pointer-events: none;
 }
 
 /* Heading levels step down through the global golden-ratio type scale; margins
