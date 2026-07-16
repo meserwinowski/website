@@ -83,6 +83,11 @@
   --color-toc-1: #60a5fa;
   --color-toc-2: #d2d4d9;
   --color-toc-3: #9ca3af;
+
+  /* Text-selection highlight: a soft tint of the accent over the surface so
+     selected copy stays readable and on-theme instead of the browser's default
+     blue. Derived from accent/surface, so each theme gets a fitting highlight. */
+  --color-selection: color-mix(in srgb, var(--color-accent) 24%, var(--color-surface));
 }
 
 /* --------------------------------------------------------------------------
@@ -94,23 +99,31 @@
    list in lockstep with the dark tokens above.
 */
 [data-theme="light"] {
-  --color-bg: #ebe8df;
-  --color-surface: #dedad0;
-  --color-border: #c8c2b8;
+  /* Warm "paper" light theme. The background sits at ~72% relative luminance —
+     dimmer than a bright off-white so the page is easier on the eyes and reduces
+     glare — while body ink still clears ~8:1 for crisp, comfortable reading. */
+  --color-bg: #e2ddce;
+  --color-surface: #d6d0c0;
+  --color-border: #bdb6a6;
   /* Near-black ink on warm paper (Blueyard-style) — the old mid-gray read as
-     washed out. ~9:1 on the sandy bg keeps body copy crisp and legible. */
+     washed out. ~8:1 on the sandy bg keeps body copy crisp and legible. */
   --color-text: #3a3a40;
-  --color-muted: #71717a;
+  /* Secondary text, warmed to sit with the paper and darkened so it clears WCAG
+     AA (4.5:1) on the background — the previous mid-gray fell short at ~3.9:1. */
+  --color-muted: #5f5c56;
   /* Burnt orange sampled from the quilted-maple guitar. Brown is just a
      desaturated orange, so we push saturation to the max and let the value sit
      dark enough to clear WCAG AA (4.5:1 on the bg) — vivid *and* readable. */
-  --color-accent: #b24700;
-  --color-accent-hover: #8f3800;
+  --color-accent: #a24000;
+  --color-accent-hover: #7f3200;
 
   /* ToC levels descend the guitar's amber → brown → muted gray gradient. */
-  --color-toc-1: #b24700;
+  --color-toc-1: #a24000;
   --color-toc-2: #6e4724;
-  --color-toc-3: #71717a;
+  --color-toc-3: #5f5c56;
+
+  /* Warm amber selection highlight (kept in lockstep with the dark token). */
+  --color-selection: color-mix(in srgb, var(--color-accent) 24%, var(--color-surface));
 }
 
 /* --------------------------------------------------------------------------
@@ -170,6 +183,13 @@ a {
 
 a:hover {
   color: var(--color-accent-hover);
+}
+
+/* Theme-aware text selection: a soft accent tint instead of the browser's
+   default blue, which clashes with the warm paper light theme. Selected text
+   keeps its own color so contrast stays comfortable in both themes. */
+::selection {
+  background-color: var(--color-selection);
 }
 
 /* --------------------------------------------------------------------------
