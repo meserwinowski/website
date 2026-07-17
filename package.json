@@ -3,7 +3,9 @@
   "type": "module",
   "version": "0.0.1",
   "scripts": {
+    "predev": "node scripts/generate-card-thumbnails.mjs",
     "dev": "node --disable-warning=DEP0205 node_modules/astro/bin/astro.mjs dev",
+    "prebuild": "node scripts/generate-card-thumbnails.mjs",
     "build": "node --disable-warning=DEP0205 node_modules/astro/bin/astro.mjs build",
     "preview": "node --disable-warning=DEP0205 node_modules/astro/bin/astro.mjs preview --host",
     "sync": "node scripts/run-local-script.mjs sync",

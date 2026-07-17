@@ -133,6 +133,18 @@ If an SVG export exists, that renders (from `stage-mixer.md`) as
 `/assets/stage-mixer/stage-mixer-diagram.svg`; otherwise the renderer
 uses another copied web export when available.
 
+Project **card** thumbnails get a further optimization. Cards render the
+thumbnail in a fixed ~300px 16:9 tile, so shipping the full-size synced asset
+(up to 2048px) wastes bandwidth. `scripts/generate-card-thumbnails.mjs` runs at
+build time (the `prebuild` npm script), center-crops each raster thumbnail to
+16:9, and emits small `400w`/`800w` WebP derivatives plus a manifest describing
+the responsive `srcset`, intrinsic dimensions, and a tiny inline blur-up LQIP.
+`ProjectCard.astro` reads that manifest (via `src/lib/cardThumbnail.ts`) and
+renders the derivatives with `srcset`/`sizes`, lazy loading below the fold, and
+the blur-up placeholder; the first card on the home feed loads eagerly as the
+likely LCP. SVG/external/missing thumbnails fall back to the raw path. The
+derivatives + manifest are gitignored and regenerated on every build.
+
 Obsidian callouts are also supported. Markdown such as
 `> [!tip] Takeaway` renders as a styled callout instead of a plain blockquote.
 Fold markers are preserved: `[!info]+` renders open by default, while `[!info]-`
@@ -251,6 +263,7 @@ Tests run against the built `dist/` output (static HTML files) using [Vitest](ht
 | `tests/html-structure.test.ts` | Key HTML elements: titles, meta tags, OG tags, navigation, headings, footer, project cards, detail content, and the About-only now-playing + liked-songs widgets |
 | `tests/now-playing-worker.test.ts` | Unit tests for the Spotify Worker's pure `shapeNowPlaying()` and `shapeLikedSongs()` transforms (now-playing, recently-played, liked-songs, and empty/error states) |
 | `tests/obsidian-callouts.test.mjs` | Obsidian callout rewriting for standard, expanded, and collapsed callout blockquotes |
+| `tests/generate-card-thumbnails.test.mjs` | Card-thumbnail generator: 16:9 WebP derivatives + manifest (srcset/dims/LQIP), idempotent re-runs, and SVG/external/missing skips |
 | `tests/collapsible-code.test.mjs` | `fold:` code-fence rewriting into collapsible `<details>` (title fallbacks, meta stripping, untouched plain fences) |
 | `tests/obsidian-embeds.test.mjs` | Obsidian embed rewriting (intrinsic dimensions, blur-up placeholders, eager/lazy loading) and asset-copy behavior for images and Excalidraw exports |
 | `tests/strip-image-metadata.test.mjs` | EXIF/GPS stripping, orientation baking, and clean-image skipping in the image pipeline |
@@ -330,6 +343,7 @@ Only `completed` and `ongoing` projects are shown publicly. A project's `thumbna
 | `nginx/default.conf` | nginx config (AI/scraper UA blocking + rate limiting); rsynced to the NAS by `deploy.sh` |
 | `scripts/run-local-script.mjs` | Cross-platform npm dispatcher that chooses PowerShell on Windows and Bash elsewhere |
 | `scripts/sync-obsidian-assets.mjs` | Copies web-renderable assets referenced by Obsidian embeds **and frontmatter thumbnails** from the vault into per-slug folders under `public/assets/`; uses a manifest to clean up stale files |
+| `scripts/generate-card-thumbnails.mjs` | Build-time (`prebuild`) step that emits small 16:9 `400w`/`800w` WebP derivatives + a manifest (srcset, dimensions, blur-up LQIP) so project cards don't download full-size thumbnails; derivatives are gitignored and regenerated each build |
 | `scripts/strip-image-metadata.mjs` | Strips EXIF/GPS metadata from raster images in `public/assets/`, auto-orients them (baking in EXIF rotation), downscales any image over a 2048px longest edge, re-encodes each to match its file extension (repairing mislabeled formats), and converts `.heic`/`.heif` to `.webp` (via `sips` on macOS, since sharp can't decode HEIC) so the photos render fast in browsers |
 | `scripts/sync-content.sh` / `scripts/sync-content.ps1` | Pull markdown content from the Obsidian vault |
 | `scripts/spotify-refresh-token.mjs` | One-time OAuth helper that mints the Spotify refresh token for the widgets' Worker (scopes: currently-playing, recently-played, library-read) |

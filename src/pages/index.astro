@@ -47,7 +47,7 @@ const recentProjects = allProjects
     {recentProjects.length > 0 ? (
       <div class="grid gap-6 grid-cols-[repeat(auto-fill,minmax(min(18rem,100%),1fr))]">
         {/* ProjectCard receives frontmatter fields as props; Astro emits the final HTML at build time. */}
-        {recentProjects.map((project) => (
+        {recentProjects.map((project, index) => (
           <ProjectCard
             slug={project.id}
             title={project.data.title}
@@ -56,6 +56,7 @@ const recentProjects = allProjects
             tags={project.data.tags}
             thumbnail={project.data.thumbnail}
             date={project.data.date}
+            priority={index === 0}
           />
         ))}
       </div>
