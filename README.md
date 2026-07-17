@@ -138,6 +138,11 @@ Obsidian callouts are also supported. Markdown such as
 Fold markers are preserved: `[!info]+` renders open by default, while `[!info]-`
 renders as a collapsed disclosure that readers can expand.
 
+Code fences can be folded the same way. A `fold:` token in the fence info string
+— e.g. ` ```yaml fold:compose.yaml ` — renders the highlighted code inside a
+collapsed `<details>` disclosure titled `compose.yaml` (the language name is used
+when no title is given). It shares the smooth open/close animation with callouts.
+
 ## Crawlers, AI Bots, and Security Metadata
 
 Two layers handle web crawlers and AI scrapers:
@@ -246,6 +251,7 @@ Tests run against the built `dist/` output (static HTML files) using [Vitest](ht
 | `tests/html-structure.test.ts` | Key HTML elements: titles, meta tags, OG tags, navigation, headings, footer, project cards, detail content, and the About-only now-playing + liked-songs widgets |
 | `tests/now-playing-worker.test.ts` | Unit tests for the Spotify Worker's pure `shapeNowPlaying()` and `shapeLikedSongs()` transforms (now-playing, recently-played, liked-songs, and empty/error states) |
 | `tests/obsidian-callouts.test.mjs` | Obsidian callout rewriting for standard, expanded, and collapsed callout blockquotes |
+| `tests/collapsible-code.test.mjs` | `fold:` code-fence rewriting into collapsible `<details>` (title fallbacks, meta stripping, untouched plain fences) |
 | `tests/obsidian-embeds.test.mjs` | Obsidian embed rewriting (intrinsic dimensions, blur-up placeholders, eager/lazy loading) and asset-copy behavior for images and Excalidraw exports |
 | `tests/strip-image-metadata.test.mjs` | EXIF/GPS stripping, orientation baking, and clean-image skipping in the image pipeline |
 | `tests/reading-time.test.ts` | Reading-time estimation from Markdown body word count |
@@ -309,6 +315,7 @@ Only `completed` and `ongoing` projects are shown publicly. A project's `thumbna
 | `src/lib/` | Shared TypeScript utilities, including Markdown reading-time estimation |
 | `src/styles/` | CSS files: `global.css` (theme), `prose.css` (markdown typography), `transitions.css` (page animations) |
 | `src/plugins/remark-obsidian-callouts.mjs` | Remark plugin that converts Obsidian callout blockquotes to styled callout elements |
+| `src/plugins/remark-collapsible-code.mjs` | Remark plugin that converts `fold:`-tagged code fences into collapsible `<details>` disclosures |
 | `src/plugins/remark-obsidian-embeds.mjs` | Remark plugin that converts Obsidian image embeds to web image HTML during Astro builds |
 | `src/content.config.ts` | Content collection schema definition (projects + pages) |
 | `src/content/projects/` | Project Markdown files (synced from Obsidian, committed so CI can build) |

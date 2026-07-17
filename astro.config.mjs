@@ -13,6 +13,7 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import remarkObsidianCallouts from './src/plugins/remark-obsidian-callouts.mjs';
 import remarkObsidianEmbeds from './src/plugins/remark-obsidian-embeds.mjs';
+import remarkCollapsibleCode from './src/plugins/remark-collapsible-code.mjs';
 import rehypeHeadingPermalinks from './src/plugins/rehype-heading-permalinks.mjs';
 
 /** ESM equivalent of `__dirname`, used to pass absolute paths to plugins. */
@@ -33,6 +34,7 @@ export default defineConfig({
     processor: unified({
       remarkPlugins: [
         remarkObsidianCallouts,
+        remarkCollapsibleCode,
         [
           remarkObsidianEmbeds,
           {

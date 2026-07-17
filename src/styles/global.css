@@ -215,10 +215,10 @@ button:active, a:active {
 }
 
 /*
-  Smooth collapsible <details> (Obsidian callouts + mobile ToC), driven by
-  CollapsibleDetails.astro. Animating `height` is a main-thread layout property,
-  which can stutter on mobile. During the animation the controller adds
-  `.is-animating`; these hints keep it smooth:
+  Smooth collapsible <details> (Obsidian callouts, folded code blocks + mobile
+  ToC), driven by CollapsibleDetails.astro. Animating `height` is a main-thread
+  layout property, which can stutter on mobile. During the animation the
+  controller adds `.is-animating`; these hints keep it smooth:
     - `will-change: height` lets the engine prep for the size change.
     - The content block (the non-<summary> child) is promoted to its own
       compositor layer and has its layout/paint contained, so shrinking the
