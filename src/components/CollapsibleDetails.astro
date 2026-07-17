@@ -2,8 +2,9 @@
 /**
  * CollapsibleDetails.astro — Smooth open/close for native <details> disclosures.
  *
- * Used by the collapsible Obsidian callouts (<details class="callout-collapsible">)
- * and the mobile Table of Contents (<details class="toc-mobile">).
+ * Used by the collapsible Obsidian callouts (<details class="callout-collapsible">),
+ * the collapsible code fences (<details class="code-collapsible">), and the mobile
+ * Table of Contents (<details class="toc-mobile">).
  *
  * Native <details> can't be animated with CSS alone: the moment the `open`
  * attribute is removed the browser hides all non-<summary> content instantly, so
@@ -129,10 +130,10 @@
     animateHeight(el, startHeight, endHeight, false);
   }
 
-  // Which <details> disclosures this controller enhances. Both use a <summary> as
+  // Which <details> disclosures this controller enhances. Each uses a <summary> as
   // the direct first child followed by a single content block, which is all the
   // height animation needs.
-  const ENHANCED_SELECTOR = '.callout-collapsible, .toc-mobile';
+  const ENHANCED_SELECTOR = '.callout-collapsible, .code-collapsible, .toc-mobile';
 
   function onSummaryClick(event: MouseEvent) {
     const summary = (event.target as Element | null)?.closest('summary');
