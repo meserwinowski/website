@@ -77,6 +77,14 @@ describe('HTML structure - index.html', () => {
     expect(indexHtml).toMatch(/href="\/projects\/stage-mixer\/"/);
     expect(indexHtml).toMatch(/href="\/projects\/"/);
   });
+
+  it('eagerly loads the first (above-the-fold) card thumbnail', () => {
+    // The first recent card is the likely LCP image, so it loads eagerly with
+    // high priority; the remaining cards stay lazy.
+    const firstImg = indexHtml.match(/<img[^>]*-card-[^>]*>/)?.[0] ?? '';
+    expect(firstImg).toMatch(/loading="eager"/);
+    expect(firstImg).toMatch(/fetchpriority="high"/);
+  });
 });
 
 describe('Navigation', () => {
@@ -253,8 +261,22 @@ describe('Projects page - content collection', () => {
     expect(projectsHtml).toContain('music');
   });
 
-  it('renders the project thumbnail when one is set', () => {
-    expect(projectsHtml).toMatch(/<img[^>]*src="\/assets\/stage-mixer\/mixer-front\.webp"/);
+  it('renders the project thumbnail as a responsive, lazy-loaded card image', () => {
+    // Cards use build-time WebP derivatives (generate-card-thumbnails.mjs) instead
+    // of the full-size synced asset: a 400w/800w srcset, intrinsic 16:9 dimensions,
+    // and lazy loading below the fold on the projects index.
+    const img = projectsHtml.match(/<img[^>]*mixer-front-card-[^>]*>/)?.[0] ?? '';
+    expect(img).toMatch(/src="\/assets\/stage-mixer\/mixer-front-card-400\.webp"/);
+    expect(img).toMatch(
+      /srcset="\/assets\/stage-mixer\/mixer-front-card-400\.webp 400w, \/assets\/stage-mixer\/mixer-front-card-800\.webp 800w"/,
+    );
+    expect(img).toMatch(/sizes="[^"]+"/);
+    expect(img).toMatch(/width="800"/);
+    expect(img).toMatch(/height="450"/);
+    expect(img).toMatch(/loading="lazy"/);
+    expect(img).toMatch(/decoding="async"/);
+    // A tiny inline LQIP blur-up is painted behind the image while it loads.
+    expect(img).toMatch(/background-image:url\(data:image\/webp;base64,/);
   });
 });
 

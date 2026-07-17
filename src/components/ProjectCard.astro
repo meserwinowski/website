@@ -5,7 +5,12 @@
  * Used on the /projects index page, one card per generated project. Astro
  * frontmatter defines the prop contract and build-time formatting; the template
  * turns that data into one large accessible link so the whole card is tappable.
+ *
+ * The thumbnail is resolved through `resolveCardThumbnail`, which swaps the raw
+ * full-size image for small responsive WebP derivatives (with a blur-up LQIP)
+ * when the build generated them, and falls back to the raw path otherwise.
  */
+import { resolveCardThumbnail } from '../lib/cardThumbnail';
 
 interface Props {
   /** URL-friendly project ID, used to build `/projects/{slug}/`. */
@@ -22,10 +27,17 @@ interface Props {
   thumbnail?: string | null;
   /** Project date, used for the semantic <time> element. */
   date: Date;
+  /** Above-the-fold cards load eagerly with high priority; the rest lazy-load. */
+  priority?: boolean;
 }
 
 // Astro.props contains the attributes passed by the parent page/component.
-const { slug, title, description, status, tags, thumbnail, date } = Astro.props;
+const { slug, title, description, status, tags, thumbnail, date, priority = false } = Astro.props;
+
+// Resolve to a responsive card image (small WebP derivatives + LQIP) when the
+// build produced them; otherwise this returns the raw path, or null when the
+// project has no thumbnail (the card then shows a text tile).
+const card = resolveCardThumbnail(thumbnail);
 
 // Human-readable date (e.g. "Jun 7, 2026") plus a machine-readable ISO value for <time datetime>.
 // Format in UTC so the displayed day matches the frontmatter date regardless of the build machine's timezone.
@@ -56,10 +68,18 @@ const statusLabels: Record<string, string> = {
   {/* Fixed 16:9 media area keeps the grid stable even with mixed thumbnail sizes. */}
   <div class="aspect-video overflow-hidden">
     {/* Prefer a real thumbnail; fall back to a text tile so every card has media. */}
-    {thumbnail ? (
+    {card ? (
       <img
-        src={thumbnail}
+        src={card.src}
+        srcset={card.srcset}
+        sizes={card.sizes}
+        width={card.width}
+        height={card.height}
         alt={`${title} thumbnail`}
+        loading={priority ? 'eager' : 'lazy'}
+        fetchpriority={priority ? 'high' : undefined}
+        decoding="async"
+        style={card.lqip ? `background-image:url(${card.lqip});background-size:cover;background-position:center` : undefined}
         class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
       />
     ) : (
