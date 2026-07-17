@@ -34,9 +34,6 @@ This article is the first of a pair. I realized this post was getting out of sco
 
 The second article is more of an opinion piece where I wax poetically about the implications of AI tooling and what I learned and noticed while using them.
 
----
-# Technical
-
 The technical components of the site will be broken up into four sections:
 1) Design
 2) Hosting
@@ -102,7 +99,7 @@ The widgets I added for version 1.0:
 ### Research
 Essentially all I knew going into this was that I was going to containerize the server, and I was going to be messing with JavaScript, CSS, and HTML.
 
-The first thing that became clear from trying to figure out what to do was that I was going to want a [static web page](https://en.wikipedia.org/wiki/Static_web_page). This is in contrast to a [dynamic web page](https://en.wikipedia.org/wiki/Dynamic_web_page), which admittedly is still intimidating.
+The first thing that became clear from trying to figure out what to do was that I was going to want a [static web page](https://en.wikipedia.org/wiki/Static_web_page). This is in contrast to a [dynamic web page](https://en.wikipedia.org/wiki/Dynamic_web_page).
 
 The second thing that became abundantly clear is that writing HTML is definitely not a thing people have done for quite some time. Instead [site generators](https://en.wikipedia.org/wiki/Static_web_page#Static_site_generators), or frameworks, are used to *compile* the HTML from a bunch of source binaries and content. Past conversations around Node/React/Next/Vue and other front end technologies have started to make a lot more sense.
 
@@ -207,12 +204,22 @@ A critical feature to get right when exposing your systems to the internet.
 
 The DSM interface was a little confusing, but once I had a sense of the flow it was easy to only expose the ports and IP ranges that I needed to allow my website and my containers to function.
 
+---
+
 #### Reverse Proxy
 Reverse proxies honestly took me a minute to wrap my head around, but once it clicked a lot of things about the web made much more sense.
 
 This proxy, internal to the NAS, can direct HTTPS traffic (port 443) to the correct internal port using the domain as a map key. It is critical for me in exposed my web site on my domain, but also my personal services like Plex and Synology DSM itself.
 
-The reverse proxy also supports these access profiles which seem to be Access Control Lists (ACLs) for IP ranges/addresses. [CIDR](https://en.wikipedia.org/wiki/Classless_Inter-Domain_Routing) bit masking for sub nets has now also become a lot clearer for me between this and configuring the firewall.
+##### DSM Access Control Profile (ACP)
+The reverse proxy also supports these access profiles which seem to be Access Control Lists (ACLs) for IP ranges/addresses. [CIDR](https://en.wikipedia.org/wiki/Classless_Inter-Domain_Routing) bit masking for sub nets has now also become a lot clearer for me between this and configuring the firewall. This is useful because I can only allow my local network or my Tailscale network to access certain subdomains like DSM or my Plex server.
+
+> [!bug]- PiHole Split DNS
+> Creating an ACP for my Plex subdomain seemed to trigger this bug where trying to access the subdomain always resulted in a `SSL_ERROR_BAD_CERT_DOMAIN` error. For some reason the default DSM certificate was being compared against the subdomain, and not the Let's Encrypt cert that was created for it.
+> 
+> Important to note I use a [PiHole](https://pi-hole.net/) as my DNS on my home network. I had created a Local DNS record on my PiHole so that my Tailscale devices that used my NAS as an exit node could loopback and access my home lab services.
+> 
+> Anyways, with the ACP I couldn't access my Plex server anymore. Copilot helped me figure out that this was a split DNS issue - I was handling exit node A records, but AAAA records were flying out to CloudFlare and coming back and using the DSM default certificate. The fix was to make a `dnsmasq_lines` change to the PiHole. I'm 100% confident that in the past this would have taken me ages to figure out.
 
 ### Visual
 Here is a fun graph of the network route that should help mentally map the sections mentioned above. Its a simplification, but accurate to my current knowledge:
@@ -416,7 +423,6 @@ Though I think I prefer the term [agentic engineering](https://simonwillison.net
 > I had a bunch of experience working on the [Windows' Settings app](https://en.wikipedia.org/wiki/Settings_(Windows)) during my Microsoft tenure. Because the Settings app has an [MVVM architecture](https://en.wikipedia.org/wiki/Model%E2%80%93view%E2%80%93viewmodel), I was exposed to some conceptual things around front-end, back-end, views, models, frameworks, etc. These concepts made the web jump a lot easier than I think it would have been otherwise.
 
 ### Getting Started
-
 Standard `git init` to start the project. Using `gh` (GitHub CLI) to configure my remote repository. Link them together with `origin`. Using VS Code as my IDE. Setup my workspace.
 
 Now obviously where this deviates is that I wasn't intending to write any code. I've got two harnesses configured: 1) The Copilot chat window in VS Code and 2) Copilot CLI in one of my terminal tabs.
@@ -426,7 +432,6 @@ Now obviously where this deviates is that I wasn't intending to write any code. 
 I've been particularly interested in new ways of thinking about software development. I don't want to get sidetracked, so I'll just say [this blog post](https://aicoding.leaflet.pub/3mjfruwwuck2d) has been on my mind in particular.
 
 #### Standup
-
 My first goal is to get some `localhost` version of the website spun up, and to evolve + learn a new development cycle along the way.
 
 So the first prompt is requesting Copilot to scaffold a project structure and a basic "Hello World" site using Astro. Unfortunately, I did not capture progress pictures as I was doing this, so my textual descriptions will have to suffice.
@@ -443,7 +448,6 @@ Conveniently, Astro + Vite can spin up a development or `preview` server that le
 `npm run preview` - does the same as dev, but exposes the development site to my local network so I could render and play with the site on my phone.
 
 #### Tests & Docs
-
 Asking for tests and documentations from the AI has been a pretty solid strategy so far. Early on I made sure that was a part of the development flow - Copilot quickly adapted and created instructions + memories that persisted across sessions. Every feature I added Copilot would automatically handle text execution, and it investigated any failures. Incredible really.
 
 For documentation I opted for just a `README.md` on this project. From this frame the site is definitely more vibe-coded than engineered. I didn't create any design or specification documents. I prompted design iteratively and solved problems as they arose. Documentation and tests have been really helpful for mitigating [drift](https://docs.aws.amazon.com/prescriptive-guidance/latest/gen-ai-lifecycle-operational-excellence/prod-monitoring-drift.html).
@@ -454,30 +458,26 @@ Now I did make heavy use of the agent *Plan* mode so I could review any AI actio
 >  I kept design, TODO, and planning documents in my obsidian vault, and just symlink'd them into the repository. [Symbolic linking](https://en.wikipedia.org/wiki/Symbolic_link) made it a bit easier for me to mentally shift into design / planning and implementation mindsets. The initial impulse for this was to to keep all of these documents private, yet still publish the repository and keep them easily consumable by an agent. It also allows artifacts and learnings to persist beyond the project, within my own notes, for potential reuse in future projects.
 
 #### Content Synchronization
+Synchronizing and importing my Obsidian notes was one of the first systems I spun up. This is what I went over in the deployment section.
 
-Synchronizing and importing my Obsidian notes was one of the first systems I spun up. This is what I went over in the deployment section. TODO: weblink
 ### Project Manager?
-
 Once I had the basic website going and ironed out major issues I felt my role pivot to being more of a project manager.
 
 #### Colors
-
 This was very fun - I essentially got to dial in the colors and themes of the website by just asking the LLM. Worked surprisingly well.
 
-The blue highlights on a dark mode is probably my favorite combination. The burnt orange for light mode was inspired by [one of my guitars](https://www.mattserwinowski.com/projects/stage-mixer/#final-thoughts).
+The blue highlights on dark mode are probably my favorite combination. The burnt orange for light mode was inspired by [one of my guitars](https://www.mattserwinowski.com/projects/stage-mixer/#final-thoughts).
 
 I put a bit of time into messing around with brightness and contrast to make sure the website was easy on the eyes.
 
 #### Feel
-
 Navigating a website is so important. I really don't like some older sites that haven't upgraded and everything is very static or doesn't dynamically resize.
 
 I spent some time with the springy-ness of button clicks. On making sure the scrolling on mobile worked properly. Where things were placed. Golden ratios galore.
 
-I also really like the [Obsidian callouts](https://obsidian.md/help/callouts) so I instructed the AI to pretty much copy them verbatim.
+I also really like the [Obsidian callouts](https://obsidian.md/help/callouts) so I instructed the AI to pretty much copy them verbatim. Took a couple of iterations and bug fixes of minor issues.
 
 ### Help Me Understand
-
 One of my greatest worries with using AI is [deskilling](https://en.wikipedia.org/wiki/Deskilling) - I actually put in my global Copilot instructions that agents should be aware of this and communicate in ways that help me stay sharp.
 
 I'm definitely in the camp of people who believe that domain knowledge and system / code comprehension are the real bottlenecks.
@@ -485,11 +485,9 @@ I'm definitely in the camp of people who believe that domain knowledge and syste
 In my experience, project velocity is tied to how much you actually understand the system and how detailed your mental map of the codebase is. You will also burn less tokens if you can really specify what you need an agent to do, and guide it away from costly tools like [Playwright MCP](https://github.com/microsoft/playwright-mcp).
 
 #### Comments
-
 Asking the LLM to leave comments was helpful while perusing the code base. I also found that sometimes doc strings would be overly technical or repetitive. The [model will fixate on certain ideas or patterns in ways that remind me of dynamic attractors](https://en.wikipedia.org/wiki/Attractor). Still navigating that, but I haven't found a good solution.
 
 ### Copycat
-
 Doing is really the best way to learn. It also is the gateway to noticing. I've read a lot of blogs and I've been to many websites, but recently I've had a fresh set of eyes and little details and features have started to pop.
 
 Reading progress bar at the top was one. Spotify widget was one. Layouts. Whats in the headers and footers. Dynamic effects that respond to your mouse.
@@ -497,7 +495,6 @@ Reading progress bar at the top was one. Spotify widget was one. Layouts. Whats 
 My response has gone from "[thats pretty neat](https://youtu.be/Hm3JodBR-vs?t=57)", to "thats pretty neat, I wonder how it was implemented / I would guess its being done this way".
 
 #### LLMs Can See
-
 Nothing new here, but it really is incredible how well LLMs can handle visual modalities. I didn't initially intend to use Playwright MCP, but when debugging some visual issues the model requested I install it so it could:
 1) spin up the dev server
 2) navigate the website using playwright
@@ -510,7 +507,9 @@ Nothing new here, but it really is incredible how well LLMs can handle visual mo
 
 Wow, what a great project. I learned a ton doing this and feel pretty good about the results. Its been a long time since I've been obsessed with a software project. If you do home lab stuff and are even a little interested I highly recommend doing something similar.
 
-I have many more fun ideas for the site which I intend to work on sporadically. Its a very empowering experience to manage the site (almost) completely end to end.
+Even if you don't really want a personal website - I find having your own domain and subdomains to be pretty useful. I have subdomains to access and DSM and Plex servers without having to rely on Synology or Plex to reroute me. I really want to setup my own open source LLM chat interface with a subdomain. Several more ideas that I don't want to spoil just yet.
+
+There are many more features I want to generate which I intend to work on sporadically. Its a very empowering experience to manage the site (almost) completely end to end.
 
 The followup to this article will focus more on specific things I encountered around using LLMs to build the website.
 

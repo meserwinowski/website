@@ -47,9 +47,10 @@ I'm one of those people who is very into diet and exercise. Nutrition and cookin
 I have two: Circuit and Pixel!
 ## Interesting Readings
 - [Meditations on Moloch - Scott Alexander](https://slatestarcodex.com/2014/07/30/meditations-on-moloch/)
-- [Against Taste - Will Manidis](https://minutes.substack.com/p/against-taste)
 - [Any of these posts by Bartosz Ciechanowski](https://ciechanow.ski/)
 - [Many things Gwern writes](https://gwern.net/subculture)
+- [Against Taste - Will Manidis](https://minutes.substack.com/p/against-taste)
+- [The Uni-context - Derek Thompson & Anges Callard](https://www.derekthompson.org/p/a-philosophers-one-word-theory-to)
 
 Thanks for checking out my website!
 

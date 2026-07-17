@@ -6,7 +6,7 @@ tags:
   - software
   - website
 thumbnail: /images/projects/personal-website.svg
-date: 2026-06-07
+date: 2026-06-22
 repo: https://github.com/meserwinowski/website
 ---
 ---
