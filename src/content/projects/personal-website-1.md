@@ -48,13 +48,13 @@ I neglected to actually track this, but I can definitely say its in the 10,000 t
 
 That said, my preference for framing costs is in *time*. If I think about how much time I would have spent learning, searching resources / documentation, and writing code I would be massively over that $500.
 
-I ran with Opus 4.6 and Opus 4.8 for most of this project, with GPT 5.5 as a rubber ducky. I did an unrigorous study tried out a couple of smaller models and Copilot's `Auto` mode on some simple problems and I was **not** very impressed with the results.
+I ran with Opus 4.6 and Opus 4.8 for most of this project, with GPT 5.5 as a rubber ducky. On occasion I also tasked smaller models and Copilot's `Auto` mode on simple problems - I was **not** very impressed with the results.
 
 ---
 
 ## Design
 
-The original intent of the site was to be a dual portfolio where I could showcase music and engineering projects. I'm not a well versed UI / UX designer, so my design sense has been in large part cherry picking things I liked from other similar websites.
+The original intent of the site was to be a dual portfolio where I could showcase music and engineering projects. I'm not well versed in UI / UX, so my design sense has been in large part cherry picking things I liked from other websites.
 
 ### Minimal Requirements
 The site should:
@@ -77,20 +77,20 @@ When imaging my ideal personal site, here are some principles I was drawn toward
 #### Performant, Secure, Maintainable, and Reliable
 Clearly my analytical side speaking. I think these really don't need elaboration, but I'll be clear for completeness.
 - **Performant** - The website should be smooth. It should load quickly. Memory and execution footprints should be as small as possible.
-- **Secure** - Exposing software and hardware to the open internet makes one a target. I should take great care to configure everything to prevent malicious actors from gaining access to my systems. This also includes making sure I'm not mindlessly leaking personal data or cryptographic secrets.
+- **Secure** - Exposing software and hardware to the open internet makes one a target. I should take great care to configure everything I can to prevent malicious actors from gaining access to my systems. This also includes making sure I'm not mindlessly leaking personal data or cryptographic secrets.
 - **Maintainable** - Spaghetti code / systems make interacting with software unbearable. I should be able to understand the codebase and my networking setup without too much struggle.
 - **Reliable** - Website doesn't randomly break. The site / web server are portable: easy to teardown and standup wherever they needs to be.
 #### Aesthetics
 For better or for worse, I have an overriding aesthetic sense that I try to fulfill whenever I have means. I have strong opinions on how art or tools should look, feel, and function. Colors + fonts I like. Layouts I find appropriate and functional. Minimalist.
 #### Reflective
-Not literally in the material sense, but reflective of who I am. Widgets that make the site more accessible and interesting. Creative elements to distinguish the site from others like it. Much of this reflective component is handled by the aesthetics and material published on the site.
+Not literally in the material sense, but reflective of who I am. Widgets that make the site more accessible and interesting. Creative elements to distinguish the site from others like it. Much of this reflective component is handled by the aesthetics and articles published on the site.
 
 ### Widgets
 Every website needs a light / dark mode toggle. Its 2026, and it drives me nuts when a site or application does not support dark mode. This was the only widget I knew I needed to have. As the project evolved I added widgets I started to notice on other websites. They definitely bring a static site to life!
 
 The widgets I added for version 1.0:
 - Light / Dark toggle button
-- ‘Back to Top’ button to bring you back to the top of the page
+- A button to bring you back to the top of the page
 - Reading progress bar at the top edge
 - The Spotify workers on the About page which pull my latest activity
 
@@ -105,24 +105,24 @@ The second thing that became abundantly clear is that writing HTML is definitely
 
 Now I needed to choose some frameworks.
 
-Focusing on runtime performance and development loop speed a quick web search suggested [Astro](https://astro.build/) and [Hugo](https://gohugo.io/) as my options for modern frameworks. I ended up choosing Astro, probably because of marketing copy.
+Focusing on runtime performance and development loop speed a quick web search suggested [Astro](https://astro.build/) and [Hugo](https://gohugo.io/) as my options for modern frameworks. I ended up choosing Astro, probably because of the marketing copy.
 
-The third thing I had to decide was how build the site and to generate [CSS](https://en.wikipedia.org/wiki/CSS). [Tailwind](https://tailwindcss.com/docs/installation/using-vite) seems to be the most popular so I went with that. [Vite](https://vite.dev/) appeared to be the native build tool behind Astro and Tailwind, so I defaulted to that without looking at possible alternatives. For testing, [Vitest](https://vitest.dev/) followed from the Vite dependency.
+The third thing I had to decide was what tools I would use to build the site and generate [CSS](https://en.wikipedia.org/wiki/CSS). For CSS, [Tailwind](https://tailwindcss.com/docs/installation/using-vite) seems to be the most popular so I went with that. [Vite](https://vite.dev/) appeared to be the native build tool behind Astro and Tailwind, so I defaulted to that without looking at possible alternatives. For testing, [Vitest](https://vitest.dev/) followed from the Vite dependency.
 
-And finally `git` for source control.
+And finally [`git`](https://en.wikipedia.org/wiki/Git) for source control.
 
 ---
 
 ## Hosting
 
 ### Web Servers 101
-My Network Attached Storage (NAS) unit is the current host of the website - it's always running and provides basic native infrastructure for hosting containers, so it felt like the right home to me.
+My Network Attached Storage ([NAS](https://en.wikipedia.org/wiki/Network-attached_storage)) unit is the current host of the website - it's always running and provides basic native infrastructure for hosting containers, so it felt like the right home to me.
 
-Over the years I've developed a basic familiarity with Docker, and I've learned that a web server is a pretty good application to containerize. It helps keep configuration and deployment simple.
+Over the years I've developed a basic familiarity with [Docker](https://en.wikipedia.org/wiki/Docker_(software)), and I've learned that a web server is a pretty good application to containerize. It helps keep configuration and deployment simple.
 
-For the web server I opted to go for [nginx](https://nginx.org/). I'm not a diehard open source software (OSS) guy (I've mained Windows my whole life), but small memory footprints fit my preferences. Also its popular
+For the web server I opted to go for [nginx](https://nginx.org/). I'm not a diehard open source software (OSS) guy (I've mained Windows my whole life), but small memory footprints fit my preferences + its popular so probably robust and lots of documentation.
 
-I'm using the `nginx:alpine` image provided via the Synology Container App, and then I have a `compose.yaml` I deploy from my OneDrive and use to spin up the container. The compose file is surprising straight forward: you configure a port, connect the paths for the website distribution files (`dist`) to the containers html, and the paths for the `.conf` configuration file.
+I'm using the `nginx:alpine` image provided via the Synology Container App, and then I have a `compose.yaml` I use to spin up the container. The compose file is surprising straight forward: you configure a port, connect the paths for the website distribution files (`dist`) to the containers html, and the paths for the `.conf` configuration file.
 
 My `compose.yaml` (+ minor obfuscation)
 
@@ -146,14 +146,14 @@ services:
 > In the situation that my NAS fails- I'll actually have a lot of issues to deal with. One of my plans is to create a worker that can redeploy my website onto a cloud instance, or another piece of hardware that I own.
 
 ### Networking Basics
-Starting at the other end of the hosting process - how I got my domain and how your computer found my website to begin with. *If you're not interested in these details I suggest just skipping to the visual below.*
+Starting at the other end of the hosting process - how I got my domain, and how your computer found my website to begin with. *If you're not interested in these details I suggest just skipping to the visual below.*
 
 #### Domain
 NameCheap was used to register my domain (`mattserwinowski.com`). Easy process, can't complain. 
 
 #### CloudFlare
 I've setup CloudFlare to resolve my Domain Name System ([DNS](en.wikipedia.org/wiki/Domain_Name_System)) records. Configuring CloudFlare was more involved, but I learned a lot, and their free tier has been sufficient for my needs.
-- The main thing I setup were the DNS records: I have a couple of A records for the apex domain and subdomains, and a CNAME for `www.` to the apex domain. All reverse proxied.
+- The main thing I setup were the DNS records: I have an A record for the apex domain, and CNAMEs for the subdomains / `www.`. All cloud proxied.
 - CloudFlare provides some basic analytics, logs, AI crawler support, DDoS protection, and caching to help with server load.
 - I got my first line of defense: A Geo-Block security rule. (Sorry Melissa >.<)
 - I was enlightened to [DMARC](https://en.wikipedia.org/wiki/DMARC) and how to prevent email spoofing from my domain.
@@ -164,9 +164,9 @@ My server's IP address is dynamic - I setup a script on the NAS that pushes the 
 > It's nuts to me how much of the internet relies on [ICANN](https://en.wikipedia.org/wiki/ICANN) and a handful of operators. I found this [CloudFlare article on DNS](https://www.cloudflare.com/learning/dns/dns-server-types/) to be very good. This wikipedia page on [alternative DNS roots](https://en.wikipedia.org/wiki/Alternative_DNS_root) is also an interesting read.
 
 ##### Dynamic DNS ([DDNS](https://en.wikipedia.org/wiki/Dynamic_DNS))
-Since my Internet Service Provider (ISP) can always rotate my home network's IP address, I knew I needed to setup DDNS so my website would always be available.
+Since my Internet Service Provider (ISP) can always rotate my home network's IP address, I expected that  I needed to setup DDNS. This way my website wouldn't just randomly be unavailable until I fixed the CloudFlare record.
 
-I have a scheduled task on that NAS that periodically pushes an updated IP to CloudFlare which ensures the NAS will continue to resolve.
+I have a scheduled task on my NAS that periodically pushes an updated IP to CloudFlare which ensures the NAS will continue to resolve.
 
 I had originally looked at Synology's DDNS feature, but I’ll leave that for the Home Lab post.
 
@@ -183,7 +183,7 @@ I'm using a Unifi Cloud Gateway as the router for my local network. Hate to fanb
 The only real thing I configured for the gateway was port forwarding so that HTTP / HTTPS worked correctly. When the gateway receives a request on my public IP it now knows to forward that request to my NAS.
 
 ### NAS
-Besides hosting the web server there were a couple of additional configurations I needed to make. More details on the NAS in the dedicated home lab post (TODO).
+Besides hosting the web server there were a couple of additional configurations I needed to make.
 
 The NAS should be receiving  [HTTP](https://en.wikipedia.org/wiki/HTTP) and [HTTPS](https://en.wikipedia.org/wiki/HTTPS) requests from the gateway, and as the web server host the NAS needs to figure out how to respond to them.
 
@@ -197,7 +197,7 @@ The key thing’s I learned:
 - [Let’s Encrypt](https://en.wikipedia.org/wiki/Let%27s_Encrypt) is the biggest non profit certificate authority, and Synology DSM provides native support for acquiring and renewing a certificate
 
 #### HTTP Strict Transport Security ([HSTS](https://en.wikipedia.org/wiki/HTTP_Strict_Transport_Security))
-I also configured CloudFlare to automatically try and route HTTP to an HTTPS connection. This was a nice mini mental mystery to resolve, and continued defense in depth.
+I also configured CloudFlare to automatically try and route HTTP to an HTTPS connection. This was a nice mini mental mystery to resolve, and continued defense-in-depth.
 
 #### Firewall
 A critical feature to get right when exposing your systems to the internet.
@@ -209,10 +209,10 @@ The DSM interface was a little confusing, but once I had a sense of the flow it 
 #### Reverse Proxy
 Reverse proxies honestly took me a minute to wrap my head around, but once it clicked a lot of things about the web made much more sense.
 
-This proxy, internal to the NAS, can direct HTTPS traffic (port 443) to the correct internal port using the domain as a map key. It is critical for me in exposed my web site on my domain, but also my personal services like Plex and Synology DSM itself.
+This proxy, internal to the NAS, can direct HTTPS traffic (port 443) to the correct internal port using the domain as a map key. This is an essential feature for me, as it allows the NAS to distinguish callers **by their subdomain**. So connections to my website, plex server, raspberry pi, and DSM can all share my apex domain, and then they can be routed by their subdomain once they reach the reverse proxy.
 
 ##### DSM Access Control Profile (ACP)
-The reverse proxy also supports these access profiles which seem to be Access Control Lists (ACLs) for IP ranges/addresses. [CIDR](https://en.wikipedia.org/wiki/Classless_Inter-Domain_Routing) bit masking for sub nets has now also become a lot clearer for me between this and configuring the firewall. This is useful because I can only allow my local network or my Tailscale network to access certain subdomains like DSM or my Plex server.
+The reverse proxy also supports these access profiles which seem to be Access Control Lists (ACLs) for IP ranges/addresses. [CIDR](https://en.wikipedia.org/wiki/Classless_Inter-Domain_Routing) bit masking for sub nets has now also become a lot clearer for me between this and configuring the firewall. This is useful because I can limit access to the different systems at the reverse proxy where the connections diverge on my local network. For example, only my local network and Tailscale network connections can access my 
 
 > [!bug]- PiHole Split DNS
 > Creating an ACP for my Plex subdomain seemed to trigger this bug where trying to access the subdomain always resulted in a `SSL_ERROR_BAD_CERT_DOMAIN` error. For some reason the default DSM certificate was being compared against the subdomain, and not the Let's Encrypt cert that was created for it.
@@ -227,7 +227,7 @@ Here is a fun graph of the network route that should help mentally map the secti
 ![[personal-website-resolve.excalidraw|800x600]]
 
 1) Your device (assuming you're at home on a wired or wireless network) asks your router to resolve `mattserwinowski.com`
-2) The router likely does not know my website and will recurse up to ask your Internet Service Provider (ISP) for help resolving.
+2) The router likely does not know my website and will [recurse up](https://www.cloudflare.com/learning/dns/what-is-recursive-dns/) to ask your ISP for help resolving.
 3) Again, your ISP likely doesn't know my website, but a quick recurse into a [root name server](https://en.wikipedia.org/wiki/Root_name_server) and [TLD name server](https://www.cloudflare.com/learning/dns/top-level-domain/) would let them know to check out CloudFlare's DNS records.
 4) Since I've configured CloudFlare to know about my website, they will do their GeoBlock / Security thing and decide if they will send you my (proxied) address.
 5) CloudFlare relays the proxy address back to the ISP server.
@@ -247,7 +247,7 @@ Here is a fun graph of the network route that should help mentally map the secti
 > [!attention]- A minor misadventure
 > I was showing my new website to coworkers, and it kept getting blocked on the corporate network as "Malware". Annoying, but I assumed this was standard policy. I filed a report with network IT more as a curiosity than expecting a resolution, and they got back quickly saying their cybersecurity relies on categorization from Palo Alto Networks (PAN).
 > 
-> Sure enough, PAN's test-a-site service had categorized my website as malware. Some digging suggested this was an issue with my website not configuring SSL certificates correctly. Considering I had the website for some time before doing getting it certified, my bet was this was the reason. So I filed a re-categorization request.
+> Sure enough, PAN's test-a-site service had categorized my website as malware. Some digging suggested this was an issue with my website not configuring SSL certificates correctly. Considering I had the domain setup for some time before getting it certified, my bet was that this was the reason. So I filed a re-categorization request.
 > 
 > PAN's automated response: "You requested re-categorization: 'Personal Site / Blog'; Upon review we have chosen 'Music'. This is an unmonitored mailbox. Thank you."
 > 
@@ -268,7 +268,7 @@ What I've done is vibe-scripted some automation that links the following pieces 
 ### Obsidian
 All the text for this website is written in [Markdown](https://en.wikipedia.org/wiki/Markdown).
 
-In recent months I have [migrated all of my notes and writing to Markdown for use in Obsidian](https://obsidian.md/). Obsidian's interface is very clean, extendable, and configurable. I cannot sing its praises enough.
+In recent months I have migrated all of my notes and writing to Markdown for use in [Obsidian](https://obsidian.md/). Obsidian's interface is very clean, extendable, and configurable. I cannot sing its praises enough.
 
 ![[obsidian-view.png|600x400]]
 
@@ -292,7 +292,7 @@ First I run `npm run sync` which is what synchronizes the content in the Obsidia
 And now the repository is in sync with the Obsidian version of the project. This is a one way synchronization, so nothing goes into the vault.
 
 #### Local Deploy
-At the very beginning I did not have an established workflow or enough experience to start with good footing. I wanted to stand up something I could look at as soon as I could.
+At the very beginning I did not have an established workflow, or enough experience to start with good footing. I wanted to stand up something I could look at ASAP.
 
 Given the web server was running on my NAS, but my development was on my MacBook or Windows desktop, I had to script a bridge between the two for local deployment. Since my NAS exposes its file system to my local network (given the right credentials are supplied), I just asked Copilot for a way to deploy binaries from my local repository, to my NAS.
 
@@ -312,7 +312,7 @@ The way Actions works is that when the `main` branch on the remote repository re
 From my perspective, I'm just running `git push` and then my website updates in about ~1 minute.
 
 #### `Deploy Website`
-GA is super easy to setup: you just drop a `.yml` file in `<repo>/.github/workflows` and GitHub will just pick and up.
+GA is super easy to setup: you just drop a `.yml` file in `<repo>/.github/workflows` and GitHub will just pickup the file and run with it.
 
 The Action dispatch uses `secrets` that were manually added to the remote repo when creating the runner. The most interesting detail to me is the fine grained OAuth token from my Tailscale network - this allows the GitHub runner to actually resolve the local hostname that my NAS uses as if the runner were on my local network.
 
@@ -417,9 +417,9 @@ I'm not a web developer - I had a very basic understanding of what went into a w
 
 And of course this website is pretty much [completely vibe coded.](https://en.wikipedia.org/wiki/Vibe_coding)
 
-Though I think I prefer the term [agentic engineering](https://simonwillison.net/guides/agentic-engineering-patterns/what-is-agentic-engineering/). The rest of this article will be details about practices and design patterns I experimented with for this website.
+Though I think I prefer the term [agentic engineering](https://simonwillison.net/guides/agentic-engineering-patterns/what-is-agentic-engineering/). The rest of this article will be about some of the decisions I made in the development process and a couple of things I noticed with using LLMs.
 
-> [!info]- Now I did have a slight edge
+> [!info]- I did have a slight edge
 > I had a bunch of experience working on the [Windows' Settings app](https://en.wikipedia.org/wiki/Settings_(Windows)) during my Microsoft tenure. Because the Settings app has an [MVVM architecture](https://en.wikipedia.org/wiki/Model%E2%80%93view%E2%80%93viewmodel), I was exposed to some conceptual things around front-end, back-end, views, models, frameworks, etc. These concepts made the web jump a lot easier than I think it would have been otherwise.
 
 ### Getting Started
@@ -452,10 +452,12 @@ Asking for tests and documentations from the AI has been a pretty solid strategy
 
 For documentation I opted for just a `README.md` on this project. From this frame the site is definitely more vibe-coded than engineered. I didn't create any design or specification documents. I prompted design iteratively and solved problems as they arose. Documentation and tests have been really helpful for mitigating [drift](https://docs.aws.amazon.com/prescriptive-guidance/latest/gen-ai-lifecycle-operational-excellence/prod-monitoring-drift.html).
 
+I will say though that the [AI slop ](https://en.wikipedia.org/wiki/AI_slop)prose is definitely grating. I find AI documentation to be written in such a way that its helpful for keeping an LLM on track, but not helpful as a reader trying to understand.
+
 Now I did make heavy use of the agent *Plan* mode so I could review any AI actions / intentions before I let the LLM loose. Allowing the agent to run on autopilot was only used after approving a set of changes.
 
 > [!info]- I did a trial run of an "external docs" pattern
->  I kept design, TODO, and planning documents in my obsidian vault, and just symlink'd them into the repository. [Symbolic linking](https://en.wikipedia.org/wiki/Symbolic_link) made it a bit easier for me to mentally shift into design / planning and implementation mindsets. The initial impulse for this was to to keep all of these documents private, yet still publish the repository and keep them easily consumable by an agent. It also allows artifacts and learnings to persist beyond the project, within my own notes, for potential reuse in future projects.
+>  I kept design, TODO, and planning documents in my obsidian vault, and just symlink'd them into the repository. [Symbolic linking](https://en.wikipedia.org/wiki/Symbolic_link) made it a bit easier for me to mentally shift into design / planning and implementation mindsets. The initial impulse for this was to to keep all of these documents private, yet still publish the repository, keep them in a workspace, and keep them easily consumable by an agent. It also allows artifacts and learnings to persist beyond the project, within my own notes, for potential reuse in future projects.
 
 #### Content Synchronization
 Synchronizing and importing my Obsidian notes was one of the first systems I spun up. This is what I went over in the deployment section.
@@ -488,9 +490,9 @@ In my experience, project velocity is tied to how much you actually understand t
 Asking the LLM to leave comments was helpful while perusing the code base. I also found that sometimes doc strings would be overly technical or repetitive. The [model will fixate on certain ideas or patterns in ways that remind me of dynamic attractors](https://en.wikipedia.org/wiki/Attractor). Still navigating that, but I haven't found a good solution.
 
 ### Copycat
-Doing is really the best way to learn. It also is the gateway to noticing. I've read a lot of blogs and I've been to many websites, but recently I've had a fresh set of eyes and little details and features have started to pop.
+Doing is really the best way to learn. It also is the gateway to noticing. I've read a lot of blogs and I've been to many websites, but recently I have had a fresh set of eyes for little details and features that didn't stand out before.
 
-Reading progress bar at the top was one. Spotify widget was one. Layouts. Whats in the headers and footers. Dynamic effects that respond to your mouse.
+Reading progress bar at the top was one. Spotify widget was one. Layouts. Header and footer contents. Dynamic effects that respond to your mouse.
 
 My response has gone from "[thats pretty neat](https://youtu.be/Hm3JodBR-vs?t=57)", to "thats pretty neat, I wonder how it was implemented / I would guess its being done this way".
 
@@ -510,7 +512,5 @@ Wow, what a great project. I learned a ton doing this and feel pretty good about
 Even if you don't really want a personal website - I find having your own domain and subdomains to be pretty useful. I have subdomains to access and DSM and Plex servers without having to rely on Synology or Plex to reroute me. I really want to setup my own open source LLM chat interface with a subdomain. Several more ideas that I don't want to spoil just yet.
 
 There are many more features I want to generate which I intend to work on sporadically. Its a very empowering experience to manage the site (almost) completely end to end.
-
-The followup to this article will focus more on specific things I encountered around using LLMs to build the website.
 
 Thanks for reading!
