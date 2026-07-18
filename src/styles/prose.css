@@ -468,15 +468,21 @@
    ```lang fold:Title fences become <details class="code-collapsible"> via
    remark-collapsible-code. A summary bar shows the fold title (usually a
    filename) and the highlighted <pre> lives in the content wrapper below it.
+   The outer box mirrors the callout sizing (same margin, radius, icon + chevron
+   dimensions) so folds read as a sibling of callouts; a masked `</>` glyph fills
+   the same leading-icon slot the callout `::before` uses.
    The smooth open/close is shared with callouts through CollapsibleDetails.astro
    (its selector includes `.code-collapsible`); `overflow: hidden` keeps the
    inner <pre> clipped to the rounded container while the height animates.
 */
 .prose .code-collapsible {
+  /* Leading-icon glyph (lucide `code-xml`), tinted via currentColor in ::before. */
+  --code-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m18 16 4-4-4-4'/%3E%3Cpath d='m6 8-4 4 4 4'/%3E%3Cpath d='m14.5 4-5 16'/%3E%3C/svg%3E");
+
+  margin: 1.5rem 0;
   border: 1px solid var(--color-border);
-  border-radius: 0.5rem;
+  border-radius: 0.75rem;
   background-color: var(--color-surface);
-  margin-bottom: 0.85rem;
   overflow: hidden;
 }
 
@@ -484,11 +490,10 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.5rem 0.85rem;
+  padding: 1rem;
   cursor: pointer;
   list-style: none;
-  font-family: var(--font-mono);
-  font-size: 0.8rem;
+  font-weight: 700;
   color: var(--color-muted);
   user-select: none;
 }
@@ -497,7 +502,20 @@
   display: none;
 }
 
+/* Leading icon fills the same slot as the callout icon (1.25rem, masked with
+   currentColor) so a fold lines up visually with the callouts around it. */
+.prose .code-collapsible > summary.code-collapsible-title::before {
+  content: "";
+  display: inline-block;
+  flex: 0 0 auto;
+  width: 1.25rem;
+  height: 1.25rem;
+  background-color: currentColor;
+  mask: var(--code-icon) center / contain no-repeat;
+}
+
 .prose .code-collapsible-title-text {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -519,8 +537,8 @@
   content: "";
   display: inline-block;
   flex: 0 0 auto;
-  width: 1.15rem;
-  height: 1.15rem;
+  width: 1.35rem;
+  height: 1.35rem;
   margin-left: auto;
   background-color: currentColor;
   transition: transform 0.3s cubic-bezier(0.65, 0, 0.35, 1);
