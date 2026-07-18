@@ -148,6 +148,8 @@ services:
 ### Networking Basics
 Starting at the other end of the hosting process - how I got my domain, and how your computer found my website to begin with. *If you're not interested in these details I suggest just skipping to the visual below.*
 
+![[nas-gateway-pi.HEIC]]
+
 #### Domain
 NameCheap was used to register my domain (`mattserwinowski.com`). Easy process, can't complain. 
 
@@ -181,6 +183,8 @@ Now that I have traffic resolving to my home network I had to get a bit more ser
 I'm using a Unifi Cloud Gateway as the router for my local network. Hate to fanboy, but I've been seriously impressed with Unifi equipment (price tag aside).
 
 The only real thing I configured for the gateway was port forwarding so that HTTP / HTTPS worked correctly. When the gateway receives a request on my public IP it now knows to forward that request to my NAS.
+
+---
 
 ### NAS
 Besides hosting the web server there were a couple of additional configurations I needed to make.
@@ -235,7 +239,7 @@ Here is a fun graph of the network route that should help mentally map the secti
 7) Your router requests data from the proxy address, which is a CloudFlare server. This server can cache my website and serve you quicker, and also shield my actual origin IP address.
 8) The proxy server has my actual IP address, and will forward a request on to my network.
 9) My Unifi Gateway would receive the (usually HTTPS) request and forward it on Port 443.
-10) My NAS firewall will do another check and block requester's based on their IP address and what the are trying to access.
+10) My NAS firewall will do another check and block requester's based on their IP address and what destination / port they are trying to access.
 11) Once the NAS receives the request it will forward the domain name to the reverse proxy. This proxy is inside the NAS, and tells the NAS which internal port to use (maps 443 -> a different port).
 12) That new port is the port the docker container exposes. This port going through docker will again remap to docker's internal port for the `nginx` web server.
 13) A valid request for the website will be sent back to the NAS.
