@@ -81,12 +81,12 @@ Clearly my analytical side speaking. I think these really don't need elaboration
 - **Maintainable** - Spaghetti code / systems make interacting with software unbearable. I should be able to understand the codebase and my networking setup without too much struggle.
 - **Reliable** - Website doesn't randomly break. The site / web server are portable: easy to teardown and standup wherever they needs to be.
 #### Aesthetics
-For better or for worse, I have an overriding aesthetic sense that I try to fulfill whenever I have means. I have strong opinions on how art or tools should look, feel, and function. Colors + fonts I like. Layouts I find appropriate and functional. Minimalist.
+For better or for worse, I have an overriding aesthetic sense that I try to fulfill whenever I have the means. I have strong opinions on how art or tools should look, feel, and function. Colors + fonts I like. Layouts I find appropriate and functional. Minimalist.
 #### Reflective
 Not literally in the material sense, but reflective of who I am. Widgets that make the site more accessible and interesting. Creative elements to distinguish the site from others like it. Much of this reflective component is handled by the aesthetics and articles published on the site.
 
 ### Widgets
-Every website needs a light / dark mode toggle. Its 2026, and it drives me nuts when a site or application does not support dark mode. This was the only widget I knew I needed to have. As the project evolved I added widgets I started to notice on other websites. They definitely bring a static site to life!
+Every website needs a light / dark mode toggle. Its 2026, and it drives me nuts when a site or application does not support dark mode. This was the only widget I knew I needed to have. As the project evolved I added more widgets that caught my attention on other websites. They definitely bring a static site to life!
 
 The widgets I added for version 1.0:
 - Light / Dark toggle button
@@ -216,7 +216,7 @@ Reverse proxies honestly took me a minute to wrap my head around, but once it cl
 This proxy, internal to the NAS, can direct HTTPS traffic (port 443) to the correct internal port using the domain as a map key. This is an essential feature for me, as it allows the NAS to distinguish callers **by their subdomain**. So connections to my website, plex server, raspberry pi, and DSM can all share my apex domain, and then they can be routed by their subdomain once they reach the reverse proxy.
 
 ##### DSM Access Control Profile (ACP)
-The reverse proxy also supports these access profiles which seem to be Access Control Lists (ACLs) for IP ranges/addresses. [CIDR](https://en.wikipedia.org/wiki/Classless_Inter-Domain_Routing) bit masking for sub nets has now also become a lot clearer for me between this and configuring the firewall. This is useful because I can limit access to the different systems at the reverse proxy where the connections diverge on my local network. For example, only my local network and Tailscale network connections can access my 
+The reverse proxy also supports these access profiles which seem to be Access Control Lists (ACLs) for IP ranges/addresses. [CIDR](https://en.wikipedia.org/wiki/Classless_Inter-Domain_Routing) bit masking for sub nets has now also become a lot clearer for me between this and configuring the firewall. This is useful because I can limit access to the different systems at the reverse proxy where the connections diverge on my local network. For example, only my local network and Tailscale network connections can access my home services like Plex and DSM.
 
 > [!bug]- PiHole Split DNS
 > Creating an ACP for my Plex subdomain seemed to trigger this bug where trying to access the subdomain always resulted in a `SSL_ERROR_BAD_CERT_DOMAIN` error. For some reason the default DSM certificate was being compared against the subdomain, and not the Let's Encrypt cert that was created for it.

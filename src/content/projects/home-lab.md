@@ -6,7 +6,7 @@ tags:
   - hardware
   - networking
   - website
-thumbnail: /assets/home-lab.svg
+thumbnail:
 date: 2026-05-15
 ---
 

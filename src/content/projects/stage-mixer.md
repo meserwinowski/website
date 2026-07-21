@@ -5,7 +5,6 @@ status: completed
 tags:
   - hardware
   - music
-  - website
 thumbnail: /assets/stage-mixer/mixer-front.webp
 date: 2026-06-15
 ---

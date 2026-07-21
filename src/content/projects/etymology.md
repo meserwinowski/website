@@ -3,9 +3,8 @@ title: Etymology is a Simple Pleasure
 description: Can I convince you to become interested in it?
 status: draft
 tags:
-  - website
   - etymology
-thumbnail: /assets/Untitled/
+thumbnail:
 date: 2026-07-16
 repo:
 ---

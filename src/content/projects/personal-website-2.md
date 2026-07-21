@@ -1,7 +1,7 @@
 ---
 title: The Self-Hosters Guide to Vibe Coding a Website (Part 2)
 description: Article on creating a self-host website with agentic engineering
-status: planning
+status: draft
 tags:
   - software
   - website
