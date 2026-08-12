@@ -1,0 +1,55 @@
+---
+/**
+ * dad.astro — Unlisted birthday page available directly at `/dad/`.
+ *
+ * The final animated image can be added at `public/assets/dad/birthday.gif`.
+ * Replace the placeholder below with an <img> that uses the same wrapper,
+ * meaningful alt text, and explicit dimensions.
+ */
+import Layout from '../layouts/Base.astro';
+import GiftBox from '../components/GiftBox.astro';
+
+const birthdayGifPath = '/assets/dad/birthday.gif';
+const giftLink = 'https://example.com/replace-with-final-gift-link';
+---
+
+<Layout
+  title="Happy Birthday Dad! - Matt Serwinowski"
+  description="A birthday message for Dad."
+  readingProgress={false}
+>
+  <article class="space-y-8 py-8">
+    <div class="space-y-3 text-center">
+      <h1 class="text-4xl font-bold tracking-tight">Happy Birthday Dad!</h1>
+      <p class="text-lg text-[var(--color-accent)]">Wishing you a wonderful birthday.</p>
+    </div>
+
+    <div
+      class="mx-auto flex aspect-video w-full max-w-xl items-center justify-center rounded-lg border border-dashed border-[var(--color-border)] bg-[var(--color-surface)] p-8 text-center"
+      data-birthday-media
+      data-gif-src={birthdayGifPath}
+    >
+      <p class="font-mono text-sm text-[var(--color-muted)]">
+        Birthday GIF coming soon
+      </p>
+    </div>
+
+    <div class="prose mx-auto">
+      <p>
+        Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod
+        tempor incididunt ut labore et dolore magna aliqua.
+      </p>
+      <p>
+        Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi
+        ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit
+        in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
+      </p>
+      <p>
+        Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia
+        deserunt mollit anim id est laborum.
+      </p>
+    </div>
+
+    <GiftBox href={giftLink} />
+  </article>
+</Layout>

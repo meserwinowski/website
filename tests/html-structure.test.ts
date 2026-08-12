@@ -22,6 +22,7 @@ let indexHtml: string;
 let projectsHtml: string;
 let postsHtml: string;
 let aboutHtml: string;
+let dadHtml: string;
 
 beforeAll(() => {
   // Arrange once: load the built HTML fixtures that every assertion inspects.
@@ -30,6 +31,7 @@ beforeAll(() => {
   projectsHtml = readFileSync(resolve(distDir, 'projects', 'index.html'), 'utf-8');
   postsHtml = readFileSync(resolve(distDir, 'posts', 'index.html'), 'utf-8');
   aboutHtml = readFileSync(resolve(distDir, 'about', 'index.html'), 'utf-8');
+  dadHtml = readFileSync(resolve(distDir, 'dad', 'index.html'), 'utf-8');
 });
 
 describe('HTML structure - index.html', () => {
@@ -98,7 +100,7 @@ describe('Navigation', () => {
   });
 
   it('all pages have navigation', () => {
-    for (const html of [projectsHtml, postsHtml, aboutHtml]) {
+    for (const html of [projectsHtml, postsHtml, aboutHtml, dadHtml]) {
       // A loop keeps the invariant readable: every subpage gets the same chrome.
       expect(html).toMatch(/<nav/);
       expect(html).toMatch(/<header/);
@@ -135,13 +137,13 @@ describe('HTML structure - subpages', () => {
   });
 
   it('all pages have footer', () => {
-    for (const html of [indexHtml, projectsHtml, postsHtml, aboutHtml]) {
+    for (const html of [indexHtml, projectsHtml, postsHtml, aboutHtml, dadHtml]) {
       expect(html).toMatch(/<footer/);
     }
   });
 
   it('all pages have a back-to-top widget', () => {
-    for (const html of [indexHtml, projectsHtml, postsHtml, aboutHtml]) {
+    for (const html of [indexHtml, projectsHtml, postsHtml, aboutHtml, dadHtml]) {
       expect(html).toMatch(/id="back-to-top"/);
       expect(html).toMatch(/aria-label="Back to top"/);
     }
@@ -153,6 +155,58 @@ describe('HTML structure - subpages', () => {
     }
     // The About page opts out of the reading-progress bar (Base `readingProgress={false}`).
     expect(aboutHtml).not.toMatch(/id="reading-progress"/);
+  });
+});
+
+describe('Dad birthday page', () => {
+  it('has the expected title and birthday heading', () => {
+    expect(dadHtml).toMatch(
+      /<title>Happy Birthday Dad! - Matt Serwinowski<\/title>/,
+    );
+    expect(dadHtml).toMatch(/<h1[^>]*>Happy Birthday Dad!<\/h1>/);
+  });
+
+  it('provides a placeholder for the future GIF asset', () => {
+    expect(dadHtml).toMatch(/data-birthday-media/);
+    expect(dadHtml).toMatch(
+      /data-gif-src="\/assets\/dad\/birthday\.gif"/,
+    );
+    expect(dadHtml).toContain('Birthday GIF coming soon');
+  });
+
+  it('renders an accessible animated gift control', () => {
+    expect(dadHtml).toMatch(/data-gift-box[^>]*data-state="closed"/);
+    expect(dadHtml).toMatch(
+      /<button[^>]*aria-label="Open your gift"[^>]*aria-expanded="false"[^>]*aria-controls="gift-box-reveal"/,
+    );
+    expect(dadHtml).toMatch(
+      /id="gift-box-reveal"[^>]*aria-hidden="true"/,
+    );
+    expect(dadHtml).toMatch(/role="status"[^>]*aria-live="polite"/);
+  });
+
+  it('includes the placeholder gift destination in static HTML', () => {
+    expect(dadHtml).toMatch(
+      /href="https:\/\/example\.com\/replace-with-final-gift-link"/,
+    );
+    expect(dadHtml).toContain('Open your birthday surprise');
+  });
+
+  it('places the gift after the birthday message', () => {
+    const messagePosition = dadHtml.indexOf('Lorem ipsum dolor sit amet');
+    const giftPosition = dadHtml.indexOf('data-gift-box');
+    expect(messagePosition).toBeGreaterThan(-1);
+    expect(giftPosition).toBeGreaterThan(messagePosition);
+  });
+
+  it('stays unlisted from the main navigation', () => {
+    const header = dadHtml.match(/<header[^>]*>[\s\S]*?<\/header>/)?.[0] ?? '';
+    expect(header).not.toMatch(/href="\/dad\/"/);
+    expect(indexHtml).not.toMatch(/href="\/dad\/"/);
+  });
+
+  it('disables reading progress for the short standalone page', () => {
+    expect(dadHtml).not.toMatch(/id="reading-progress"/);
   });
 });
 
