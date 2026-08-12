@@ -50,6 +50,10 @@ describe('Build verification', () => {
     expect(existsSync(resolve(distDir, 'about', 'index.html'))).toBe(true);
   });
 
+  it('dist/dad/index.html exists after build', () => {
+    expect(existsSync(resolve(distDir, 'dad', 'index.html'))).toBe(true);
+  });
+
   it('dist/projects/stage-mixer/index.html exists after build', () => {
     expect(existsSync(resolve(distDir, 'projects', 'stage-mixer', 'index.html'))).toBe(true);
   });
