@@ -73,6 +73,20 @@ describe('Build verification', () => {
     expect(existsSync(resolve(distDir, 'sitemap-index.xml'))).toBe(true);
   });
 
+  it('rss.xml contains the public project feed in newest-first order', () => {
+    const rss = readFileSync(resolve(distDir, 'rss.xml'), 'utf-8');
+    const newestProject = rss.indexOf('Example Project');
+    const olderProject = rss.indexOf('Older Example Project');
+
+    expect(newestProject).toBeGreaterThan(-1);
+    expect(olderProject).toBeGreaterThan(newestProject);
+    expect(rss).toContain(
+      'https://www.mattserwinowski.com/projects/stage-mixer/',
+    );
+    expect(rss).not.toContain('Example Draft Service');
+    expect(rss).not.toContain('Example Draft Project');
+  });
+
   it('robots.txt exists after build', () => {
     expect(existsSync(resolve(distDir, 'robots.txt'))).toBe(true);
   });
