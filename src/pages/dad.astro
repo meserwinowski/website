@@ -1,16 +1,11 @@
 ---
 /**
  * dad.astro — Unlisted birthday page available directly at `/dad/`.
- *
- * The final animated image can be added at `public/assets/dad/birthday.gif`.
- * Replace the placeholder below with an <img> that uses the same wrapper,
- * meaningful alt text, and explicit dimensions.
  */
 import Layout from '../layouts/Base.astro';
 import GiftBox from '../components/GiftBox.astro';
 
-const birthdayGifPath = '/assets/dad/birthday.gif';
-const giftLink = 'https://example.com/replace-with-final-gift-link';
+const birthdayGifUrl = 'https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExM2k0dXM0ZjF4NGx4YjFzZDVrYXBybndwZzFseXdkYWE2NHYxbmg0eCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/6g564lKXZo796/giphy.gif';
 ---
 
 <Layout
@@ -24,32 +19,66 @@ const giftLink = 'https://example.com/replace-with-final-gift-link';
       <p class="text-lg text-[var(--color-accent)]">Wishing you a wonderful birthday.</p>
     </div>
 
-    <div
-      class="mx-auto flex aspect-video w-full max-w-xl items-center justify-center rounded-lg border border-dashed border-[var(--color-border)] bg-[var(--color-surface)] p-8 text-center"
+    <img
+      src={birthdayGifUrl}
+      alt="Pusheen celebrating a happy birthday"
+      width="350"
+      height="350"
+      loading="eager"
+      decoding="async"
+      class="mx-auto block h-auto w-auto max-w-[350px] rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)]"
       data-birthday-media
-      data-gif-src={birthdayGifPath}
-    >
-      <p class="font-mono text-sm text-[var(--color-muted)]">
-        Birthday GIF coming soon
-      </p>
-    </div>
+      data-gif-src={birthdayGifUrl}
+    />
 
-    <div class="prose mx-auto">
-      <p>
-        Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod
-        tempor incididunt ut labore et dolore magna aliqua.
-      </p>
-      <p>
-        Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi
-        ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit
-        in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
-      </p>
-      <p>
-        Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia
-        deserunt mollit anim id est laborum.
-      </p>
-    </div>
+    <GiftBox>
+      <div class="prose">
+        <p>
+          65 laps around the sun, and somehow you’re moving faster than ever.
+        </p>
+        <p>
+          This year, you’ve walked farther, traveled more, and lifted heavier. So
+          we wanted to give you something that matches your pace.
+        </p>
 
-    <GiftBox href={giftLink} />
+        <p>On December 10, 2026, at Miami Homestead Speedway, you’ll experience:</p>
+
+        <ul>
+          <li>A Hellcat ride-along</li>
+          <li>A Ferrari 488</li>
+          <li>A Porsche 911</li>
+        </ul>
+
+        <p>Be there at 8:30 AM!</p>
+
+        <p><strong>Happy Birthday!</strong></p>
+
+        <p>
+          Love,<br />
+            Matthew, Nicole &amp; Christian
+        </p>
+      </div>
+
+      <div class="gift-cars" aria-label="Your driving experiences">
+        <img
+          src="/assets/dad/ferrari-488.png"
+          alt="Ferrari 488 GTB Xtreme Xperience driving voucher"
+          width="386"
+          height="465"
+          loading="lazy"
+          decoding="async"
+          class="gift-car gift-car--left"
+        />
+        <img
+          src="/assets/dad/porsche-911.png"
+          alt="Porsche 911 GT3 Xtreme Xperience driving voucher"
+          width="392"
+          height="484"
+          loading="lazy"
+          decoding="async"
+          class="gift-car gift-car--right"
+        />
+      </div>
+    </GiftBox>
   </article>
 </Layout>

@@ -195,12 +195,15 @@ describe('Dad birthday page', () => {
     expect(dadHtml).toMatch(/<h1[^>]*>Happy Birthday Dad!<\/h1>/);
   });
 
-  it('provides a placeholder for the future GIF asset', () => {
-    expect(dadHtml).toMatch(/data-birthday-media/);
+  it('renders the birthday GIF with intrinsic dimensions', () => {
+    const gif = dadHtml.match(/<img[^>]*data-birthday-media[^>]*>/)?.[0] ?? '';
+    expect(gif).toMatch(/src="https:\/\/media0\.giphy\.com\/[^"]+\/6g564lKXZo796\/giphy\.gif"/);
+    expect(gif).toMatch(/alt="Pusheen celebrating a happy birthday"/);
+    expect(gif).toMatch(/width="350"/);
+    expect(gif).toMatch(/height="350"/);
     expect(dadHtml).toMatch(
-      /data-gif-src="\/assets\/dad\/birthday\.gif"/,
+      /data-gif-src="https:\/\/media0\.giphy\.com\/[^"]+\/6g564lKXZo796\/giphy\.gif"/,
     );
-    expect(dadHtml).toContain('Birthday GIF coming soon');
   });
 
   it('renders an accessible animated gift control', () => {
@@ -214,18 +217,30 @@ describe('Dad birthday page', () => {
     expect(dadHtml).toMatch(/role="status"[^>]*aria-live="polite"/);
   });
 
-  it('includes the placeholder gift destination in static HTML', () => {
-    expect(dadHtml).toMatch(
-      /href="https:\/\/example\.com\/replace-with-final-gift-link"/,
-    );
-    expect(dadHtml).toContain('Open your birthday surprise');
+  it('does not render a gift hyperlink', () => {
+    expect(dadHtml).not.toMatch(/<a[^>]*data-gift-box-link/);
+    expect(dadHtml).not.toContain('replace-with-final-gift-link');
   });
 
-  it('places the gift after the birthday message', () => {
-    const messagePosition = dadHtml.indexOf('Lorem ipsum dolor sit amet');
-    const giftPosition = dadHtml.indexOf('data-gift-box');
+  it('renders both driving vouchers inside the gift reveal', () => {
+    const revealStart = dadHtml.indexOf('data-gift-box-reveal');
+    const ferrariPosition = dadHtml.indexOf('/assets/dad/ferrari-488.png');
+    const porschePosition = dadHtml.indexOf('/assets/dad/porsche-911.png');
+    expect(revealStart).toBeGreaterThan(-1);
+    expect(ferrariPosition).toBeGreaterThan(revealStart);
+    expect(porschePosition).toBeGreaterThan(revealStart);
+    expect(dadHtml).toMatch(/class="gift-car gift-car--left"/);
+    expect(dadHtml).toMatch(/class="gift-car gift-car--right"/);
+  });
+
+  it('keeps the birthday message inside the hidden gift reveal', () => {
+    const messagePosition = dadHtml.indexOf('65 laps around the sun');
+    const revealStart = dadHtml.indexOf('data-gift-box-reveal');
+    const revealEnd = dadHtml.indexOf('</div>', messagePosition);
+    expect(revealStart).toBeGreaterThan(-1);
     expect(messagePosition).toBeGreaterThan(-1);
-    expect(giftPosition).toBeGreaterThan(messagePosition);
+    expect(messagePosition).toBeGreaterThan(revealStart);
+    expect(revealEnd).toBeGreaterThan(messagePosition);
   });
 
   it('stays unlisted from the main navigation', () => {
