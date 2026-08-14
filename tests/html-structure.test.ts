@@ -62,6 +62,14 @@ describe('HTML structure - index.html', () => {
     expect(indexHtml).toMatch(/<link[^>]*rel="canonical"/);
   });
 
+  it('advertises the RSS feed', () => {
+    for (const html of [indexHtml, projectsHtml, postsHtml, aboutHtml, dadHtml]) {
+      expect(html).toMatch(
+        /<link[^>]*rel="alternate"[^>]*type="application\/rss\+xml"[^>]*href="https:\/\/www\.mattserwinowski\.com\/rss\.xml"/,
+      );
+    }
+  });
+
   it('has a non-empty <body>', () => {
     const bodyMatch = indexHtml.match(/<body[^>]*>([\s\S]*?)<\/body>/);
     // The match is the "act" step; the two expects form the "assert" step:
@@ -106,6 +114,14 @@ describe('Navigation', () => {
       expect(html).toMatch(/<header/);
     }
   });
+
+  it('has a site-wide RSS icon that links to the footer subscription section', () => {
+    for (const html of [indexHtml, projectsHtml, postsHtml, aboutHtml, dadHtml]) {
+      expect(html).toMatch(
+        /<a[^>]*href="#subscribe"[^>]*aria-label="Subscribe via RSS"/,
+      );
+    }
+  });
 });
 
 describe('HTML structure - subpages', () => {
@@ -139,6 +155,19 @@ describe('HTML structure - subpages', () => {
   it('all pages have footer', () => {
     for (const html of [indexHtml, projectsHtml, postsHtml, aboutHtml, dadHtml]) {
       expect(html).toMatch(/<footer/);
+    }
+  });
+
+  it('all pages have a non-collecting RSS subscription form', () => {
+    for (const html of [indexHtml, projectsHtml, postsHtml, aboutHtml, dadHtml]) {
+      expect(html).toMatch(/<section[^>]*id="subscribe"/);
+      expect(html).toMatch(/<form[^>]*action="\/rss\.xml"[^>]*method="get"/);
+      const emailInput = html.match(/<input[^>]*id="subscribe-email"[^>]*>/)?.[0] ?? '';
+      expect(emailInput).toMatch(/type="email"/);
+      expect(emailInput).toMatch(/\srequired(?:\s|>|=)/);
+      expect(emailInput).not.toMatch(/\sname=/);
+      expect(html).toContain('Your address is not collected or sent anywhere.');
+      expect(html).toMatch(/<button[^>]*type="submit"[^>]*>[\s\S]*?Subscribe[\s\S]*?<\/button>/);
     }
   });
 

@@ -73,6 +73,20 @@ describe('Build verification', () => {
     expect(existsSync(resolve(distDir, 'sitemap-index.xml'))).toBe(true);
   });
 
+  it('rss.xml contains the public project feed in newest-first order', () => {
+    const rss = readFileSync(resolve(distDir, 'rss.xml'), 'utf-8');
+    const newestProject = rss.indexOf('Is a Stage Mixer Punk Rock?');
+    const olderProject = rss.indexOf('The Self-Hosters Guide to Vibe Coding a Website');
+
+    expect(newestProject).toBeGreaterThan(-1);
+    expect(olderProject).toBeGreaterThan(newestProject);
+    expect(rss).toContain(
+      'https://www.mattserwinowski.com/projects/stage-mixer/',
+    );
+    expect(rss).not.toContain('Email Bot');
+    expect(rss).not.toContain('Home Lab Server');
+  });
+
   it('robots.txt exists after build', () => {
     expect(existsSync(resolve(distDir, 'robots.txt'))).toBe(true);
   });

@@ -62,6 +62,7 @@ const chromeContainerWidth = chrome === 'project-detail'
 
 // Build the canonical absolute URL for SEO and social-sharing metadata.
 const canonicalURL = new URL(Astro.url.pathname, Astro.site);
+const rssURL = new URL('/rss.xml', Astro.site);
 ---
 
 <!doctype html>
@@ -89,6 +90,7 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content={description} />
     <link rel="canonical" href={canonicalURL.href} />
+    <link rel="alternate" type="application/rss+xml" title="Matt Serwinowski RSS feed" href={rssURL.href} />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 
     {/* Open Graph and Twitter metadata keep shared links consistent across platforms. */}

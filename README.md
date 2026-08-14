@@ -192,6 +192,20 @@ its "Block AI Scrapers and Crawlers" managed rule to catch User-Agent spoofers.
 researchers a standard contact record for the site, including the canonical URL
 that Cloudflare and other checks expect.
 
+## RSS feed
+
+The combined site feed is published at
+[`/rss.xml`](https://www.mattserwinowski.com/rss.xml). It currently includes
+completed and ongoing projects, newest first, with each item containing its
+title, publication date, and canonical project link. Future posts will be added
+to the same feed.
+
+Every page advertises the feed with RSS autodiscovery metadata. The RSS icon in
+the header jumps to the footer subscription section. The footer's email field is
+transitional: submitting a valid address opens the RSS feed, but the address has
+no form name and is not collected, sent, or stored. Real email delivery remains
+future work.
+
 ## NAS container management
 
 The nginx container (and every other Docker stack on the NAS) is managed by a separate,

@@ -1,6 +1,6 @@
 ---
 /**
- * Footer.astro — Site-wide copyright and build metadata.
+ * Footer.astro — Site-wide subscription, copyright, and build metadata.
  *
  * Astro frontmatter (this `---` block) runs on the server at build time, not in
  * the browser. That makes it a good place to stamp the static site with the
@@ -21,9 +21,34 @@ const buildDateISO = buildDate.toISOString().split('T')[0];
 {/* Semantic footer landmark shared by every page via Base.astro. */}
 <footer class="border-t border-[var(--color-border)] py-8">
   {/* Theme-aware color tokens come from global.css and work in both light/dark themes. */}
-  <div class="mx-auto max-w-[var(--width-prose)] px-6 text-center text-sm text-[var(--color-muted)]">
-    <p>&copy; {year} Matt Serwinowski</p>
-    {/* <time> gives machines an ISO date while humans get a friendly label. */}
-    <p class="mt-1 text-xs">Last updated <time datetime={buildDateISO}>{formattedBuildDate}</time></p>
+  <div class="mx-auto max-w-[var(--width-prose)] space-y-8 px-6 text-sm text-[var(--color-muted)]">
+    <section id="subscribe" class="scroll-mt-8 space-y-3 text-center" aria-labelledby="subscribe-title">
+      <h2 id="subscribe-title" class="text-xl font-semibold text-[var(--color-text)]">Subscribe</h2>
+      <p>Enter your email to open the RSS feed in your browser or feed reader.</p>
+      <form action="/rss.xml" method="get" class="mx-auto flex max-w-lg flex-col gap-3 sm:flex-row">
+        <label for="subscribe-email" class="sr-only">Email address</label>
+        <input
+          id="subscribe-email"
+          type="email"
+          required
+          autocomplete="email"
+          placeholder="you@example.com"
+          class="min-w-0 flex-1 rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2 text-[var(--color-text)] placeholder:text-[var(--color-muted)] focus:border-[var(--color-accent)] focus:outline-none"
+        />
+        <button
+          type="submit"
+          class="rounded-md bg-[var(--color-accent)] px-4 py-2 font-semibold text-[var(--color-bg)] hover:bg-[var(--color-accent-hover)]"
+        >
+          Subscribe
+        </button>
+      </form>
+      <p class="text-xs">Email delivery is coming later. Your address is not collected or sent anywhere.</p>
+    </section>
+
+    <div class="text-center">
+      <p>&copy; {year} Matt Serwinowski</p>
+      {/* <time> gives machines an ISO date while humans get a friendly label. */}
+      <p class="mt-1 text-xs">Last updated <time datetime={buildDateISO}>{formattedBuildDate}</time></p>
+    </div>
   </div>
 </footer>
