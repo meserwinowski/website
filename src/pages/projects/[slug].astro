@@ -1,132 +1,24 @@
 ---
-/**
- * [slug].astro — Dynamic project detail route.
- *
- * The bracketed filename is Astro's dynamic-route syntax. This single template
- * becomes many static pages — one per public project — after getStaticPaths()
- * tells Astro which slugs exist:
- *
- *   /projects/personal-website/index.html
- *   /projects/home-lab/index.html
- *   /projects/mech-keyboard/index.html
- *
- * The Markdown still comes from Content Collections, so frontmatter is validated
- * before this route renders and Obsidian-specific Markdown is handled by the
- * shared markdown pipeline.
- */
-import { getCollection, render } from 'astro:content';
-import HeadingPermalinks from '../../components/HeadingPermalinks.astro';
-import ProjectMeta from '../../components/ProjectMeta.astro';
-import TableOfContents from '../../components/TableOfContents.astro';
-import Layout from '../../layouts/Base.astro';
-import { estimateReadingTime } from '../../lib/readingTime';
+import { getCollection } from 'astro:content';
+import ProjectDetail from '../../components/ProjectDetail.astro';
+import { isPublicProject } from '../../lib/projectStatus';
 
-/**
- * Enumerate every concrete URL for this dynamic route.
- *
- * Astro builds static HTML, so `[slug].astro` cannot be emitted until the build
- * knows which slug values are valid. Each returned `params.slug` becomes one
- * `/projects/{slug}/` page, and the matching `props.project` object is made
- * available to the template through Astro.props.
- */
 export async function getStaticPaths() {
   const projects = await getCollection('projects');
+
   return projects
-    // Only public projects get detail pages; this mirrors the index and home
-    // feeds so drafts/planning notes never become reachable routes.
-    .filter((p) => ['completed', 'ongoing'].includes(p.data.status))
+    .filter((project) => isPublicProject(project.data.status))
     .map((project) => ({
-      params: { slug: project.id },  // Fills the `[slug]` segment in the URL.
-      props: { project },            // Passed to this template as Astro.props.
+      params: { slug: project.id },
+      props: { project },
     }));
 }
 
-// Astro.props contains the per-page object returned above; at runtime there is
-// no database lookup, only the already-selected collection entry for this slug.
 const { project } = Astro.props;
-
-// render(project) converts the Markdown body into a renderable <Content />
-// component and exposes heading metadata for the project-page table of contents.
-const { Content, headings } = await render(project);
-
-// The ToC links to real h1-h3 headings only; deeper headings stay in the prose
-// but are too granular for the side rail/mobile summary.
-const tableOfContentsHeadings = headings.filter((heading) => (
-  heading.slug && heading.depth >= 1 && heading.depth <= 3
-));
-// A single heading does not need navigation chrome, so show the ToC only when it
-// helps readers move around the page.
-const showTableOfContents = tableOfContentsHeadings.length > 1;
-// Reading time uses the raw Markdown body so the estimator can strip syntax
-// intentionally before counting words.
-const readingTime = estimateReadingTime(project.body);
 ---
 
-<Layout title={`${project.data.title} - Matt Serwinowski`} width="wide" chrome="project-detail">
-  {/* Project pages use the standard title convention: "Project Title - Matt Serwinowski". */}
-  {/* Wide layout: article in the center column, optional navigation/meta rails in the equal side gutters. */}
-  <div class="grid gap-8 xl:items-start xl:grid-cols-[minmax(0,1fr)_minmax(0,var(--width-prose))_minmax(0,1fr)]">
-    {/* Left gutter: sticky Table of Contents. Explicit column placement keeps the article centered even if absent. */}
-    {showTableOfContents && (
-      <aside class="hidden xl:col-start-1 xl:block">
-        <div class="sticky top-8">
-          <TableOfContents headings={tableOfContentsHeadings} />
-        </div>
-      </aside>
-    )}
-
-    {/* The article is the self-contained project narrative; below xl it simply centers like a normal prose page. */}
-    <article class="mx-auto w-full min-w-0 max-w-[var(--width-prose)] space-y-8 xl:col-start-2">
-
-      {/* Header combines route navigation, validated frontmatter, and responsive project metadata. */}
-      <header class="space-y-4">
-        <a href="/projects/" class="text-sm text-[var(--color-muted)] hover:text-[var(--color-accent)] inline-block">
-          ← Back to Projects
-        </a>
-
-        <h1 class="text-4xl font-bold">{project.data.title}</h1>
-
-        {/* Below xl there is no right rail, so the same metadata collapses inline under the title. */}
-        <div class="xl:hidden">
-          <ProjectMeta
-            variant="inline"
-            status={project.data.status}
-            tags={project.data.tags}
-            date={project.data.date}
-            repo={project.data.repo}
-            readingMinutes={readingTime.minutes}
-          />
-        </div>
-
-        <p class="text-[var(--color-muted)]">{project.data.description}</p>
-      </header>
-
-      {/* Mobile readers get the same heading list inline because the sticky desktop rail is hidden. */}
-      {showTableOfContents && (
-        <TableOfContents headings={tableOfContentsHeadings} variant="mobile" />
-      )}
-
-      {/* <Content /> renders the project Markdown; `.prose` applies the shared article typography system. */}
-      <div class="prose">
-        <Content />
-      </div>
-
-      {/* Progressive enhancement: copy a section's URL to the clipboard when its heading permalink is clicked. */}
-      <HeadingPermalinks />
-    </article>
-
-    {/* Right gutter: sticky project spec sheet balances the ToC rail and keeps the reading column centered. */}
-    <aside class="hidden xl:col-start-3 xl:block">
-      <div class="sticky top-8">
-        <ProjectMeta
-          variant="rail"
-          status={project.data.status}
-          tags={project.data.tags}
-          date={project.data.date}
-          repo={project.data.repo}
-          readingMinutes={readingTime.minutes}
-        />
-      </div>
-    </aside>
-  </div>
-</Layout>
+<ProjectDetail
+  project={project}
+  backHref="/projects/"
+  backLabel="Back to Projects"
+/>

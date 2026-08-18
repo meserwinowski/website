@@ -27,7 +27,11 @@ const projectDir = dirname(fileURLToPath(import.meta.url));
  */
 export default defineConfig({
   site: 'https://www.mattserwinowski.com',
-  integrations: [sitemap()],
+  integrations: [
+    sitemap({
+      filter: (page) => !new URL(page).pathname.startsWith('/archive/'),
+    }),
+  ],
   markdown: {
     // Replaces Astro's stock markdown stack; all Obsidian callout/embed handling
     // lives in these plugins so page components can render normal HTML.

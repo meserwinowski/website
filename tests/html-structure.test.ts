@@ -22,7 +22,8 @@ let indexHtml: string;
 let projectsHtml: string;
 let postsHtml: string;
 let aboutHtml: string;
-let dadHtml: string;
+let archivedDadHtml: string;
+let archiveHtml: string;
 
 beforeAll(() => {
   // Arrange once: load the built HTML fixtures that every assertion inspects.
@@ -31,7 +32,11 @@ beforeAll(() => {
   projectsHtml = readFileSync(resolve(distDir, 'projects', 'index.html'), 'utf-8');
   postsHtml = readFileSync(resolve(distDir, 'posts', 'index.html'), 'utf-8');
   aboutHtml = readFileSync(resolve(distDir, 'about', 'index.html'), 'utf-8');
-  dadHtml = readFileSync(resolve(distDir, 'dad', 'index.html'), 'utf-8');
+  archivedDadHtml = readFileSync(
+    resolve(distDir, 'archive', 'example-gift', 'index.html'),
+    'utf-8',
+  );
+  archiveHtml = readFileSync(resolve(distDir, 'archive', 'index.html'), 'utf-8');
 });
 
 describe('HTML structure - index.html', () => {
@@ -63,7 +68,7 @@ describe('HTML structure - index.html', () => {
   });
 
   it('advertises the RSS feed', () => {
-    for (const html of [indexHtml, projectsHtml, postsHtml, aboutHtml, dadHtml]) {
+    for (const html of [indexHtml, projectsHtml, postsHtml, aboutHtml, archivedDadHtml, archiveHtml]) {
       expect(html).toMatch(
         /<link[^>]*rel="alternate"[^>]*type="application\/rss\+xml"[^>]*href="https:\/\/www\.mattserwinowski\.com\/rss\.xml"/,
       );
@@ -108,7 +113,7 @@ describe('Navigation', () => {
   });
 
   it('all pages have navigation', () => {
-    for (const html of [projectsHtml, postsHtml, aboutHtml, dadHtml]) {
+    for (const html of [projectsHtml, postsHtml, aboutHtml, archivedDadHtml, archiveHtml]) {
       // A loop keeps the invariant readable: every subpage gets the same chrome.
       expect(html).toMatch(/<nav/);
       expect(html).toMatch(/<header/);
@@ -116,7 +121,7 @@ describe('Navigation', () => {
   });
 
   it('has a site-wide RSS icon that links to the footer subscription section', () => {
-    for (const html of [indexHtml, projectsHtml, postsHtml, aboutHtml, dadHtml]) {
+    for (const html of [indexHtml, projectsHtml, postsHtml, aboutHtml, archivedDadHtml, archiveHtml]) {
       expect(html).toMatch(
         /<a[^>]*href="#subscribe"[^>]*aria-label="Subscribe via RSS"/,
       );
@@ -153,13 +158,13 @@ describe('HTML structure - subpages', () => {
   });
 
   it('all pages have footer', () => {
-    for (const html of [indexHtml, projectsHtml, postsHtml, aboutHtml, dadHtml]) {
+    for (const html of [indexHtml, projectsHtml, postsHtml, aboutHtml, archivedDadHtml, archiveHtml]) {
       expect(html).toMatch(/<footer/);
     }
   });
 
   it('all pages have a non-collecting RSS subscription form', () => {
-    for (const html of [indexHtml, projectsHtml, postsHtml, aboutHtml, dadHtml]) {
+    for (const html of [indexHtml, projectsHtml, postsHtml, aboutHtml, archivedDadHtml, archiveHtml]) {
       expect(html).toMatch(/<section[^>]*id="subscribe"/);
       expect(html).toMatch(/<form[^>]*action="\/rss\.xml"[^>]*method="get"/);
       const emailInput = html.match(/<input[^>]*id="subscribe-email"[^>]*>/)?.[0] ?? '';
@@ -172,7 +177,7 @@ describe('HTML structure - subpages', () => {
   });
 
   it('all pages have a back-to-top widget', () => {
-    for (const html of [indexHtml, projectsHtml, postsHtml, aboutHtml, dadHtml]) {
+    for (const html of [indexHtml, projectsHtml, postsHtml, aboutHtml, archivedDadHtml, archiveHtml]) {
       expect(html).toMatch(/id="back-to-top"/);
       expect(html).toMatch(/aria-label="Back to top"/);
     }
@@ -187,56 +192,80 @@ describe('HTML structure - subpages', () => {
   });
 });
 
-describe('Dad birthday page', () => {
+describe('Archive', () => {
+  it('is public by direct URL but excluded from search indexing', () => {
+    expect(archiveHtml).toMatch(/<title>Archive - Matt Serwinowski<\/title>/);
+    expect(archiveHtml).toMatch(/<h1[^>]*>Archive<\/h1>/);
+    expect(archiveHtml).toMatch(
+      /<meta[^>]*name="robots"[^>]*content="noindex, follow"/,
+    );
+  });
+
+  it('stays out of the primary navigation', () => {
+    const header = archiveHtml.match(/<header[^>]*>[\s\S]*?<\/header>/)?.[0] ?? '';
+    expect(header).not.toMatch(/href="\/archive\/"/);
+    expect(indexHtml).not.toMatch(/href="\/archive\/"/);
+  });
+
+  it('lists the archived Dad birthday page', () => {
+    expect(archiveHtml).toMatch(/href="\/archive\/example-gift\/"/);
+    expect(archiveHtml).toContain('Example Gift');
+  });
+});
+
+describe('Archived Dad birthday page', () => {
   it('has the expected title and birthday heading', () => {
-    expect(dadHtml).toMatch(
+    expect(archivedDadHtml).toMatch(
       /<title>Example Gift - Matt Serwinowski<\/title>/,
     );
-    expect(dadHtml).toMatch(/<h1[^>]*>Example Gift<\/h1>/);
+    expect(archivedDadHtml).toMatch(/<h1[^>]*>Example Gift<\/h1>/);
+    expect(archivedDadHtml).toMatch(
+      /<meta[^>]*name="robots"[^>]*content="noindex, follow"/,
+    );
   });
 
   it('renders the birthday GIF with intrinsic dimensions', () => {
-    const gif = dadHtml.match(/<img[^>]*data-birthday-media[^>]*>/)?.[0] ?? '';
+    const gif = archivedDadHtml.match(/<img[^>]*data-birthday-media[^>]*>/)?.[0] ?? '';
     expect(gif).toMatch(/src="https:\/\/media0\.giphy\.com\/[^"]+\/6g564lKXZo796\/giphy\.gif"/);
     expect(gif).toMatch(/alt="Pusheen celebrating a happy birthday"/);
     expect(gif).toMatch(/width="350"/);
     expect(gif).toMatch(/height="350"/);
-    expect(dadHtml).toMatch(
+    expect(archivedDadHtml).toMatch(
       /data-gif-src="https:\/\/media0\.giphy\.com\/[^"]+\/6g564lKXZo796\/giphy\.gif"/,
     );
   });
 
   it('renders an accessible animated gift control', () => {
-    expect(dadHtml).toMatch(/data-gift-box[^>]*data-state="closed"/);
-    expect(dadHtml).toMatch(
+    expect(archivedDadHtml).toMatch(/data-gift-box[^>]*data-state="closed"/);
+    expect(archivedDadHtml).toMatch(
       /<button[^>]*aria-label="Open your gift"[^>]*aria-expanded="false"[^>]*aria-controls="gift-box-reveal"/,
     );
-    expect(dadHtml).toMatch(
+    expect(archivedDadHtml).toMatch(
       /id="gift-box-reveal"[^>]*aria-hidden="true"/,
     );
-    expect(dadHtml).toMatch(/role="status"[^>]*aria-live="polite"/);
+    expect(archivedDadHtml).toMatch(/role="status"[^>]*aria-live="polite"/);
   });
 
   it('does not render a gift hyperlink', () => {
-    expect(dadHtml).not.toMatch(/<a[^>]*data-gift-box-link/);
-    expect(dadHtml).not.toContain('replace-with-final-gift-link');
+    expect(archivedDadHtml).not.toMatch(/<a[^>]*data-gift-box-link/);
+    expect(archivedDadHtml).not.toContain('replace-with-final-gift-link');
   });
 
   it('renders both driving vouchers inside the gift reveal', () => {
-    const revealStart = dadHtml.indexOf('data-gift-box-reveal');
-    const ferrariPosition = dadHtml.indexOf('/assets/gift/first.png');
-    const porschePosition = dadHtml.indexOf('/assets/gift/second.png');
+    const revealStart = archivedDadHtml.indexOf('data-gift-box-reveal');
+    const ferrariPosition = archivedDadHtml.indexOf('/assets/gift/first.png');
+    const porschePosition = archivedDadHtml.indexOf('/assets/gift/second.png');
     expect(revealStart).toBeGreaterThan(-1);
     expect(ferrariPosition).toBeGreaterThan(revealStart);
     expect(porschePosition).toBeGreaterThan(revealStart);
-    expect(dadHtml).toMatch(/class="gift-car gift-car--left"/);
-    expect(dadHtml).toMatch(/class="gift-car gift-car--right"/);
+    expect(archivedDadHtml).toMatch(/class="gift-car gift-car--left"/);
+    expect(archivedDadHtml).toMatch(/class="gift-car gift-car--right"/);
   });
 
   it('keeps the birthday message inside the hidden gift reveal', () => {
-    const messagePosition = dadHtml.indexOf('An example celebration');
-    const revealStart = dadHtml.indexOf('data-gift-box-reveal');
-    const revealEnd = dadHtml.indexOf('</div>', messagePosition);
+    const messagePosition = archivedDadHtml.indexOf('An example celebration');
+    const revealStart = archivedDadHtml.indexOf('data-gift-box-reveal');
+    const revealEnd = archivedDadHtml.indexOf('</div>', messagePosition);
     expect(revealStart).toBeGreaterThan(-1);
     expect(messagePosition).toBeGreaterThan(-1);
     expect(messagePosition).toBeGreaterThan(revealStart);
@@ -244,13 +273,13 @@ describe('Dad birthday page', () => {
   });
 
   it('stays unlisted from the main navigation', () => {
-    const header = dadHtml.match(/<header[^>]*>[\s\S]*?<\/header>/)?.[0] ?? '';
-    expect(header).not.toMatch(/href="\/dad\/"/);
-    expect(indexHtml).not.toMatch(/href="\/dad\/"/);
+    const header = archivedDadHtml.match(/<header[^>]*>[\s\S]*?<\/header>/)?.[0] ?? '';
+    expect(header).not.toMatch(/href="\/archive\/example-gift\/"/);
+    expect(indexHtml).not.toMatch(/href="\/archive\/example-gift\/"/);
   });
 
   it('disables reading progress for the short standalone page', () => {
-    expect(dadHtml).not.toMatch(/id="reading-progress"/);
+    expect(archivedDadHtml).not.toMatch(/id="reading-progress"/);
   });
 });
 

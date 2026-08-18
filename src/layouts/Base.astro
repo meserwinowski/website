@@ -35,10 +35,12 @@ interface Props {
   readingProgress?: boolean;
   /** Optional CSS width/calc override for pages that need a custom gutter. */
   containerWidth?: string;
+  /** Optional robots directive for pages that should not appear in search results. */
+  robots?: string;
 }
 
 // Destructure props from the parent page and apply layout-wide defaults.
-const { title, description = 'An example website.', width = 'prose', chrome = 'prose', readingProgress = true, containerWidth: containerWidthOverride } = Astro.props;
+const { title, description = 'An example website.', width = 'prose', chrome = 'prose', readingProgress = true, containerWidth: containerWidthOverride, robots } = Astro.props;
 
 // Resolve page width to CSS variables. The actual tokens live in global.css so
 // layout math stays centralized in the design system.
@@ -89,6 +91,7 @@ const rssURL = new URL('/rss.xml', Astro.site);
 
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content={description} />
+    {robots && <meta name="robots" content={robots} />}
     <link rel="canonical" href={canonicalURL.href} />
     <link rel="alternate" type="application/rss+xml" title="Matt Serwinowski RSS feed" href={rssURL.href} />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />

@@ -11,16 +11,17 @@
  * when the build generated them, and falls back to the raw path otherwise.
  */
 import { resolveCardThumbnail } from '../lib/cardThumbnail';
+import type { ProjectStatus } from '../lib/projectStatus';
 
 interface Props {
-  /** URL-friendly project ID, used to build `/projects/{slug}/`. */
-  slug: string;
+  /** Destination for the project card. */
+  href: string;
   /** Display title shown in the card and thumbnail fallback. */
   title: string;
   /** Short summary copied from project frontmatter. */
   description: string;
   /** Project lifecycle state; the union keeps badges limited to known values. */
-  status: 'completed' | 'ongoing' | 'planning' | 'draft';
+  status: ProjectStatus;
   /** Category labels rendered as small design-token badges. */
   tags: string[];
   /** Optional preview image path; missing images fall back to a text tile. */
@@ -32,7 +33,7 @@ interface Props {
 }
 
 // Astro.props contains the attributes passed by the parent page/component.
-const { slug, title, description, status, tags, thumbnail, date, priority = false } = Astro.props;
+const { href, title, description, status, tags, thumbnail, date, priority = false } = Astro.props;
 
 // Resolve to a responsive card image (small WebP derivatives + LQIP) when the
 // build produced them; otherwise this returns the raw path, or null when the
@@ -51,6 +52,7 @@ const statusColors: Record<string, string> = {
   'ongoing': 'bg-blue-500/20 text-blue-400',
   'planning': 'bg-yellow-500/20 text-yellow-400',
   'draft': 'bg-purple-500/20 text-purple-400',
+  'archived': 'bg-slate-500/20 text-slate-300',
 };
 
 // Human-readable labels keep content data terse while the UI reads naturally.
@@ -59,11 +61,12 @@ const statusLabels: Record<string, string> = {
   'ongoing': 'Ongoing',
   'planning': 'Planning',
   'draft': 'Draft',
+  'archived': 'Archived',
 };
 ---
 
 {/* A single anchor makes the whole card reachable by mouse, touch, and keyboard. */}
-<a href={`/projects/${slug}/`} class="group block rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden hover:border-[var(--color-accent)] no-underline">
+<a href={href} class="group block rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden hover:border-[var(--color-accent)] no-underline">
 
   {/* Fixed 16:9 media area keeps the grid stable even with mixed thumbnail sizes. */}
   <div class="aspect-video overflow-hidden">

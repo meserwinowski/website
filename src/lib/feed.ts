@@ -1,4 +1,5 @@
 import { getCollection } from 'astro:content';
+import { isPublicProject } from './projectStatus';
 
 export interface FeedItem {
   title: string;
@@ -10,7 +11,7 @@ async function getProjectFeedItems(site: URL): Promise<FeedItem[]> {
   const projects = await getCollection('projects');
 
   return projects
-    .filter((project) => ['completed', 'ongoing'].includes(project.data.status))
+    .filter((project) => isPublicProject(project.data.status))
     .map((project) => ({
       title: project.data.title,
       pubDate: project.data.date,

@@ -1,0 +1,88 @@
+---
+import type { CollectionEntry } from 'astro:content';
+import { render } from 'astro:content';
+import HeadingPermalinks from './HeadingPermalinks.astro';
+import ProjectMeta from './ProjectMeta.astro';
+import TableOfContents from './TableOfContents.astro';
+import Layout from '../layouts/Base.astro';
+import { estimateReadingTime } from '../lib/readingTime';
+
+interface Props {
+  project: CollectionEntry<'projects'>;
+  backHref: string;
+  backLabel: string;
+  robots?: string;
+}
+
+const { project, backHref, backLabel, robots } = Astro.props;
+const { Content, headings } = await render(project);
+const tableOfContentsHeadings = headings.filter((heading) => (
+  heading.slug && heading.depth >= 1 && heading.depth <= 3
+));
+const showTableOfContents = tableOfContentsHeadings.length > 1;
+const readingTime = estimateReadingTime(project.body);
+---
+
+<Layout
+  title={`${project.data.title} - Matt Serwinowski`}
+  description={project.data.description}
+  width="wide"
+  chrome="project-detail"
+  robots={robots}
+>
+  <div class="grid gap-8 xl:items-start xl:grid-cols-[minmax(0,1fr)_minmax(0,var(--width-prose))_minmax(0,1fr)]">
+    {showTableOfContents && (
+      <aside class="hidden xl:col-start-1 xl:block">
+        <div class="sticky top-8">
+          <TableOfContents headings={tableOfContentsHeadings} />
+        </div>
+      </aside>
+    )}
+
+    <article class="mx-auto w-full min-w-0 max-w-[var(--width-prose)] space-y-8 xl:col-start-2">
+      <header class="space-y-4">
+        <a href={backHref} class="text-sm text-[var(--color-muted)] hover:text-[var(--color-accent)] inline-block">
+          &larr; {backLabel}
+        </a>
+
+        <h1 class="text-4xl font-bold">{project.data.title}</h1>
+
+        <div class="xl:hidden">
+          <ProjectMeta
+            variant="inline"
+            status={project.data.status}
+            tags={project.data.tags}
+            date={project.data.date}
+            repo={project.data.repo}
+            readingMinutes={readingTime.minutes}
+          />
+        </div>
+
+        <p class="text-[var(--color-muted)]">{project.data.description}</p>
+      </header>
+
+      {showTableOfContents && (
+        <TableOfContents headings={tableOfContentsHeadings} variant="mobile" />
+      )}
+
+      <div class="prose">
+        <Content />
+      </div>
+
+      <HeadingPermalinks />
+    </article>
+
+    <aside class="hidden xl:col-start-3 xl:block">
+      <div class="sticky top-8">
+        <ProjectMeta
+          variant="rail"
+          status={project.data.status}
+          tags={project.data.tags}
+          date={project.data.date}
+          repo={project.data.repo}
+          readingMinutes={readingTime.minutes}
+        />
+      </div>
+    </aside>
+  </div>
+</Layout>

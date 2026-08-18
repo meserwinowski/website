@@ -287,6 +287,7 @@ Tests run against the built `dist/` output (static HTML files) using [Vitest](ht
 
 - **Dark/light theme** — toggle with localStorage persistence, no flash on load
 - **Projects portfolio** — Astro Content Collections with Markdown, status badges, tags, and project-page tables of contents
+- **Content archive** — retired pages and projects remain available at unlisted, non-indexed `/archive/<slug>/` URLs
 - **Heading permalinks** — Markdown headings render clickable `#` anchor links, and table-of-contents jumps update URL hashes for deep-linking
 - **Reading-time metadata** — Markdown detail pages estimate reading time from body word count and show it near the article header
 - **View Transitions** — directional slide animations between pages (no full reload)
@@ -318,7 +319,7 @@ Create a Markdown file in `src/content/projects/` with this frontmatter:
 ---
 title: "Project Name"
 description: "Short one-liner for the card"
-status: "completed"  # completed | ongoing | planning | draft
+status: "completed"  # completed | ongoing | planning | draft | archived
 tags: ["software", "hardware"]
 thumbnail: "/assets/project-name/thumbnail.webp"
 date: 2026-06-01
@@ -328,7 +329,13 @@ repo: "https://github.com/..."  # optional
 Your markdown content here...
 ```
 
-Only `completed` and `ongoing` projects are shown publicly. A project's `thumbnail` is any path served from `public/`. The convention is to point it at a site-local `/assets/...` path — either an image in that project's per-slug asset folder (`/assets/<slug>/<file>`, reusing a photo already synced via an `![[...]]` embed, e.g. `stage-mixer.md` uses `/assets/stage-mixer/matt-vb-show.webp`) or a standalone image at the assets root (`/assets/<name>.png`). Either way the sync **pulls the referenced file from the vault to that exact path** — resolving it by name and downscaling/optimizing it like any other asset — so the thumbnail no longer has to also be embedded in the body or hand-committed. Embedded images referenced with `![[...]]` are published under the same per-slug folder, so a project's thumbnail and body images live together.
+Only `completed` and `ongoing` projects appear on the home page, projects index,
+live project routes, and RSS feed. Set a retired project's status to `archived`
+in the Obsidian vault to move it to `/archive/<slug>/`; the original
+`/projects/<slug>/` URL will return the normal 404 page. Archive routes are
+unlisted, excluded from the sitemap, and marked `noindex`.
+
+A project's `thumbnail` is any path served from `public/`. The convention is to point it at a site-local `/assets/...` path — either an image in that project's per-slug asset folder (`/assets/<slug>/<file>`, reusing a photo already synced via an `![[...]]` embed, e.g. `stage-mixer.md` uses `/assets/stage-mixer/matt-vb-show.webp`) or a standalone image at the assets root (`/assets/<name>.png`). Either way the sync **pulls the referenced file from the vault to that exact path** — resolving it by name and downscaling/optimizing it like any other asset — so the thumbnail no longer has to also be embedded in the body or hand-committed. Embedded images referenced with `![[...]]` are published under the same per-slug folder, so a project's thumbnail and body images live together.
 
 ## Project Structure
 
@@ -336,10 +343,12 @@ Only `completed` and `ongoing` projects are shown publicly. A project's `thumbna
 |------|---------|
 | `src/pages/` | Astro page routes — Home, Projects, Posts, About, 404 |
 | `src/pages/projects/[slug].astro` | Dynamic project detail pages |
+| `src/pages/archive/` | Unlisted archive index, archived-project route, and retained standalone pages |
+| `src/data/archivePages.ts` | Metadata registry for standalone pages moved into the archive |
 | `src/layouts/` | Base page layout (header + content + footer + view transitions) |
-| `src/components/` | UI components (BackToTop, Header, Footer, NowPlaying, ProjectCard, ProjectMeta, ReadingProgress, ReadingTime, TableOfContents, ThemeToggle, SocialLinks) |
+| `src/components/` | UI components (BackToTop, Header, Footer, NowPlaying, ProjectCard, ProjectDetail, ProjectMeta, ReadingProgress, ReadingTime, TableOfContents, ThemeToggle, SocialLinks) |
 | `src/config.ts` | Build-time site config (e.g. the public now-playing / liked-songs Worker URLs, with committed defaults) |
-| `src/lib/` | Shared TypeScript utilities, including Markdown reading-time estimation |
+| `src/lib/` | Shared TypeScript utilities, including Markdown reading-time estimation and project visibility rules |
 | `src/styles/` | CSS files: `global.css` (theme), `prose.css` (markdown typography), `transitions.css` (page animations) |
 | `src/plugins/remark-obsidian-callouts.mjs` | Remark plugin that converts Obsidian callout blockquotes to styled callout elements |
 | `src/plugins/remark-collapsible-code.mjs` | Remark plugin that converts `fold:`-tagged code fences into collapsible `<details>` disclosures |

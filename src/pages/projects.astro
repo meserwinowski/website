@@ -10,6 +10,7 @@
 import { getCollection } from 'astro:content';
 import Layout from '../layouts/Base.astro';
 import ProjectCard from '../components/ProjectCard.astro';
+import { isPublicProject } from '../lib/projectStatus';
 
 // getCollection('projects') reads all Markdown files from src/content/projects/
 // and returns entries whose frontmatter has already passed the Zod schema in
@@ -19,7 +20,7 @@ const allProjects = await getCollection('projects');
 const projects = allProjects
   // Keep the index in sync with [slug].astro: only completed/ongoing projects are
   // public enough to appear in lists and receive generated detail pages.
-  .filter((p) => ['completed', 'ongoing'].includes(p.data.status))
+  .filter((project) => isPublicProject(project.data.status))
   // Newest first matches portfolio-reader expectations and mirrors the home feed.
   .sort((a, b) => b.data.date.getTime() - a.data.date.getTime());
 ---
@@ -34,7 +35,7 @@ const projects = allProjects
       {/* Each collection entry becomes one card; the props come from validated frontmatter plus the entry id slug. */}
       {projects.map((project) => (
         <ProjectCard
-          slug={project.id}
+          href={`/projects/${project.id}/`}
           title={project.data.title}
           description={project.data.description}
           status={project.data.status}

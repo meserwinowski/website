@@ -12,6 +12,7 @@
 import { getCollection } from 'astro:content';
 import Layout from '../layouts/Base.astro';
 import ProjectCard from '../components/ProjectCard.astro';
+import { isPublicProject } from '../lib/projectStatus';
 
 /** How many public projects to surface before sending readers to /projects/. */
 const RECENT_LIMIT = 3;
@@ -23,7 +24,7 @@ const allProjects = await getCollection('projects');
 const recentProjects = allProjects
   // Match the detail route's public-project rule: only done/ongoing projects
   // should appear in navigation or receive generated project pages.
-  .filter((p) => ['completed', 'ongoing'].includes(p.data.status))
+  .filter((project) => isPublicProject(project.data.status))
   // Newest first keeps the landing page feeling like a lightweight activity log.
   .sort((a, b) => b.data.date.getTime() - a.data.date.getTime())
   .slice(0, RECENT_LIMIT);
@@ -49,7 +50,7 @@ const recentProjects = allProjects
         {/* ProjectCard receives frontmatter fields as props; Astro emits the final HTML at build time. */}
         {recentProjects.map((project, index) => (
           <ProjectCard
-            slug={project.id}
+            href={`/projects/${project.id}/`}
             title={project.data.title}
             description={project.data.description}
             status={project.data.status}

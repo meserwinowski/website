@@ -1,0 +1,25 @@
+---
+import { getCollection } from 'astro:content';
+import ProjectDetail from '../../components/ProjectDetail.astro';
+import { isArchivedProject } from '../../lib/projectStatus';
+
+export async function getStaticPaths() {
+  const projects = await getCollection('projects');
+
+  return projects
+    .filter((project) => isArchivedProject(project.data.status))
+    .map((project) => ({
+      params: { slug: project.id },
+      props: { project },
+    }));
+}
+
+const { project } = Astro.props;
+---
+
+<ProjectDetail
+  project={project}
+  backHref="/archive/"
+  backLabel="Back to Archive"
+  robots="noindex, follow"
+/>

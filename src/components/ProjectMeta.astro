@@ -9,9 +9,10 @@
  *  - 'inline' : the compact header row shown below the xl breakpoint (no side rails).
  */
 import ReadingTime from './ReadingTime.astro';
+import type { ProjectStatus } from '../lib/projectStatus';
 
 interface Props {
-  status: string;
+  status: ProjectStatus;
   tags: string[];
   date: Date;
   repo?: string | null;
@@ -21,14 +22,16 @@ interface Props {
 
 const { status, tags, date, repo, readingMinutes, variant = 'inline' } = Astro.props;
 
-// Status badge styling (kept in sync with ProjectCard). Only completed/ongoing get pages.
+// Status badge styling stays in sync with ProjectCard across live and archived routes.
 const statusColors: Record<string, string> = {
   completed: 'bg-green-500/20 text-green-400',
   ongoing: 'bg-blue-500/20 text-blue-400',
+  archived: 'bg-slate-500/20 text-slate-300',
 };
 const statusLabels: Record<string, string> = {
   completed: 'Completed',
   ongoing: 'Ongoing',
+  archived: 'Archived',
 };
 
 // Human-readable date plus a machine-readable ISO value for <time datetime>.

@@ -1,0 +1,88 @@
+---
+import { getCollection } from 'astro:content';
+import Layout from '../../layouts/Base.astro';
+import ProjectCard from '../../components/ProjectCard.astro';
+import { archivePages, validateArchiveSlugs } from '../../data/archivePages';
+import { isArchivedProject } from '../../lib/projectStatus';
+
+const projects = (await getCollection('projects'))
+  .filter((project) => isArchivedProject(project.data.status))
+  .sort((a, b) => b.data.date.getTime() - a.data.date.getTime());
+
+validateArchiveSlugs(projects.map((project) => project.id));
+
+const pages = [...archivePages].sort((a, b) => b.date.getTime() - a.date.getTime());
+const hasEntries = projects.length > 0 || pages.length > 0;
+---
+
+<Layout
+  title="Archive - Matt Serwinowski"
+  description="Retired pages and projects preserved from mattserwinowski.com."
+  width="content"
+  chrome="project-detail"
+  robots="noindex, follow"
+>
+  <section class="space-y-8">
+    <div class="space-y-3">
+      <h1 class="text-4xl font-bold">Archive</h1>
+      <p class="text-[var(--color-muted)]">
+        Retired pages and projects preserved for reference.
+      </p>
+    </div>
+
+    {hasEntries ? (
+      <div class="space-y-10">
+        {projects.length > 0 && (
+          <section class="space-y-4" aria-labelledby="archived-projects">
+            <h2 id="archived-projects" class="text-2xl font-semibold">Projects</h2>
+            <div class="grid gap-6 grid-cols-[repeat(auto-fill,minmax(min(18rem,100%),1fr))]">
+              {projects.map((project) => (
+                <ProjectCard
+                  href={`/archive/${project.id}/`}
+                  title={project.data.title}
+                  description={project.data.description}
+                  status={project.data.status}
+                  tags={project.data.tags}
+                  thumbnail={project.data.thumbnail}
+                  date={project.data.date}
+                />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {pages.length > 0 && (
+          <section class="space-y-4" aria-labelledby="archived-pages">
+            <h2 id="archived-pages" class="text-2xl font-semibold">Pages</h2>
+            <div class="grid gap-4">
+              {pages.map((page) => (
+                <a
+                  href={`/archive/${page.slug}/`}
+                  class="block space-y-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-5 no-underline hover:border-[var(--color-accent)]"
+                >
+                  <div class="flex items-baseline justify-between gap-4">
+                    <h3 class="text-lg font-semibold text-[var(--color-text)]">{page.title}</h3>
+                    <time
+                      datetime={page.date.toISOString().split('T')[0]}
+                      class="text-xs text-[var(--color-muted)]"
+                    >
+                      {page.date.toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                        timeZone: 'UTC',
+                      })}
+                    </time>
+                  </div>
+                  <p class="text-sm text-[var(--color-muted)]">{page.description}</p>
+                </a>
+              ))}
+            </div>
+          </section>
+        )}
+      </div>
+    ) : (
+      <p class="text-[var(--color-muted)] italic">Nothing has been archived yet.</p>
+    )}
+  </section>
+</Layout>

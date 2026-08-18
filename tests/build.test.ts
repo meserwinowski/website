@@ -15,7 +15,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { execSync } from 'child_process';
-import { existsSync, readFileSync } from 'fs';
+import { existsSync, readFileSync, readdirSync } from 'fs';
 import { dirname, resolve } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -50,8 +50,15 @@ describe('Build verification', () => {
     expect(existsSync(resolve(distDir, 'about', 'index.html'))).toBe(true);
   });
 
-  it('dist/dad/index.html exists after build', () => {
-    expect(existsSync(resolve(distDir, 'dad', 'index.html'))).toBe(true);
+  it('dist/archive/index.html exists after build', () => {
+    expect(existsSync(resolve(distDir, 'archive', 'index.html'))).toBe(true);
+  });
+
+  it('archives the Dad birthday page under its dated slug', () => {
+    expect(
+      existsSync(resolve(distDir, 'archive', 'example-gift', 'index.html')),
+    ).toBe(true);
+    expect(existsSync(resolve(distDir, 'dad', 'index.html'))).toBe(false);
   });
 
   it('dist/projects/stage-mixer/index.html exists after build', () => {
@@ -71,6 +78,15 @@ describe('Build verification', () => {
 
   it('sitemap-index.xml exists after build', () => {
     expect(existsSync(resolve(distDir, 'sitemap-index.xml'))).toBe(true);
+  });
+
+  it('sitemap excludes the unlisted archive', () => {
+    const sitemap = readdirSync(distDir)
+      .filter((file) => /^sitemap-\d+\.xml$/.test(file))
+      .map((file) => readFileSync(resolve(distDir, file), 'utf-8'))
+      .join('\n');
+
+    expect(sitemap).not.toContain('/archive/');
   });
 
   it('rss.xml contains the public project feed in newest-first order', () => {

@@ -8,6 +8,7 @@
  */
 import { defineCollection, z } from 'astro:content';
 import { glob } from 'astro/loaders';
+import { projectStatuses } from './lib/projectStatus';
 
 /**
  * Project notes power project cards and detail pages.
@@ -22,7 +23,7 @@ const projects = defineCollection({
     description: z.string(),
     // Draft-like statuses can exist in the vault; page generation filters to
     // `completed` and `ongoing` so ideas do not publish accidentally.
-    status: z.enum(['completed', 'ongoing', 'planning', 'draft']),
+    status: z.enum(projectStatuses),
     tags: z.array(z.string()),
     // `nullish()` accepts either an omitted value or explicit `null` from YAML.
     thumbnail: z.string().nullish(),
