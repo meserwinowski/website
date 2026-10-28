@@ -67,16 +67,15 @@ jobs:
           echo "$NAS_SSH_KEY" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
 
-          # Disable strict host key checking (NAS is on private network)
-          echo "Host *" > ~/.ssh/config
-          echo "  StrictHostKeyChecking no" >> ~/.ssh/config
-          echo "  UserKnownHostsFile=/dev/null" >> ~/.ssh/config
+          # Pin the host key independently verified over the trusted NAS connection.
+          printf '%s\n' 'nas-deploy ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJMuAFGgY5ejIbRaoy8Xhj0rlitgWYQIt+LCGyOTIicN' > ~/.ssh/nas_known_hosts
+          chmod 600 ~/.ssh/nas_known_hosts
 
           # Deploy with rsync
           rsync -avz --delete \
             --exclude='.DS_Store' \
-            -e "ssh -i ~/.ssh/deploy_key -o RemoteCommand=none -o RequestTTY=no" \
+            -e "ssh -i ~/.ssh/deploy_key -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$HOME/.ssh/nas_known_hosts -o HostKeyAlias=nas-deploy -o RemoteCommand=none -o RequestTTY=no" \
             ./dist/ "$NAS_USER@$NAS_HOST:$NAS_DEPLOY_PATH/"
 
           # Clean up
-          rm -f ~/.ssh/deploy_key
+          rm -f ~/.ssh/deploy_key ~/.ssh/nas_known_hosts
