@@ -67,7 +67,9 @@ as **fixture-only build/test CI**. They never receive private content or NAS
 credentials and do not deploy.
 
 Production Actions live in the private `meserwinowski/website-content` repository.
-After cutover, pushing its content branch deploys; code-only releases use:
+Pushes to its `main` branch deploy when they change `content/`, `assets/`,
+`site.json`, `manifest.json`, or the deployment workflow. Documentation-only and
+`archived-assets/` changes do not deploy. Code-only releases use:
 
 ```bash
 gh workflow run deploy.yml --repo meserwinowski/website-content
@@ -228,8 +230,10 @@ the project through Synology Container Manager so DSM retains project ownership.
 
 After that, routine deploys reload nginx in place — no recreate needed.
 
-If scraping ever gets bad despite this, put Cloudflare (free tier) in front and enable
-its "Block AI Scrapers and Crawlers" managed rule to catch User-Agent spoofers.
+Cloudflare also fronts the live site. It can add bot-defense markup, upgrade same-site
+HTTP links to HTTPS, and prepend a managed policy to `robots.txt` while preserving the
+original policy. Verify deployments against the origin/artifact bytes; account for
+these CDN transformations when comparing public responses.
 
 `public/.well-known/security.txt` is copied verbatim to
 `dist/.well-known/security.txt` on build. This gives scanners and security
