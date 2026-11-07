@@ -260,7 +260,7 @@ describe('Archived gift page', () => {
   });
 
   it('keeps the birthday message inside the hidden gift reveal', () => {
-    const messagePosition = archivedDadHtml.indexOf(htmlEscape(giftNote.body.trim().split(/\n\s*\n/)[0]));
+    const messagePosition = archivedDadHtml.indexOf(htmlEscape(giftNote.body.replace(/\r\n/g, '\n').trim().split(/\n\s*\n/)[0]));
     const revealStart = archivedDadHtml.indexOf('data-gift-box-reveal');
     const revealEnd = archivedDadHtml.indexOf('</div>', messagePosition);
     expect(revealStart).toBeGreaterThan(-1);
