@@ -1,0 +1,40 @@
+---
+import type { CollectionEntry } from 'astro:content';
+import { render } from 'astro:content';
+import type { GiftPageData } from '../lib/siteData';
+import Layout from '../layouts/Base.astro';
+import GiftBox from './GiftBox.astro';
+
+interface Props {
+  page: CollectionEntry<'pages'>;
+  metadata: Omit<GiftPageData, 'date'>;
+}
+
+const { page, metadata } = Astro.props;
+const { Content } = await render(page);
+---
+
+<Layout title={page.data.title} description={page.data.description} readingProgress={false} robots="noindex, follow">
+  <article class="space-y-8 py-8">
+    <div class="space-y-3 text-center">
+      <h1 class="text-4xl font-bold tracking-tight">{metadata.heading}</h1>
+      <p class="text-lg text-[var(--color-accent)]">{metadata.tagline}</p>
+    </div>
+    <img
+      {...metadata.media}
+      loading="eager"
+      decoding="async"
+      class="mx-auto block h-auto w-auto max-w-[350px] rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)]"
+      data-birthday-media
+      data-gif-src={metadata.media.src}
+    />
+    <GiftBox>
+      <div class="prose"><Content /></div>
+      <div class="gift-cars" aria-label={metadata.imagesLabel}>
+        {metadata.images.map((image, index) => (
+          <img {...image} loading="lazy" decoding="async" class={`gift-car gift-car--${index === 0 ? 'left' : 'right'}`} />
+        ))}
+      </div>
+    </GiftBox>
+  </article>
+</Layout>

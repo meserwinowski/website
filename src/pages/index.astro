@@ -13,6 +13,7 @@ import { getCollection } from 'astro:content';
 import Layout from '../layouts/Base.astro';
 import ProjectCard from '../components/ProjectCard.astro';
 import { isPublicProject } from '../lib/projectStatus';
+import { siteData } from '../lib/siteData';
 
 /** How many public projects to surface before sending readers to /projects/. */
 const RECENT_LIMIT = 3;
@@ -30,7 +31,7 @@ const recentProjects = allProjects
   .slice(0, RECENT_LIMIT);
 ---
 
-<Layout title="Matt Serwinowski" width="content" chrome="project-detail" description="Recent example projects and writing.">
+<Layout title={siteData.name} width="content" chrome="project-detail" description={siteData.homeDescription}>
   {/* Base.astro composes the shared shell around this route: metadata, header, centered main content, and footer. */}
   <section class="space-y-8">
     {/* Feed header: a compact landing-page label plus an escape hatch to the full projects index. */}

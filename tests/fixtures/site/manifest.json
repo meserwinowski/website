@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "mode": "demo",
+  "documents": [
+    {"path": "projects/example-project.md", "assets": ["example-project/hero.png"]},
+    {"path": "projects/older-project.md", "assets": []},
+    {"path": "projects/archived-project.md", "assets": []},
+    {"path": "projects/private-draft.md", "assets": ["draft-only.svg"]},
+    {"path": "pages/about.md", "assets": []},
+    {"path": "pages/archive/example-gift.md", "assets": ["gift/celebrate.svg", "gift/first.png", "gift/second.png"]}
+  ]
+}

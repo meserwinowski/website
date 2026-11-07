@@ -10,6 +10,7 @@ import { getCollection, render } from 'astro:content';
 import Layout from '../layouts/Base.astro';
 import NowPlaying from '../components/NowPlaying.astro';
 import LikedSongs from '../components/LikedSongs.astro';
+import { siteData } from '../lib/siteData';
 
 // getCollection('pages') loads every generated page entry, including its
 // Zod-validated frontmatter. The `id` is derived from the Markdown filename, so
@@ -19,18 +20,18 @@ const aboutPage = allPages.find((p) => p.id === 'about');
 const baseTitle = aboutPage?.data.title ?? 'About';
 // Site convention: page titles are "PageName - Matt Serwinowski"; this fallback
 // keeps the browser title in that shape if the synced vault file is missing.
-const aboutTitle = aboutPage?.data.title ?? 'About - Matt Serwinowski';
+const aboutTitle = aboutPage?.data.title ?? `About - ${siteData.name}`;
 // Description metadata also comes from frontmatter, with safe copy for the
 // missing-content path.
-const aboutDescription = aboutPage?.data.description ?? 'About - Matt Serwinowski';
+const aboutDescription = aboutPage?.data.description ?? `About - ${siteData.name}`;
 // render(entry) converts the Markdown body into a component that can be used in
 // the template below. If the vault content is unavailable, the route still
 // builds and shows the "Coming soon" fallback instead.
 const Content = aboutPage ? (await render(aboutPage)).Content : null;
 // These hero fields are optional frontmatter, so defaults keep the page
 // presentable while the vault remains the source of truth.
-const heroName = aboutPage?.data.heroName ?? 'Example Author';
-const heroTagline = aboutPage?.data.heroTagline ?? 'An example author tagline';
+const heroName = aboutPage?.data.heroName ?? siteData.fullName;
+const heroTagline = aboutPage?.data.heroTagline ?? siteData.aboutTagline;
 ---
 
 <Layout

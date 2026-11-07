@@ -8,9 +8,10 @@
  * added later.
  */
 import Layout from '../layouts/Base.astro';
+import { siteData } from '../lib/siteData';
 ---
 
-<Layout title="Posts - Matt Serwinowski">
+<Layout title={`Posts - ${siteData.name}`}>
   {/* Page titles outside the home page follow "PageName - Matt Serwinowski". */}
   {/* Base.astro provides the shared document shell; this route only supplies the page-specific section. */}
   <section class="space-y-6">

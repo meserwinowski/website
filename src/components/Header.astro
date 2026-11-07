@@ -10,6 +10,7 @@
 
 import SocialLinks from './SocialLinks.astro';
 import ThemeToggle from './ThemeToggle.astro';
+import { siteData } from '../lib/siteData';
 
 // Single source of truth for site navigation. Both desktop and mobile menus
 // loop over this array, so adding a page here updates both experiences.
@@ -34,7 +35,7 @@ const normalizedCurrentPath = currentPath === '/' ? '/' : `${currentPath.replace
     <div class="flex items-center gap-4">
       {/* Short mono wordmark doubles as the home link. */}
       <a href="/" class="font-mono text-2xl font-semibold text-[var(--color-text)] no-underline hover:text-[var(--color-accent)]">
-        MS
+        {siteData.wordmark}
       </a>
       <SocialLinks />
       <a

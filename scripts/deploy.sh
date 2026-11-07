@@ -63,6 +63,7 @@ ssh "${SSH_OPTS[@]}" "$REMOTE" \
 # includes the latest committed/generated markdown and assets.
 echo "📥 Syncing content from vault..."
 ./scripts/sync-content.sh
+npm run verify:production
 
 # npm test builds dist/ first; either a build or test failure blocks publishing.
 echo "🔨 Building and testing site..."

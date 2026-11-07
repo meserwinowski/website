@@ -18,6 +18,7 @@ import { execSync } from 'child_process';
 import { existsSync, readFileSync, readdirSync } from 'fs';
 import { dirname, resolve } from 'path';
 import { fileURLToPath } from 'url';
+import { firstProject, gift, publicProjects, htmlEscape } from './site-fixture';
 
 const projectDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 // All path expectations are rooted in the built site, because Astro's source
@@ -54,22 +55,21 @@ describe('Build verification', () => {
     expect(existsSync(resolve(distDir, 'archive', 'index.html'))).toBe(true);
   });
 
-  it('archives the Dad birthday page under its dated slug', () => {
+  it('builds standalone content only under its archive slug', () => {
     expect(
-      existsSync(resolve(distDir, 'archive', 'example-gift', 'index.html')),
+      existsSync(resolve(distDir, 'archive', gift.slug, 'index.html')),
     ).toBe(true);
     expect(existsSync(resolve(distDir, 'dad', 'index.html'))).toBe(false);
   });
 
-  it('dist/projects/stage-mixer/index.html exists after build', () => {
-    expect(existsSync(resolve(distDir, 'projects', 'stage-mixer', 'index.html'))).toBe(true);
+  it('builds the newest public project detail page', () => {
+    expect(existsSync(resolve(distDir, 'projects', firstProject.id, 'index.html'))).toBe(true);
   });
 
   it('does not build detail pages for planning-status projects', () => {
     // Content with `status: planning` can appear in lists, but must not publish
     // a standalone detail page until it is ready for readers.
-    expect(existsSync(resolve(distDir, 'projects', 'personal-website', 'index.html'))).toBe(false);
-    expect(existsSync(resolve(distDir, 'projects', 'home-lab', 'index.html'))).toBe(false);
+    expect(existsSync(resolve(distDir, 'projects', 'private-draft', 'index.html'))).toBe(false);
   });
 
   it('dist/404.html exists after build', () => {
@@ -91,16 +91,15 @@ describe('Build verification', () => {
 
   it('rss.xml contains the public project feed in newest-first order', () => {
     const rss = readFileSync(resolve(distDir, 'rss.xml'), 'utf-8');
-    const newestProject = rss.indexOf('Example Project');
-    const olderProject = rss.indexOf('Older Example Project');
+    const newestProject = rss.indexOf(htmlEscape(firstProject.data.title));
+    const olderProject = rss.indexOf(htmlEscape(publicProjects[1].data.title));
 
     expect(newestProject).toBeGreaterThan(-1);
     expect(olderProject).toBeGreaterThan(newestProject);
     expect(rss).toContain(
-      'https://www.mattserwinowski.com/projects/stage-mixer/',
+      `https://www.mattserwinowski.com/projects/${firstProject.id}/`,
     );
-    expect(rss).not.toContain('Example Draft Service');
-    expect(rss).not.toContain('Example Draft Project');
+    expect(rss).not.toContain('DRAFT_SENTINEL_DO_NOT_PUBLISH');
   });
 
   it('robots.txt exists after build', () => {

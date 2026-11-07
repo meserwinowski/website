@@ -16,6 +16,7 @@ import BackToTop from '../components/BackToTop.astro';
 import ReadingProgress from '../components/ReadingProgress.astro';
 import CollapsibleDetails from '../components/CollapsibleDetails.astro';
 import { ClientRouter } from 'astro:transitions';
+import { siteData } from '../lib/siteData';
 
 interface Props {
   /** Full browser/tab title. Home uses just the name; other pages append the site name. */
@@ -40,7 +41,7 @@ interface Props {
 }
 
 // Destructure props from the parent page and apply layout-wide defaults.
-const { title, description = 'An example website.', width = 'prose', chrome = 'prose', readingProgress = true, containerWidth: containerWidthOverride, robots } = Astro.props;
+const { title, description = siteData.description, width = 'prose', chrome = 'prose', readingProgress = true, containerWidth: containerWidthOverride, robots } = Astro.props;
 
 // Resolve page width to CSS variables. The actual tokens live in global.css so
 // layout math stays centralized in the design system.
@@ -93,7 +94,7 @@ const rssURL = new URL('/rss.xml', Astro.site);
     <meta name="description" content={description} />
     {robots && <meta name="robots" content={robots} />}
     <link rel="canonical" href={canonicalURL.href} />
-    <link rel="alternate" type="application/rss+xml" title="Matt Serwinowski RSS feed" href={rssURL.href} />
+    <link rel="alternate" type="application/rss+xml" title={`${siteData.name} RSS feed`} href={rssURL.href} />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 
     {/* Open Graph and Twitter metadata keep shared links consistent across platforms. */}

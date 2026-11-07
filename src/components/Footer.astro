@@ -7,6 +7,8 @@
  * year and build date that should be baked into every generated page.
  */
 
+import { siteData } from '../lib/siteData';
+
 // Current year for the copyright line. This is evaluated once per build.
 const year = new Date().getFullYear();
 
@@ -46,7 +48,7 @@ const buildDateISO = buildDate.toISOString().split('T')[0];
     </section>
 
     <div class="text-center">
-      <p>&copy; {year} Matt Serwinowski</p>
+      <p>&copy; {year} {siteData.name}</p>
       {/* <time> gives machines an ISO date while humans get a friendly label. */}
       <p class="mt-1 text-xs">Last updated <time datetime={buildDateISO}>{formattedBuildDate}</time></p>
     </div>

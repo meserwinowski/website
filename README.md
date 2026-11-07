@@ -1,14 +1,14 @@
 # Matt Serwinowski - Personal Website
 
-[![Deploy](https://github.com/meserwinowski/website/actions/workflows/deploy.yml/badge.svg?branch=main)](https://github.com/meserwinowski/website/actions/workflows/deploy.yml)
+[![Build](https://github.com/meserwinowski/website/actions/workflows/deploy.yml/badge.svg?branch=main)](https://github.com/meserwinowski/website/actions/workflows/deploy.yml)
 
-A personal portfolio and posts site built with [Astro](https://astro.build/) and [Tailwind CSS v4](https://tailwindcss.com/), served via nginx on a Synology NAS.
+A personal portfolio and posts site built with [Astro](https://astro.build/) and [Tailwind CSS v4](https://tailwindcss.com/), served via nginx on a Synology NAS. Templates and synthetic fixtures remain public; authored content and images live in a separate private publishing repository.
 
 ## Build & Deployment
 
 ### Prerequisites
 
-- Node.js (with npm)
+- Node.js 22.18+ (with npm; the shared content pipeline uses native TypeScript support)
 - Windows PowerShell 5.1+ on Windows, or Bash on macOS/Linux, for local helper scripts
 - Existing SSH access as `copilot` (configured in `deploy.env`), a verified host key,
   and passwordless sudo for local rsync, stat, mkdir and the installed NAS dispatcher
@@ -18,6 +18,7 @@ A personal portfolio and posts site built with [Astro](https://astro.build/) and
 
 ```bash
 npm install    # Install dependencies
+npm run demo   # Assemble synthetic content; no private Git access needed
 npm run dev    # Start local dev server
 ```
 
@@ -26,6 +27,10 @@ npm run dev    # Start local dev server
 ```bash
 npm run build  # Generates static site in dist/
 ```
+
+Build does not sync content. Prepare either synthetic inputs with `npm run demo`,
+or production inputs with `npm run sync` (local vault) / `npm run content:assemble`
+(private export checkout). Production deployment refuses demo inputs.
 
 ### Deploy
 
@@ -36,7 +41,7 @@ npm run deploy  # Syncs content, builds, tests, and deploys to the NAS
 This runs `scripts/run-local-script.mjs`, which dispatches to PowerShell on
 Windows (`deploy.ps1`) or Bash on macOS/Linux (`deploy.sh`). Both scripts:
 1. Verify noninteractive SSH/sudo access before syncing or building
-2. Sync content from the Obsidian vault (`sync-content.ps1` / `sync-content.sh`)
+2. Export Obsidian content to the private publishing checkout and assemble ignored production inputs
 3. Run `npm test` (Astro build, then Vitest); a failure blocks deployment
 4. Upload `dist/` to a private temporary directory as `copilot`, then mirror it locally on
    the NAS to `DEPLOY_TARGET` with `sudo -n rsync --delete`, preserving the target's owner/group
@@ -57,18 +62,29 @@ a warning means the new config is active.
 
 ### Continuous Deployment (CI/CD)
 
-Every push to `main` triggers the [`deploy.yml`](.github/workflows/deploy.yml) GitHub Actions
-workflow, which builds the site, runs the test suite as a gate, joins the tailnet via
-[Tailscale](https://github.com/tailscale/github-action), and rsyncs `dist/` to the NAS — the
-same steps as `npm run deploy`, run on a hosted runner. You can also trigger it manually from
-the Actions tab (`workflow_dispatch`), and you can still deploy locally any time with
-`npm run deploy`.
+Public pushes and pull requests run [`deploy.yml`](.github/workflows/deploy.yml)
+as **fixture-only build/test CI**. They never receive private content or NAS
+credentials and do not deploy.
 
-Because GitHub's hosted runners can't reach the Obsidian vault, **site content is committed to
-the repo** (`src/content/`). Run `npm run sync` and commit before pushing so CI builds your
-latest content.
+Production Actions live in the private `meserwinowski/website-content` repository.
+After cutover, pushing its content branch deploys; code-only releases use:
 
-**Required GitHub Secrets:**
+```bash
+gh workflow run deploy.yml --repo meserwinowski/website-content
+```
+
+The private workflow checks out content and trusted public `main` separately,
+resolves their immutable SHAs, assembles production inputs, runs `npm test`, joins
+Tailscale, and publishes through the existing restricted NAS key. Logs and the
+successful release artifact stay private. Optional `code_sha` / `content_sha`
+dispatch inputs replay an earlier source pair; ordinary content pushes resolve
+current public main rather than reverting to an old code pointer.
+
+Do not run a direct local deployment concurrently with hosted publication.
+Local deployment remains available and does not implicitly commit or push.
+Hosted deployment sees committed content, not unsaved vault changes.
+
+**Required GitHub Secrets (in the private publishing repository):**
 
 | Secret | Purpose |
 |--------|---------|
@@ -103,17 +119,32 @@ Content lives in your Obsidian vault (set `VAULT_SUBPATH` in `deploy.env`):
 
 | Vault folder | Destination | Purpose |
 |--------------|-------------|---------|
-| `projects/` | `src/content/projects/` | Project markdown files (with frontmatter) |
-| `pages/` | `src/content/pages/` | Page content (home, about) |
-| Referenced image embeds & thumbnails | `public/assets/<slug>/` | Web-renderable assets referenced by Obsidian embeds (and frontmatter thumbnails), pulled from the vault and grouped per content-file slug |
+| `projects/` | Private `content/projects/` | Project Markdown, including unpublished drafts |
+| `pages/` | Private `content/pages/` | Page prose, including standalone archive pages |
+| `site.json` | Private `site.json` | Personalized site metadata, published-page allowlist and archive rendering data |
+| Referenced embeds, thumbnails and standalone images | Private `assets/` | Metadata-stripped, web-ready exports; originals stay in the vault |
 
-Edit markdown in Obsidian → run `npm run deploy` to ship directly, **or** `npm run sync`,
-commit, and push to deploy via CI.
+`CONTENT_REPO_DIR` defaults to the sibling `../website-content` checkout and must
+be outside this public checkout. Sync replaces only its generated export paths,
+never `.git` or workflow files. Review, commit and push that **private** export to
+release through hosted CI. Code commits belong here; never force-add authored
+inputs to this public repository.
+
+Assembly stages only `completed`/`ongoing` and `archived` projects, allowlisted
+pages, and their associated assets into ignored `src/content/` and
+`public/assets/`. Draft-only images are not shipped. Missing sources/required
+pages/assets and conversion failures block preparation instead of reusing stale
+content. Build provenance and thumbnail manifests live in ignored
+`.site-content/`, outside the served tree.
+
+This separates source ownership, not website access: published and unlisted
+archive pages remain public. Removing files from current Git does not erase
+historic copies, forks or caches; history cleanup is a separately reviewed step.
 
 Obsidian image embeds are supported with the `![[...]]` syntax. During sync, the
-site scans committed Markdown for referenced embeds and copies only web-renderable
+private exporter scans vault Markdown for referenced embeds and copies web-renderable
 asset exports (`.svg`, `.png`, `.webp`, `.jpg`, `.jpeg`, `.gif`) into
-`public/assets/`. Only assets that are actually embedded are published — the
+private `assets/`. Production assembly publishes only referenced, eligible assets — the
 whole vault `images/` folder is **not** mirrored, so unreferenced files stay out
 of the site. Each embed is placed in a folder named for its content file's slug,
 so a project's assets all live together (e.g. embeds in
@@ -294,6 +325,7 @@ Tests run against the built `dist/` output (static HTML files) using [Vitest](ht
 | `tests/strip-image-metadata.test.mjs` | EXIF/GPS stripping, orientation baking, and clean-image skipping in the image pipeline |
 | `tests/reading-time.test.ts` | Reading-time estimation from Markdown body word count |
 | `tests/local-deploy.test.mjs` | Mocked deployment gates, private staging, ownership preservation, nginx validation/reload ordering, and cleanup |
+| `tests/content-pipeline.test.mjs` | Publication filtering, demo refusal, path/image validation, shared frontmatter schemas, export preservation and conversion-cache reuse |
 
 On macOS/Linux, the deployment checks run Bash and, when `pwsh` is available, PowerShell
 with both standard and legacy native argument handling. Set `PWSH_BINARY` to use a portable
@@ -313,7 +345,7 @@ contact the NAS.
 - **Responsive design** — mobile hamburger menu, responsive grid layouts
 - **Obsidian vault sync** — edit content in Obsidian, sync to site at deploy time
 - **What I'm listening to** — About-page widgets showing my current/last Spotify track and my five most recently liked songs, served by a free Cloudflare Worker (see [`worker/README.md`](worker/README.md))
-- **CI/CD** — push to `main` auto-builds, tests, and deploys to the NAS via GitHub Actions + Tailscale
+- **CI/CD** — public fixture builds on code pushes; private content pushes or explicit dispatch deploy through Tailscale
 - **SEO** — Open Graph, Twitter cards, canonical URLs, auto-generated sitemap
 - **Crawler & AI control** — `robots.txt` opt-out plus nginx User-Agent blocking + rate limiting
 - **Obsidian Markdown** — `![[...]]` image embeds and `[!type]` callouts render as web-native content
@@ -330,7 +362,8 @@ Defined in `src/styles/global.css` using Tailwind v4's `@theme` directive:
 
 ## Adding Projects
 
-Create a Markdown file in `src/content/projects/` with this frontmatter:
+Create a Markdown file in the vault's Website `projects/` folder with this
+frontmatter (or add a synthetic fixture when contributing public template code):
 
 ```yaml
 ---
@@ -361,7 +394,7 @@ A project's `thumbnail` is any path served from `public/`. The convention is to 
 | `src/pages/` | Astro page routes — Home, Projects, Posts, About, 404 |
 | `src/pages/projects/[slug].astro` | Dynamic project detail pages |
 | `src/pages/archive/` | Unlisted archive index, archived-project route, and retained standalone pages |
-| `src/data/archivePages.ts` | Metadata registry for standalone pages moved into the archive |
+| `src/data/archivePages.ts` | Standalone archive registry derived from private/generated site data |
 | `src/layouts/` | Base page layout (header + content + footer + view transitions) |
 | `src/components/` | UI components (BackToTop, Header, Footer, NowPlaying, ProjectCard, ProjectDetail, ProjectMeta, ReadingProgress, ReadingTime, TableOfContents, ThemeToggle, SocialLinks) |
 | `src/config.ts` | Build-time site config (e.g. the public now-playing / liked-songs Worker URLs, with committed defaults) |
@@ -370,11 +403,14 @@ A project's `thumbnail` is any path served from `public/`. The convention is to 
 | `src/plugins/remark-obsidian-callouts.mjs` | Remark plugin that converts Obsidian callout blockquotes to styled callout elements |
 | `src/plugins/remark-collapsible-code.mjs` | Remark plugin that converts `fold:`-tagged code fences into collapsible `<details>` disclosures |
 | `src/plugins/remark-obsidian-embeds.mjs` | Remark plugin that converts Obsidian image embeds to web image HTML during Astro builds |
-| `src/content.config.ts` | Content collection schema definition (projects + pages) |
-| `src/content/projects/` | Project Markdown files (synced from Obsidian, committed so CI can build) |
-| `src/content/pages/` | Page content files (synced from Obsidian, committed so CI can build) |
+| `src/content.config.ts` | Content collections wired to the shared projects/pages schemas |
+| `src/lib/contentSchemas.ts` | Frontmatter schemas shared by Astro and the private vault exporter |
+| `src/content/projects/` | Ignored, assembled publishable project Markdown |
+| `src/content/pages/` | Ignored, assembled allowlisted page Markdown |
+| `.site-content/` | Ignored site metadata, source provenance and thumbnail manifest (not served) |
+| `tests/fixtures/site/` | Original synthetic content/assets for independent public development and CI |
 | `public/` | Static assets served as-is, including images, favicon, robots.txt, and `.well-known/security.txt` |
-| `.github/workflows/deploy.yml` | CI/CD pipeline — build, test, and deploy to the NAS on push |
+| `.github/workflows/deploy.yml` | Public fixture-only build/test CI; production Actions live privately |
 | `worker/` | Cloudflare Worker for the Spotify widgets (`/now-playing` + `/liked-songs`, self-contained: `src/index.ts`, `wrangler.toml`, `README.md`). Deployed separately via `npm run worker:deploy` |
 | `tests/` | Vitest test files (build verification + HTML assertions + Obsidian Markdown handling + reading-time utility coverage) |
 | `astro.config.mjs` | Astro framework configuration (Vite + Tailwind plugin + sitemap) |
@@ -382,7 +418,8 @@ A project's `thumbnail` is any path served from `public/`. The convention is to 
 | `package.json` | Dependencies and npm scripts |
 | `nginx/default.conf` | nginx config (AI/scraper UA blocking + rate limiting); rsynced to the NAS by `deploy.sh` |
 | `scripts/run-local-script.mjs` | Cross-platform npm dispatcher that chooses PowerShell on Windows and Bash elsewhere |
-| `scripts/sync-obsidian-assets.mjs` | Copies web-renderable assets referenced by Obsidian embeds **and frontmatter thumbnails** from the vault into per-slug folders under `public/assets/`; uses a manifest to clean up stale files |
+| `scripts/content-pipeline.mjs` | Shared vault export, explicit demo/production assembly, and production-mode gate |
+| `scripts/sync-obsidian-assets.mjs` | Shared embed/thumbnail asset resolution and incremental copying; the content pipeline supplies its private asset destination |
 | `scripts/generate-card-thumbnails.mjs` | Build-time (`prebuild`) step that emits small 16:9 `400w`/`800w` WebP derivatives + a manifest (srcset, dimensions, blur-up LQIP) so project cards don't download full-size thumbnails; derivatives are gitignored and regenerated each build |
 | `scripts/strip-image-metadata.mjs` | Strips EXIF/GPS metadata from raster images in `public/assets/`, auto-orients them (baking in EXIF rotation), downscales any image over a 2048px longest edge, re-encodes each to match its file extension (repairing mislabeled formats), and converts `.heic`/`.heif` to `.webp` (via `sips` on macOS, since sharp can't decode HEIC) so the photos render fast in browsers |
 | `scripts/sync-content.sh` / `scripts/sync-content.ps1` | Pull markdown content from the Obsidian vault |

@@ -14,6 +14,11 @@ node_modules
 dist
 .astro
 
+# Private authored inputs and build-only bookkeeping
+src/content/
+public/assets/
+.site-content/
+
 # Cloudflare Worker local state / deps
 worker/.wrangler
 worker/node_modules

@@ -13,8 +13,10 @@ Pull the latest Markdown content from the Obsidian vault into the site source, t
    ```bash
    npm run sync
    ```
-   Source: your Obsidian vault (`VAULT_SUBPATH` in `deploy.env`) → `src/content/projects/`, `src/content/pages/`, and `public/images/` (see `scripts/sync-content.sh`).
-2. Report what landed. `src/content/` is committed (so CI can build without the vault), so a sync shows up in `git status` — review the diff, and list the synced files and their modified times:
+   Source: Obsidian (`VAULT_SUBPATH` in `deploy.env`) → private `CONTENT_REPO_DIR`
+   (default `../website-content`) → ignored production content/assets.
+2. Report what landed. Review the private checkout's diff, not the public
+   repository's ignored `src/content/`. Never stage authored content in public Git.
    ```bash
    ls -lt src/content/projects src/content/pages
    ```
@@ -27,5 +29,7 @@ Pull the latest Markdown content from the Obsidian vault into the site source, t
 ## Notes
 
 - This does **not** build or deploy. When the user is happy with the preview, hand off to the `deploy-website` skill to ship it.
-- New project files need valid frontmatter (`title`, `description`, `status`, `tags`, `date`, optional `thumbnail`/`repo`). Only `done` and `ongoing` projects render publicly. See the "Adding Projects" section of `README.md` for the schema.
+- New project files need valid frontmatter (`title`, `description`, `status`, `tags`, `date`, optional `thumbnail`/`repo`). Only `completed` and `ongoing` projects render on main routes; `archived` entries render in the public unlisted archive. Draft-only assets are not assembled for production.
+- Sync does not commit or push. Hosted deployment requires reviewing, committing,
+  and pushing the private export. Public code-only releases use private workflow dispatch.
 - If sync reports "no vault folder found", the vault path (`VAULT_SUBPATH` in `deploy.env`) is wrong or the vault moved — verify it points at the current vault location.

@@ -56,7 +56,7 @@ export const CARD_IMAGE_SIZES = '(max-width: 640px) 100vw, 400px';
 // a build chunk, not `src/lib/`. Every entry point that renders cards — `astro
 // build`, `astro dev`, and vitest — runs from the repo root, where the generator
 // writes the manifest.
-const manifestPath = resolve(process.cwd(), 'public', 'assets', '.card-thumbnails.json');
+const manifestPath = resolve(process.cwd(), '.site-content', '.card-thumbnails.json');
 
 /**
  * Load and cache the generated manifest.

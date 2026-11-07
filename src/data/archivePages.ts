@@ -6,10 +6,12 @@ export interface ArchivePageEntry {
 }
 
 /**
- * Register concrete Astro pages moved into `src/pages/archive/` so the archive
- * index can list them alongside archived projects.
+ * Share standalone archive metadata between dynamic routes and the archive index.
  */
-export const archivePages: readonly ArchivePageEntry[] = [];
+export const archivePages = siteData.archivePages.map((page) => ({
+  ...page,
+  date: new Date(page.date),
+}));
 
 export function validateArchiveSlugs(projectSlugs: string[]): void {
   const pageSlugs = new Set<string>();
@@ -27,3 +29,4 @@ export function validateArchiveSlugs(projectSlugs: string[]): void {
     }
   }
 }
+import { siteData } from '../lib/siteData';

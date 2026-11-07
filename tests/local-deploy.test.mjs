@@ -40,7 +40,9 @@ command=\${args[\${#args[@]}-1]}
 if [[ "$tool" == ssh && "$command" == *"sh -s"* ]]; then command=$(cat); fi
 step="$tool"
 if [[ "$tool" == npm ]]; then
-  if [[ "$1" == test ]]; then step=gate; else step=sync; fi
+  if [[ "$1" == test ]]; then step=gate
+  elif [[ "$2" == verify:production ]]; then step=content
+  else step=sync; fi
 elif [[ "$tool" == rsync ]]; then
   if [[ "\${args[\${#args[@]}-2]}" == ./dist/ ]]; then step=upload-site; else step=upload-config; fi
 elif [[ "$tool" == ssh ]]; then
@@ -116,7 +118,7 @@ for (const { name, mode, available } of [
       const result = deploy();
       expect(result.status, result.stderr).toBe(0);
       expect(result.steps).toEqual([
-        'preflight', 'sync', 'gate', 'stage', 'upload-site', 'publish-site',
+        'preflight', 'sync', 'content', 'gate', 'stage', 'upload-site', 'publish-site',
         'upload-config', 'publish-config', 'validate', 'reload', 'cleanup',
       ]);
 
@@ -156,10 +158,12 @@ for (const { name, mode, available } of [
 
     it.each([
       ['preflight', ['preflight']],
-      ['gate', ['preflight', 'sync', 'gate']],
-      ['stage', ['preflight', 'sync', 'gate', 'stage']],
-      ['upload-site', ['preflight', 'sync', 'gate', 'stage', 'upload-site', 'cleanup']],
-      ['publish-site', ['preflight', 'sync', 'gate', 'stage', 'upload-site', 'publish-site', 'cleanup']],
+      ['sync', ['preflight', 'sync']],
+      ['content', ['preflight', 'sync', 'content']],
+      ['gate', ['preflight', 'sync', 'content', 'gate']],
+      ['stage', ['preflight', 'sync', 'content', 'gate', 'stage']],
+      ['upload-site', ['preflight', 'sync', 'content', 'gate', 'stage', 'upload-site', 'cleanup']],
+      ['publish-site', ['preflight', 'sync', 'content', 'gate', 'stage', 'upload-site', 'publish-site', 'cleanup']],
     ])('stops after a failed %s without subsequent writes', (failStep, steps) => {
       const result = deploy({ failStep });
       expect(result.status).not.toBe(0);
@@ -178,7 +182,7 @@ for (const { name, mode, available } of [
     it('refuses to transfer or clean up an unexpected staging path', () => {
       const result = deploy({ stagePath: '/' });
       expect(result.status).not.toBe(0);
-      expect(result.steps).toEqual(['preflight', 'sync', 'gate', 'stage']);
+      expect(result.steps).toEqual(['preflight', 'sync', 'content', 'gate', 'stage']);
     });
 
     it.each(['upload-config', 'publish-config', 'validate', 'reload'])(

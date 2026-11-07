@@ -64,6 +64,8 @@ if ($LASTEXITCODE -ne 0) { throw "NAS preflight failed (exit $LASTEXITCODE)" }
 # markdown and generated image assets.
 Write-Host 'Syncing content from vault...' -ForegroundColor Cyan
 & "$PSScriptRoot\sync-content.ps1"
+npm run verify:production
+if ($LASTEXITCODE -ne 0) { throw "Production content gate failed (exit $LASTEXITCODE)" }
 
 # --- Build ---
 # npm test builds dist/ first; either a build or test failure blocks publishing.

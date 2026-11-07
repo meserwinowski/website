@@ -9,6 +9,9 @@
     "build": "node --disable-warning=DEP0205 node_modules/astro/bin/astro.mjs build",
     "preview": "node --disable-warning=DEP0205 node_modules/astro/bin/astro.mjs preview --host",
     "sync": "node scripts/run-local-script.mjs sync",
+    "content:assemble": "node scripts/content-pipeline.mjs assemble",
+    "demo": "node scripts/content-pipeline.mjs demo",
+    "verify:production": "node scripts/content-pipeline.mjs verify-production",
     "test": "npm run build && vitest run",
     "deploy": "node scripts/run-local-script.mjs deploy",
     "spotify:token": "node scripts/spotify-refresh-token.mjs",
@@ -29,6 +32,7 @@
     "@cloudflare/workers-types": "^4.0.0",
     "@types/node": "^24.13.1",
     "vitest": "^4.1.8",
-    "wrangler": "^4.0.0"
+    "wrangler": "^4.0.0",
+    "yaml": "^2.9.1"
   }
 }

@@ -4,6 +4,7 @@ import Layout from '../../layouts/Base.astro';
 import ProjectCard from '../../components/ProjectCard.astro';
 import { archivePages, validateArchiveSlugs } from '../../data/archivePages';
 import { isArchivedProject } from '../../lib/projectStatus';
+import { siteData } from '../../lib/siteData';
 
 const projects = (await getCollection('projects'))
   .filter((project) => isArchivedProject(project.data.status))
@@ -16,7 +17,7 @@ const hasEntries = projects.length > 0 || pages.length > 0;
 ---
 
 <Layout
-  title="Archive - Matt Serwinowski"
+  title={`Archive - ${siteData.name}`}
   description="Retired pages and projects preserved from mattserwinowski.com."
   width="content"
   chrome="project-detail"

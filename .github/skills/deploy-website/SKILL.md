@@ -25,7 +25,8 @@ Ship the Astro site to production (nginx in Docker on the Synology NAS). The dep
    ```bash
    npm run deploy
    ```
-   Both local scripts preflight noninteractive access, sync vault content, run `npm test`
+   Both local scripts preflight noninteractive access, export vault content to the private
+   checkout, assemble ignored production inputs, refuse demo inputs, and run `npm test`
    (build + Vitest), upload to a private temporary directory as `NAS_USER`, then use
    local `sudo -n rsync --delete` on the NAS to mirror `dist/` to `DEPLOY_TARGET`.
    Target ownership is preserved and staging is cleaned up after success or failure.
@@ -39,7 +40,9 @@ Ship the Astro site to production (nginx in Docker on the Synology NAS). The dep
 ## Post-deploy
 
 4. Verify the live site responds (ask the user for the URL if unknown), e.g. `curl -sS -L --fail --max-time 20 -o /dev/null -w '%{http_code}\n' https://<site>`. Inspect any nginx warnings: config/reload remains best-effort even when the site files published successfully.
-5. Per repo convention, check whether `README.md` or `TODO.md` need updating after the change, and remind the user to commit source changes — synced content under `src/content/` is committed so CI can build without the vault.
+5. Check whether README or TODO need updating. Commit code only in the public
+   repository; authored inputs belong in the private publishing repository.
+   Hosted Actions run privately on content pushes or explicit code-release dispatch.
 
 ## Notes
 

@@ -1,0 +1,26 @@
+{
+  "name": "Example Author",
+  "fullName": "Example Author",
+  "wordmark": "EA",
+  "description": "A synthetic portfolio for public development.",
+  "homeDescription": "Example projects and writing.",
+  "projectsDescription": "A collection of example projects.",
+  "feedDescription": "Example projects and writing.",
+  "aboutTagline": "A synthetic site with no private inputs.",
+  "publishedPages": ["about", "archive/example-gift"],
+  "archivePages": [{
+    "slug": "example-gift",
+    "entry": "archive/example-gift",
+    "title": "Example Gift",
+    "description": "A synthetic archived page.",
+    "date": "2026-01-01",
+    "heading": "A Gift for the Reader",
+    "tagline": "Enjoy this synthetic example.",
+    "media": {"src": "/assets/gift/celebrate.svg", "alt": "A decorative example", "width": 350, "height": 350},
+    "imagesLabel": "Example gifts",
+    "images": [
+      {"src": "/assets/gift/first.png", "alt": "First example image", "width": 350, "height": 350},
+      {"src": "/assets/gift/second.png", "alt": "Second example image", "width": 350, "height": 350}
+    ]
+  }]
+}

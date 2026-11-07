@@ -1,25 +1,34 @@
 ---
 import { getCollection } from 'astro:content';
 import ProjectDetail from '../../components/ProjectDetail.astro';
+import GiftPage from '../../components/GiftPage.astro';
+import { archivePages, validateArchiveSlugs } from '../../data/archivePages';
 import { isArchivedProject } from '../../lib/projectStatus';
 
 export async function getStaticPaths() {
   const projects = await getCollection('projects');
 
-  return projects
+  const archived = projects
     .filter((project) => isArchivedProject(project.data.status))
     .map((project) => ({
       params: { slug: project.id },
       props: { project },
     }));
+  validateArchiveSlugs(archived.map(({ params }) => params.slug));
+  const pages = await getCollection('pages');
+  return [...archived, ...archivePages.map((metadata) => {
+    const page = pages.find((page) => page.id === metadata.entry);
+    if (!page) throw new Error(`Missing standalone archive content: ${metadata.entry}`);
+    return { params: { slug: metadata.slug }, props: { page, metadata } };
+  })];
 }
 
-const { project } = Astro.props;
+const { project, page, metadata } = Astro.props;
 ---
 
-<ProjectDetail
+{project ? <ProjectDetail
   project={project}
   backHref="/archive/"
   backLabel="Back to Archive"
   robots="noindex, follow"
-/>
+/> : <GiftPage page={page} metadata={metadata} />}

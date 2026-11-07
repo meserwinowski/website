@@ -1,81 +1,51 @@
-# CI/CD Pipeline: Build, test, and deploy to Synology NAS
-# Triggers on push to main branch
-#
-# Required GitHub Secrets:
-#   NAS_SSH_KEY          - Private SSH key for NAS access (nas_deploy_key)
-#   NAS_HOST             - NAS hostname (e.g. a Tailscale MagicDNS name)
-#   NAS_USER             - SSH username on NAS
-#   NAS_DEPLOY_PATH      - Deployment path on the NAS (e.g., /path/to/webserver/dist)
-#   TS_OAUTH_CLIENT_ID   - Tailscale OAuth client ID (lets the runner join your tailnet)
-#   TS_OAUTH_SECRET      - Tailscale OAuth client secret
-
-name: Deploy Website
+name: Build Website
 
 on:
   push:
     branches: [main]
-
-  # Allow manual trigger from GitHub UI
+  pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
-  build-and-deploy:
+  public-fixture-build:
     runs-on: ubuntu-latest
-
     steps:
-      # 1. Check out the repository (includes committed content)
-      - name: Checkout code
-        uses: actions/checkout@v6
-
-      # 2. Set up Node.js with dependency caching for faster installs
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v6
         with:
           node-version: 22
           cache: npm
+      - run: npm ci
+      - run: npm run demo
+      - run: npm test
 
-      # 3. Install dependencies
-      - name: Install dependencies
-        run: npm ci
-
-      # 4. Build the Astro site
-      - name: Build site
-        run: npm run build
-
-      # 5. Run tests against the built output
-      - name: Run tests
-        run: npm test
-
-      # 6. Join the tailnet so the runner can reach the NAS over Tailscale
-      - name: Connect to Tailscale
-        uses: tailscale/github-action@v2
+  windows-content-check:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v6
         with:
-          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
-          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
-          tags: tag:ci
-
-      # 7. Deploy to NAS via rsync over SSH
-      - name: Deploy to NAS
-        env:
-          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
-          NAS_HOST: ${{ secrets.NAS_HOST }}
-          NAS_USER: ${{ secrets.NAS_USER }}
-          NAS_DEPLOY_PATH: ${{ secrets.NAS_DEPLOY_PATH }}
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run demo
+      - run: npm run build
+      - run: npx vitest run tests/content-pipeline.test.mjs tests/html-structure.test.ts
+      - name: Parse native Windows PowerShell deployment and sync scripts
+        shell: powershell
         run: |
-          # Write the SSH private key to a temp file
-          mkdir -p ~/.ssh
-          echo "$NAS_SSH_KEY" > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
-
-          # Pin the host key independently verified over the trusted NAS connection.
-          printf '%s\n' 'nas-deploy ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJMuAFGgY5ejIbRaoy8Xhj0rlitgWYQIt+LCGyOTIicN' > ~/.ssh/nas_known_hosts
-          chmod 600 ~/.ssh/nas_known_hosts
-
-          # Deploy with rsync
-          rsync -avz --delete \
-            --exclude='.DS_Store' \
-            -e "ssh -i ~/.ssh/deploy_key -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$HOME/.ssh/nas_known_hosts -o HostKeyAlias=nas-deploy -o RemoteCommand=none -o RequestTTY=no" \
-            ./dist/ "$NAS_USER@$NAS_HOST:$NAS_DEPLOY_PATH/"
-
-          # Clean up
-          rm -f ~/.ssh/deploy_key ~/.ssh/nas_known_hosts
+          foreach ($path in 'scripts/deploy.ps1', 'scripts/sync-content.ps1') {
+            $tokens = $null
+            $errors = $null
+            [void][System.Management.Automation.Language.Parser]::ParseFile(
+              (Join-Path $PWD $path), [ref]$tokens, [ref]$errors
+            )
+            if ($errors.Count) { throw ($errors | Out-String) }
+          }

@@ -16,6 +16,7 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { firstProject, gift, giftNote, htmlEscape, siteData, cardManifest, projectHeadings } from './site-fixture';
 
 const distDir = resolve(import.meta.dirname, '..', 'dist');
 let indexHtml: string;
@@ -33,7 +34,7 @@ beforeAll(() => {
   postsHtml = readFileSync(resolve(distDir, 'posts', 'index.html'), 'utf-8');
   aboutHtml = readFileSync(resolve(distDir, 'about', 'index.html'), 'utf-8');
   archivedDadHtml = readFileSync(
-    resolve(distDir, 'archive', 'example-gift', 'index.html'),
+    resolve(distDir, 'archive', gift.slug, 'index.html'),
     'utf-8',
   );
   archiveHtml = readFileSync(resolve(distDir, 'archive', 'index.html'), 'utf-8');
@@ -45,7 +46,7 @@ describe('HTML structure - index.html', () => {
   });
 
   it('has correct <title>', () => {
-    expect(indexHtml).toMatch(/<title>Matt Serwinowski<\/title>/);
+    expect(indexHtml).toContain(`<title>${htmlEscape(siteData.name)}</title>`);
   });
 
   it('has meta viewport tag', () => {
@@ -88,8 +89,8 @@ describe('HTML structure - index.html', () => {
   });
 
   it('renders recent projects from the collection', () => {
-    expect(indexHtml).toContain('Example Project');
-    expect(indexHtml).toMatch(/href="\/projects\/stage-mixer\/"/);
+    expect(indexHtml).toContain(htmlEscape(firstProject.data.title));
+    expect(indexHtml).toContain(`href="/projects/${firstProject.id}/"`);
     expect(indexHtml).toMatch(/href="\/projects\/"/);
   });
 
@@ -131,15 +132,15 @@ describe('Navigation', () => {
 
 describe('HTML structure - subpages', () => {
   it('projects page has correct title', () => {
-    expect(projectsHtml).toMatch(/<title>Projects - Matt Serwinowski<\/title>/);
+    expect(projectsHtml).toContain(`<title>Projects - ${htmlEscape(siteData.name)}</title>`);
   });
 
   it('posts page has correct title', () => {
-    expect(postsHtml).toMatch(/<title>Posts - Matt Serwinowski<\/title>/);
+    expect(postsHtml).toContain(`<title>Posts - ${htmlEscape(siteData.name)}</title>`);
   });
 
   it('about page has correct title', () => {
-    expect(aboutHtml).toMatch(/<title>About - Matt Serwinowski<\/title>/);
+    expect(aboutHtml).toContain(`<title>About - ${htmlEscape(siteData.name)}</title>`);
   });
 
   it('home and projects use the same content-page alignment as project details', () => {
@@ -194,7 +195,7 @@ describe('HTML structure - subpages', () => {
 
 describe('Archive', () => {
   it('is public by direct URL but excluded from search indexing', () => {
-    expect(archiveHtml).toMatch(/<title>Archive - Matt Serwinowski<\/title>/);
+    expect(archiveHtml).toContain(`<title>Archive - ${htmlEscape(siteData.name)}</title>`);
     expect(archiveHtml).toMatch(/<h1[^>]*>Archive<\/h1>/);
     expect(archiveHtml).toMatch(
       /<meta[^>]*name="robots"[^>]*content="noindex, follow"/,
@@ -207,18 +208,16 @@ describe('Archive', () => {
     expect(indexHtml).not.toMatch(/href="\/archive\/"/);
   });
 
-  it('lists the archived Dad birthday page', () => {
-    expect(archiveHtml).toMatch(/href="\/archive\/example-gift\/"/);
-    expect(archiveHtml).toContain('Example Gift');
+  it('lists the standalone archive page', () => {
+    expect(archiveHtml).toContain(`href="/archive/${gift.slug}/"`);
+    expect(archiveHtml).toContain(htmlEscape(gift.title));
   });
 });
 
-describe('Archived Dad birthday page', () => {
+describe('Archived gift page', () => {
   it('has the expected title and birthday heading', () => {
-    expect(archivedDadHtml).toMatch(
-      /<title>Example Gift - Matt Serwinowski<\/title>/,
-    );
-    expect(archivedDadHtml).toMatch(/<h1[^>]*>Example Gift<\/h1>/);
+    expect(archivedDadHtml).toContain(`<title>${htmlEscape(giftNote.data.title)}</title>`);
+    expect(archivedDadHtml).toContain(`>${htmlEscape(gift.heading)}</h1>`);
     expect(archivedDadHtml).toMatch(
       /<meta[^>]*name="robots"[^>]*content="noindex, follow"/,
     );
@@ -226,13 +225,11 @@ describe('Archived Dad birthday page', () => {
 
   it('renders the birthday GIF with intrinsic dimensions', () => {
     const gif = archivedDadHtml.match(/<img[^>]*data-birthday-media[^>]*>/)?.[0] ?? '';
-    expect(gif).toMatch(/src="https:\/\/media0\.giphy\.com\/[^"]+\/6g564lKXZo796\/giphy\.gif"/);
-    expect(gif).toMatch(/alt="Pusheen celebrating a happy birthday"/);
-    expect(gif).toMatch(/width="350"/);
-    expect(gif).toMatch(/height="350"/);
-    expect(archivedDadHtml).toMatch(
-      /data-gif-src="https:\/\/media0\.giphy\.com\/[^"]+\/6g564lKXZo796\/giphy\.gif"/,
-    );
+    expect(gif).toContain(`src="${htmlEscape(gift.media.src)}"`);
+    expect(gif).toContain(`alt="${htmlEscape(gift.media.alt)}"`);
+    expect(gif).toContain(`width="${gift.media.width}"`);
+    expect(gif).toContain(`height="${gift.media.height}"`);
+    expect(archivedDadHtml).toContain(`data-gif-src="${htmlEscape(gift.media.src)}"`);
   });
 
   it('renders an accessible animated gift control', () => {
@@ -253,8 +250,8 @@ describe('Archived Dad birthday page', () => {
 
   it('renders both driving vouchers inside the gift reveal', () => {
     const revealStart = archivedDadHtml.indexOf('data-gift-box-reveal');
-    const ferrariPosition = archivedDadHtml.indexOf('/assets/gift/first.png');
-    const porschePosition = archivedDadHtml.indexOf('/assets/gift/second.png');
+    const ferrariPosition = archivedDadHtml.indexOf(gift.images[0].src);
+    const porschePosition = archivedDadHtml.indexOf(gift.images[1].src);
     expect(revealStart).toBeGreaterThan(-1);
     expect(ferrariPosition).toBeGreaterThan(revealStart);
     expect(porschePosition).toBeGreaterThan(revealStart);
@@ -263,7 +260,7 @@ describe('Archived Dad birthday page', () => {
   });
 
   it('keeps the birthday message inside the hidden gift reveal', () => {
-    const messagePosition = archivedDadHtml.indexOf('An example celebration');
+    const messagePosition = archivedDadHtml.indexOf(htmlEscape(giftNote.body.trim().split(/\n\s*\n/)[0]));
     const revealStart = archivedDadHtml.indexOf('data-gift-box-reveal');
     const revealEnd = archivedDadHtml.indexOf('</div>', messagePosition);
     expect(revealStart).toBeGreaterThan(-1);
@@ -274,8 +271,8 @@ describe('Archived Dad birthday page', () => {
 
   it('stays unlisted from the main navigation', () => {
     const header = archivedDadHtml.match(/<header[^>]*>[\s\S]*?<\/header>/)?.[0] ?? '';
-    expect(header).not.toMatch(/href="\/archive\/example-gift\/"/);
-    expect(indexHtml).not.toMatch(/href="\/archive\/example-gift\/"/);
+    expect(header).not.toContain(`href="/archive/${gift.slug}/"`);
+    expect(indexHtml).not.toContain(`href="/archive/${gift.slug}/"`);
   });
 
   it('disables reading progress for the short standalone page', () => {
@@ -370,11 +367,11 @@ describe('Theme toggle', () => {
 
 describe('Projects page - content collection', () => {
   it('renders project cards with links to detail pages', () => {
-    expect(projectsHtml).toMatch(/href="\/projects\/stage-mixer\/"/);
+    expect(projectsHtml).toContain(`href="/projects/${firstProject.id}/"`);
   });
 
   it('displays project titles', () => {
-    expect(projectsHtml).toContain('Example Project');
+    expect(projectsHtml).toContain(htmlEscape(firstProject.data.title));
   });
 
   it('displays status badges', () => {
@@ -384,19 +381,17 @@ describe('Projects page - content collection', () => {
   });
 
   it('displays tags', () => {
-    expect(projectsHtml).toContain('hardware');
-    expect(projectsHtml).toContain('music');
+    for (const tag of firstProject.data.tags) expect(projectsHtml).toContain(htmlEscape(tag));
   });
 
   it('renders the project thumbnail as a responsive, lazy-loaded card image', () => {
     // Cards use build-time WebP derivatives (generate-card-thumbnails.mjs) instead
     // of the full-size synced asset: a 400w/800w srcset, intrinsic 16:9 dimensions,
     // and lazy loading below the fold on the projects index.
-    const img = projectsHtml.match(/<img[^>]*mixer-front-card-[^>]*>/)?.[0] ?? '';
-    expect(img).toMatch(/src="\/assets\/stage-mixer\/mixer-front-card-400\.webp"/);
-    expect(img).toMatch(
-      /srcset="\/assets\/stage-mixer\/mixer-front-card-400\.webp 400w, \/assets\/stage-mixer\/mixer-front-card-800\.webp 800w"/,
-    );
+    const img = projectsHtml.match(/<img[^>]*-card-[^>]*>/)?.[0] ?? '';
+    const thumbnail = cardManifest[firstProject.data.thumbnail];
+    expect(img).toContain(`src="${thumbnail.src}"`);
+    expect(img).toContain(`srcset="${thumbnail.srcset}"`);
     expect(img).toMatch(/sizes="[^"]+"/);
     expect(img).toMatch(/width="800"/);
     expect(img).toMatch(/height="450"/);
@@ -413,11 +408,11 @@ describe('Project detail pages', () => {
   beforeAll(() => {
     // Project detail pages are generated from the content collection, so this
     // fixture proves the dynamic `[slug]` route made it into `dist/`.
-    projectDetailHtml = readFileSync(resolve(distDir, 'projects', 'stage-mixer', 'index.html'), 'utf-8');
+    projectDetailHtml = readFileSync(resolve(distDir, 'projects', firstProject.id, 'index.html'), 'utf-8');
   });
 
   it('has correct title', () => {
-    expect(projectDetailHtml).toMatch(/<title>Example Project - Matt Serwinowski<\/title>/);
+    expect(projectDetailHtml).toContain(`<title>${htmlEscape(firstProject.data.title)} - ${htmlEscape(siteData.name)}</title>`);
   });
 
   it('has back link to projects index', () => {
@@ -425,7 +420,7 @@ describe('Project detail pages', () => {
   });
 
   it('renders markdown content', () => {
-    expect(projectDetailHtml).toContain('Midas MR18');
+    expect(projectDetailHtml).toMatch(/class="prose"[\s\S]*<p>/);
   });
 
   it('shows estimated reading time near the top of the detail page', () => {
@@ -435,9 +430,12 @@ describe('Project detail pages', () => {
 
   it('renders a table of contents with links to markdown sections', () => {
     expect(projectDetailHtml).toMatch(/aria-label="Table of contents"/);
-    expect(projectDetailHtml).toMatch(/href="#what-is-a-stage-mixer"/);
-    expect(projectDetailHtml).toMatch(/data-toc-target="what-is-a-stage-mixer"/);
-    expect(projectDetailHtml).toMatch(/data-toc-target="my-rig"/);
+    const headings = projectHeadings.filter(heading => heading.depth <= 3);
+    expect(headings.length).toBeGreaterThan(1);
+    for (const { slug: id } of headings) {
+      expect(projectDetailHtml).toContain(`href="#${id}"`);
+      expect(projectDetailHtml).toContain(`data-toc-target="${id}"`);
+    }
   });
 
   it('renders a project meta rail that balances the table-of-contents gutter', () => {
@@ -447,23 +445,28 @@ describe('Project detail pages', () => {
   });
 });
 
-describe('Stage mixer markdown rendering', () => {
+describe('Markdown rendering', () => {
   let stageMixerHtml: string;
 
   beforeAll(() => {
     // Re-read locally for this group so the markdown-rendering contract is easy
     // to follow without scrolling back to the project-detail suite.
-    stageMixerHtml = readFileSync(resolve(distDir, 'projects', 'stage-mixer', 'index.html'), 'utf-8');
+    stageMixerHtml = readFileSync(resolve(distDir, 'projects', firstProject.id, 'index.html'), 'utf-8');
   });
 
   it('renders markdown headings with permalink icon links', () => {
-    expect(stageMixerHtml).toMatch(/<h1 id="additional-notes">Additional Notes<a[^>]*href="#additional-notes"[^>]*class="heading-permalink"[^>]*data-heading-permalink="true"[^>]*>.*<\/a><\/h1>/);
-    expect(stageMixerHtml).toMatch(/<h2 id="mixers">Mixers<a[^>]*href="#mixers"[^>]*class="heading-permalink"[^>]*data-heading-permalink="true"[^>]*>.*<\/a><\/h2>/);
+    const headings = projectHeadings.filter(heading => heading.depth <= 2);
+    expect(headings.length).toBeGreaterThan(1);
+    for (const { slug: id } of headings) {
+      const body = stageMixerHtml.match(new RegExp(`<h[1-2] id="${id}"[^>]*>(.*?)</h[1-2]>`))?.[1] ?? '';
+      expect(body).toContain(`href="#${id}"`);
+      expect(body).toContain('data-heading-permalink="true"');
+    }
   });
 
   it('includes h1-h3 headings in the table of contents without noisy deeper headings', () => {
-    expect(stageMixerHtml).toMatch(/data-toc-target="what-is-a-stage-mixer"/);
-    expect(stageMixerHtml).toMatch(/data-toc-target="inventory"/);
-    expect(stageMixerHtml).not.toMatch(/data-toc-target="requirements"/);
+    for (const { slug: id } of projectHeadings.filter(heading => heading.depth > 3)) {
+      expect(stageMixerHtml).not.toContain(`data-toc-target="${id}"`);
+    }
   });
 });

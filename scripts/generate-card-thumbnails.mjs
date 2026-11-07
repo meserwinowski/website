@@ -63,6 +63,7 @@ const manifestFilename = '.card-thumbnails.json';
 export async function generateCardThumbnails({
   contentDir = resolve(repoRoot, 'src', 'content', 'projects'),
   assetsDir = resolve(repoRoot, 'public', 'assets'),
+  manifestDir = assetsDir === resolve(repoRoot, 'public', 'assets') ? resolve(repoRoot, '.site-content') : assetsDir,
   widths = cardWidths,
 } = {}) {
   const markdownFiles = listMarkdown(contentDir);
@@ -108,8 +109,8 @@ export async function generateCardThumbnails({
 
   const removed = cleanStaleDerivatives(assetsDir, generatedFiles);
 
-  const manifestPath = resolve(assetsDir, manifestFilename);
-  mkdirSync(assetsDir, { recursive: true });
+  const manifestPath = resolve(manifestDir, manifestFilename);
+  mkdirSync(manifestDir, { recursive: true });
   writeFileSync(manifestPath, JSON.stringify(sortByKey(manifest), null, 2) + '\n');
 
   return { generated, upToDate, skipped, removed, manifest, manifestPath, assetsDir };

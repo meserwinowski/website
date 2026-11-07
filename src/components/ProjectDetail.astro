@@ -6,6 +6,7 @@ import ProjectMeta from './ProjectMeta.astro';
 import TableOfContents from './TableOfContents.astro';
 import Layout from '../layouts/Base.astro';
 import { estimateReadingTime } from '../lib/readingTime';
+import { siteData } from '../lib/siteData';
 
 interface Props {
   project: CollectionEntry<'projects'>;
@@ -24,7 +25,7 @@ const readingTime = estimateReadingTime(project.body);
 ---
 
 <Layout
-  title={`${project.data.title} - Matt Serwinowski`}
+  title={`${project.data.title} - ${siteData.name}`}
   description={project.data.description}
   width="wide"
   chrome="project-detail"
