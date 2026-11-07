@@ -38,6 +38,8 @@ let data: SiteData;
 try {
   data = JSON.parse(readFileSync(resolve(process.cwd(), '.site-content/site.json'), 'utf8'));
 } catch {
-  throw new Error('Site inputs are missing or invalid. Run npm run demo (public examples) or npm run sync (private production content).');
+  throw new Error(
+    'Site inputs are missing or invalid. Run npm run demo (public examples) or npm run sync (private production content).'
+  );
 }
 export const siteData = data;

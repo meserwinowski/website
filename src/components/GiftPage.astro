@@ -14,7 +14,12 @@ const { page, metadata } = Astro.props;
 const { Content } = await render(page);
 ---
 
-<Layout title={page.data.title} description={page.data.description} readingProgress={false} robots="noindex, follow">
+<Layout
+  title={page.data.title}
+  description={page.data.description}
+  readingProgress={false}
+  robots="noindex, follow"
+>
   <article class="space-y-8 py-8">
     <div class="space-y-3 text-center">
       <h1 class="text-4xl font-bold tracking-tight">{metadata.heading}</h1>
@@ -29,10 +34,17 @@ const { Content } = await render(page);
       data-gif-src={metadata.media.src}
     />
     <GiftBox>
-      <div class="prose"><Content /></div>
+      <div class="prose">
+        <Content />
+      </div>
       <div class="gift-cars" aria-label={metadata.imagesLabel}>
         {metadata.images.map((image, index) => (
-          <img {...image} loading="lazy" decoding="async" class={`gift-car gift-car--${index === 0 ? 'left' : 'right'}`} />
+          <img
+            {...image}
+            loading="lazy"
+            decoding="async"
+            class={`gift-car gift-car--${index === 0 ? 'left' : 'right'}`}
+          />
         ))}
       </div>
     </GiftBox>

@@ -1,4 +1,14 @@
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, utimesSync, writeFileSync } from 'node:fs';
+import {
+  cpSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  utimesSync,
+  writeFileSync,
+} from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -53,19 +63,22 @@ describe('production content assembly', () => {
 
   it.each(['../outside.svg', '/absolute.svg', 'missing.png', 'raw.heic', 'source.md'])(
     'rejects unsafe or missing image %s before replacing output',
-    asset => {
+    (asset) => {
       const options = fixture();
       options.manifest.documents[0].assets = [asset];
-      if (asset === 'source.md') writeFileSync(join(options.source, 'assets/source.md'), 'Private source note');
+      if (asset === 'source.md')
+        writeFileSync(join(options.source, 'assets/source.md'), 'Private source note');
       writeFileSync(join(options.source, 'manifest.json'), JSON.stringify(options.manifest));
       expect(() => assembleContent(options)).toThrow();
       expect(existsSync(join(options.root, 'src/content'))).toBe(false);
-    },
+    }
   );
 
   it('fails if an explicitly published page is absent', () => {
     const options = fixture();
-    options.manifest.documents = options.manifest.documents.filter(document => document.path !== 'pages/about.md');
+    options.manifest.documents = options.manifest.documents.filter(
+      (document) => document.path !== 'pages/about.md'
+    );
     writeFileSync(join(options.source, 'manifest.json'), JSON.stringify(options.manifest));
     expect(() => assembleContent(options)).toThrow(/Missing published page/);
   });
@@ -99,9 +112,15 @@ describe('vault publishing export', () => {
   it('normalizes lists without changing fenced code or deleting checkout metadata', async () => {
     const options = vaultFixture();
     const note = join(options.vaultDir, 'projects/example-project.md');
-    writeFileSync(note, `${readFileSync(note, 'utf8')}\n\t- nested\n\`\`\`text\n\tliteral\n\`\`\`\n`);
+    writeFileSync(
+      note,
+      `${readFileSync(note, 'utf8')}\n\t- nested\n\`\`\`text\n\tliteral\n\`\`\`\n`
+    );
     await exportContent(options);
-    const exported = readFileSync(join(options.destination, 'content/projects/example-project.md'), 'utf8');
+    const exported = readFileSync(
+      join(options.destination, 'content/projects/example-project.md'),
+      'utf8'
+    );
     expect(exported).toContain('\n  - nested');
     expect(exported).toContain('\n\tliteral');
     expect(existsSync(join(options.destination, '.github/keeper'))).toBe(true);
