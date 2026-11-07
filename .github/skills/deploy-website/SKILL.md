@@ -13,35 +13,37 @@ Ship the Astro site to production (nginx in Docker on the Synology NAS). The dep
 2. Verify the NAS is reachable before doing any work:
    ```bash
    set -a; . ./deploy.env; set +a
-   ssh -o ConnectTimeout=5 -o RemoteCommand=none -o RequestTTY=no "$NAS_HOST" true
+   ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=10 \
+     -o RemoteCommand=none -o RequestTTY=no "$NAS_USER@$NAS_HOST" \
+     'sudo -n rsync --version >/dev/null && sudo -n test -x /volume1/docker_commands/nas-docker.sh'
    ```
    If this fails, stop and tell the user — likely the network/VPN is down or the SSH key (`~/.ssh`) isn't loaded. Do not continue.
 
 ## Pipeline
 
-3. **Sync content** from the Obsidian vault:
-   ```bash
-   npm run sync
-   ```
-   Report which `projects/` and `pages/` files were pulled. The source vault is configured via `VAULT_SUBPATH` in `deploy.env` (consumed by `scripts/sync-content.sh`).
-4. **Gate on tests** — this builds the site and runs Vitest against the built `dist/`:
-   ```bash
-   npm test
-   ```
-   If the build or any test fails, **STOP**. Show the failure and fix it (or report it) before deploying. Never deploy a red build.
-5. **Deploy** only after the gate is green:
+3. **Deploy** after reviewing the target and confirming any uncertain `--delete` scope:
    ```bash
    npm run deploy
    ```
-   This re-runs sync + build, then `rsync -avz --delete` of `dist/` to the target configured in `deploy.env` (`NAS_HOST:DEPLOY_TARGET`).
+   Both local scripts preflight noninteractive access, sync vault content, run `npm test`
+   (build + Vitest), upload to a private temporary directory as `NAS_USER`, then use
+   local `sudo -n rsync --delete` on the NAS to mirror `dist/` to `DEPLOY_TARGET`.
+   Target ownership is preserved and staging is cleaned up after success or failure.
+   Build/test failures stop before publishing. Do not use root rsync server mode:
+   DSM rejects it because the root account is disabled.
+   Do not separately sync/build/test first unless diagnosing a failure.
+   Report which `projects/` and `pages/` files were pulled. The vault is configured via
+   `VAULT_SUBPATH` in `deploy.env`.
    - The `--delete` flag removes remote files not present locally. This is expected, but if anything in the pre-flight looked off, confirm with the user before this step.
 
 ## Post-deploy
 
-6. Optionally verify the live site responds (ask the user for the URL if unknown), e.g. `curl -sI https://<site> | head -1`.
-7. Per repo convention, check whether `README.md` or `TODO.md` need updating after the change, and remind the user to commit source changes — synced content under `src/content/` is committed so CI can build without the vault.
+4. Verify the live site responds (ask the user for the URL if unknown), e.g. `curl -sS -L --fail --max-time 20 -o /dev/null -w '%{http_code}\n' https://<site>`. Inspect any nginx warnings: config/reload remains best-effort even when the site files published successfully.
+5. Per repo convention, check whether `README.md` or `TODO.md` need updating after the change, and remind the user to commit source changes — synced content under `src/content/` is committed so CI can build without the vault.
 
 ## Notes
 
-- The nginx container's `compose.yaml` is managed by a separate `nasctl` toolkit kept outside this repo. This repo only ships `dist/` + `nginx/default.conf`; `deploy.sh` reloads nginx via `nasctl`. Never run Docker/compose here.
+- Local deployment uses `NAS_USER=copilot` and `sudo -n`; it never installs keys or changes sudoers. SSH retains strict host-key verification.
+- This repo ships only `dist/` + `nginx/default.conf`; both scripts validate/reload nginx through the installed `/volume1/docker_commands/nas-docker.sh` over SSH, never the syncing local `nasctl` launcher. Config transfer uses `--inplace` to preserve the bind-mounted file's inode.
+- The `webserver` container is DSM-owned. Image upgrades, recreation and mount changes must go through Synology Container Manager; do not run Docker/Compose recreation here.
 - Tailwind is wired through `@tailwindcss/vite` (v4). Do not add `@astrojs/tailwind`.

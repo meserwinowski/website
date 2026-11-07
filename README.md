@@ -10,7 +10,8 @@ A personal portfolio and posts site built with [Astro](https://astro.build/) and
 
 - Node.js (with npm)
 - Windows PowerShell 5.1+ on Windows, or Bash on macOS/Linux, for local helper scripts
-- SSH access to the NAS (host configured in `deploy.env`) for local deploys
+- Existing SSH access as `copilot` (configured in `deploy.env`), a verified host key,
+  and passwordless sudo for local rsync, stat, mkdir and the installed NAS dispatcher
 - `rsync` and `ssh` on `PATH` for local deploys
 
 ### Development
@@ -29,15 +30,30 @@ npm run build  # Generates static site in dist/
 ### Deploy
 
 ```bash
-npm run deploy  # Syncs content, builds, and deploys to the NAS
+npm run deploy  # Syncs content, builds, tests, and deploys to the NAS
 ```
 
 This runs `scripts/run-local-script.mjs`, which dispatches to PowerShell on
-Windows (`deploy.ps1`) or Bash on macOS/Linux (`deploy.sh`). The deploy script:
-1. Syncs content from the Obsidian vault (`sync-content.ps1` / `sync-content.sh`)
-2. Builds the site with `astro build`
-3. Rsyncs the `dist/` directory to the NAS deploy target (`DEPLOY_TARGET` in `deploy.env`)
-4. nginx (running in Docker) serves the files automatically
+Windows (`deploy.ps1`) or Bash on macOS/Linux (`deploy.sh`). Both scripts:
+1. Verify noninteractive SSH/sudo access before syncing or building
+2. Sync content from the Obsidian vault (`sync-content.ps1` / `sync-content.sh`)
+3. Run `npm test` (Astro build, then Vitest); a failure blocks deployment
+4. Upload `dist/` to a private temporary directory as `copilot`, then mirror it locally on
+   the NAS to `DEPLOY_TARGET` with `sudo -n rsync --delete`, preserving the target's owner/group
+5. Stage and copy nginx config with sudo, validate it and reload the existing container through
+   `/volume1/docker_commands/nas-docker.sh`
+
+Set `NAS_USER=copilot` in the git-ignored `deploy.env`; the example uses this account.
+SSH uses batch mode and strict host-key checking, and every sudo call uses `-n`, so missing
+access fails instead of prompting. Staging permissions are explicitly set and checked as
+`0700` because Synology's inherited ACLs can override `mktemp`/`umask`. Staging avoids DSM's
+disabled-root-account restriction on rsync server mode; no accounts or rsync services need
+enabling. Temporary uploads are
+cleaned up after success or failure. Remote paths must be non-root absolute paths containing
+only letters, digits, dot, underscore, slash or hyphen, without `.` or `..` path segments.
+The local `nasctl` launcher and `NASCTL_PATH` are no longer used. nginx config/reload failures
+remain warnings after the site files have been published; inspect them rather than assuming
+a warning means the new config is active.
 
 ### Continuous Deployment (CI/CD)
 
@@ -169,18 +185,15 @@ Two layers handle web crawlers and AI scrapers:
    `/etc/nginx/conf.d/default.conf`. Returns `403` for AI/scraper User-Agents that ignore
    `robots.txt` and rate-limits aggressive clients (10 req/s per IP, burst 20 → `429`).
 
-`scripts/deploy.sh` rsyncs `nginx/default.conf` to the NAS and asks nginx to
-`nginx -t && nginx -s reload` via the [`nasctl`](#nas-container-management) toolkit on every
-deploy (best-effort; it never fails the site deploy).
+The local deploy scripts rsync `nginx/default.conf` to the NAS and run
+`nginx -t && nginx -s reload` through the already installed NAS dispatcher on every
+deploy (best-effort; it never fails the site deploy). Config rsync uses `--inplace` so the
+single-file bind mount keeps seeing the updated inode.
 
 **One-time activation** (the bind mount must exist before a reload can pick up the file). The
 `webserver` stack's `compose.yaml` (which carries the `nginx/default.conf` mount) lives in the
-`nasctl` toolkit, not in this repo. After the first deploy has placed the config on the NAS,
-recreate the container once so the mount takes effect:
-
-```bash
-nasctl stack webserver recreate
-```
+external NAS toolkit, not in this repo. If the mount needs adding or changing, rebuild
+the project through Synology Container Manager so DSM retains project ownership.
 
 After that, routine deploys reload nginx in place — no recreate needed.
 
@@ -208,24 +221,22 @@ future work.
 
 ## NAS container management
 
-The nginx container (and every other Docker stack on the NAS) is managed by a separate,
-generic toolkit — **`nasctl`** — that lives outside this repo (in OneDrive, the source of
-truth) and isn't site-specific. It rsyncs compose files + a dispatcher to the NAS and runs
-Docker lifecycle commands over SSH, so there's no manual SSHing or DSM Container Manager
-fiddling. The `webserver` stack's `compose.yaml` (with the `nginx/default.conf` bind mount)
-lives there, not here.
+The `webserver` project is owned by **Synology Container Manager**. Container replacement
+and image upgrades go through DSM, not an external Compose recreate. Compose definitions
+and the generic NAS maintenance toolkit live outside this repo in OneDrive.
 
-Common commands:
+Website deployment uses only the dispatcher already installed on the NAS; it does not
+invoke the local `nasctl` launcher, which can synchronize unrelated maintenance files.
+For example, validate the running container's config without deploying or reloading:
 
 ```bash
-nasctl ls                            # list stacks + running containers
-nasctl stack webserver ps            # status of the website stack
-nasctl stack webserver recreate      # rebuild the container (e.g. after a compose/mount change)
-nasctl ctl webserver_nginx exec nginx -s reload   # hot-reload nginx config
+ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=10 \
+  -o RemoteCommand=none -o RequestTTY=no copilot@mainecoon \
+  'sudo -n /volume1/docker_commands/nas-docker.sh ctl webserver_nginx exec nginx -t'
 ```
 
-`scripts/deploy.sh` uses `nasctl` automatically to reload nginx after pushing
-`nginx/default.conf`. Run `nasctl bootstrap` once to set up passwordless operation.
+The scripts neither install the dispatcher nor change SSH keys, sudoers or container
+ownership. Those prerequisites must already be configured.
 
 ## What I'm Listening To (Spotify widgets)
 
@@ -282,6 +293,12 @@ Tests run against the built `dist/` output (static HTML files) using [Vitest](ht
 | `tests/obsidian-embeds.test.mjs` | Obsidian embed rewriting (intrinsic dimensions, blur-up placeholders, eager/lazy loading) and asset-copy behavior for images and Excalidraw exports |
 | `tests/strip-image-metadata.test.mjs` | EXIF/GPS stripping, orientation baking, and clean-image skipping in the image pipeline |
 | `tests/reading-time.test.ts` | Reading-time estimation from Markdown body word count |
+| `tests/local-deploy.test.mjs` | Mocked deployment gates, private staging, ownership preservation, nginx validation/reload ordering, and cleanup |
+
+On macOS/Linux, the deployment checks run Bash and, when `pwsh` is available, PowerShell
+with both standard and legacy native argument handling. Set `PWSH_BINARY` to use a portable
+PowerShell executable. SSH, rsync, content sync and npm are mocked; these checks never
+contact the NAS.
 
 ## Features
 

@@ -5,7 +5,7 @@
 # High-level flow:
 #  1. Load local deploy settings.
 #  2. Sync the latest Obsidian content into the repo.
-#  3. Build Astro into dist/.
+#  3. Build Astro into dist/ and run the test gate.
 #  4. Mirror dist/ to the NAS over SSH.
 #  5. Push nginx/default.conf and ask nginx to reload it.
 #
@@ -20,6 +20,7 @@ set -e
 # Resolve the repository root from this script's location, then load the
 # git-ignored deploy.env file from there.
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$REPO_ROOT"
 ENV_FILE="$REPO_ROOT/deploy.env"
 if [ ! -f "$ENV_FILE" ]; then
   echo "❌ Missing deploy.env. Copy deploy.env.example to deploy.env and fill in your values." >&2
@@ -38,63 +39,71 @@ DEPLOY_TARGET="${DEPLOY_TARGET:?set DEPLOY_TARGET in deploy.env}"
 NGINX_DIR="${NGINX_DIR:?set NGINX_DIR in deploy.env}"
 SOURCE_DIR="./dist/"
 
-# Shared SSH options: do not run any forced RemoteCommand and do not request a
-# TTY, because these calls execute one command non-interactively and exit.
-SSH_OPTS="-o RemoteCommand=none -o RequestTTY=no"
+for path in "$DEPLOY_TARGET" "$NGINX_DIR"; do
+  if [[ ! "$path" =~ ^/[A-Za-z0-9_./-]+$ || "$path" =~ ^/+$ || "$path" =~ (^|/)\.\.?(/|$) ]]; then
+    echo "Invalid deploy path: use a non-root absolute path without spaces or dot segments." >&2
+    exit 1
+  fi
+done
 
-# Container lifecycle is owned by a separate NAS toolkit (nasctl) kept outside
-# this repo. We only need it here to reload nginx after pushing a new config.
-NASCTL="$(command -v nasctl || true)"
-: "${NASCTL:=${NASCTL_PATH:-}}"
+SSH_OPTS=(-o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=10 -o RemoteCommand=none -o RequestTTY=no)
+RSYNC_SSH="ssh ${SSH_OPTS[*]}"
+REMOTE="$NAS_USER@$NAS_HOST"
+DISPATCHER="/volume1/docker_commands/nas-docker.sh"
+
+for tool in rsync ssh npm; do
+  command -v "$tool" >/dev/null || { echo "$tool is required on PATH." >&2; exit 1; }
+done
+
+echo "Checking noninteractive NAS access..."
+ssh "${SSH_OPTS[@]}" "$REMOTE" \
+  "sudo -n rsync --version >/dev/null && sudo -n test -x '$DISPATCHER'"
 
 # Phase 1: sync content from the Obsidian vault before building, so dist/
 # includes the latest committed/generated markdown and assets.
 echo "📥 Syncing content from vault..."
 ./scripts/sync-content.sh
 
-# Phase 2: build the static Astro site into dist/. With `set -e`, a build
-# failure stops here before any files on the NAS are touched.
-echo "🔨 Building site..."
-npm run build
+# npm test builds dist/ first; either a build or test failure blocks publishing.
+echo "🔨 Building and testing site..."
+npm test
 
-# Phase 3: deploy via rsync over SSH on the Tailscale tailnet. rsync compares
-# local dist/ with the remote target and transfers only differences.
+# DSM rejects root rsync server sessions. Upload as copilot, then use sudo only
+# for a local copy on the NAS, preserving the destination owner's UID/GID.
+# Synology's inherited ACLs can override mktemp/umask permissions.
+STAGING_DIR=$(ssh "${SSH_OPTS[@]}" "$REMOTE" 'stage=$(umask 077; mktemp -d "$HOME/website-deploy.XXXXXXXX") && chmod 0700 "$stage" && test "$(stat -c %a "$stage")" = 700 && printf "%s\n" "$stage"')
+if [[ ! "$STAGING_DIR" =~ ^/[A-Za-z0-9_./-]+/website-deploy\.[A-Za-z0-9]{8}$ || "$STAGING_DIR" =~ (^|/)\.\.?(/|$) ]]; then
+  echo "NAS returned an invalid staging directory; refusing transfer or cleanup." >&2
+  exit 1
+fi
+cleanup() {
+  ssh "${SSH_OPTS[@]}" "$REMOTE" "rm -rf -- '$STAGING_DIR'" \
+    || echo "Warning: could not remove temporary staging directory $STAGING_DIR." >&2
+}
+trap cleanup EXIT
+
 echo "🚀 Deploying to $NAS_HOST:$DEPLOY_TARGET ..."
 
-# rsync flags:
-#   -a preserves the built directory tree ("archive" mode).
-#   -v prints changed files, useful during a manual deploy.
-#   -z compresses data in transit.
-#   --delete removes remote files no longer present in dist/.
-#   --exclude skips macOS Finder metadata that should never be served.
-# `-e` tells rsync which SSH command/options to use for the remote connection.
-rsync -avz --delete \
+rsync -avz \
   --exclude='.DS_Store' \
-  -e "ssh -o RemoteCommand=none -o RequestTTY=no" \
-  "$SOURCE_DIR" "$NAS_USER@$NAS_HOST:$DEPLOY_TARGET/"
+  -e "$RSYNC_SSH" \
+  "$SOURCE_DIR" "$REMOTE:$STAGING_DIR/dist/"
+ssh "${SSH_OPTS[@]}" "$REMOTE" \
+  "owner=\$(sudo -n stat -c '%u:%g' '$DEPLOY_TARGET') && sudo -n rsync -a --delete --exclude='.DS_Store' --chown=\"\$owner\" -- '$STAGING_DIR/dist/' '$DEPLOY_TARGET/'"
 
-# Sync nginx config (AI/scraper blocking + rate limiting), then ask nginx to
-# reload it via the generic NAS toolkit. The container itself (compose.yaml) is
-# managed by nasctl; here we only push the config file + reload. Best-effort —
-# failures never fail the site deploy.
+# Use the installed dispatcher, not the local nasctl launcher (which syncs
+# unrelated maintenance files). Container replacement remains DSM-owned.
+# Config updates remain best-effort after the site files have been deployed.
 echo "🛡️  Syncing nginx config..."
-# This ssh command runs `mkdir -p` on the NAS, not locally. The following rsync
-# copies just nginx/default.conf; the `&&` keeps reload attempts behind a
-# successful remote directory creation and config upload.
-if ssh $SSH_OPTS "$NAS_USER@$NAS_HOST" "mkdir -p $NGINX_DIR" \
-  && rsync -avz -e "ssh $SSH_OPTS" ./nginx/default.conf "$NAS_USER@$NAS_HOST:$NGINX_DIR/default.conf"; then
-  if [ -x "$NASCTL" ]; then
-    if "$NASCTL" ctl webserver_nginx exec nginx -t \
-      && "$NASCTL" ctl webserver_nginx exec nginx -s reload; then
-      echo "✅ nginx config reloaded."
-    else
-      echo "⚠️  nginx reload failed. First-time activation of the mounted config? Run:"
-      echo "       nasctl stack webserver recreate"
-    fi
+# --inplace preserves the inode of the single-file nginx bind mount.
+if rsync -avz -e "$RSYNC_SSH" ./nginx/default.conf "$REMOTE:$STAGING_DIR/default.conf" \
+  && ssh "${SSH_OPTS[@]}" "$REMOTE" \
+    "sudo -n mkdir -p '$NGINX_DIR' && owner=\$(sudo -n stat -c '%u:%g' '$NGINX_DIR') && sudo -n rsync -a --inplace --chown=\"\$owner\" -- '$STAGING_DIR/default.conf' '$NGINX_DIR/default.conf'"; then
+  if ssh "${SSH_OPTS[@]}" "$REMOTE" "sudo -n $DISPATCHER ctl webserver_nginx exec nginx -t" \
+    && ssh "${SSH_OPTS[@]}" "$REMOTE" "sudo -n $DISPATCHER ctl webserver_nginx exec nginx -s reload"; then
+    echo "✅ nginx config reloaded."
   else
-    echo "ℹ️  nginx config pushed, but nasctl was not found. Reload it with:"
-    echo "       nasctl ctl webserver_nginx exec nginx -s reload"
-    echo "     (first-time activation of the mounted config: nasctl stack webserver recreate)"
+    echo "⚠️  nginx validation/reload failed; site files were deployed. Check the config and DSM-managed mounts."
   fi
 else
   echo "⚠️  nginx config sync failed; site deploy still succeeded."
