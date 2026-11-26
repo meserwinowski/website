@@ -49,3 +49,20 @@ jobs:
             )
             if ($errors.Count) { throw ($errors | Out-String) }
           }
+
+  request-private-deploy:
+    needs: [public-fixture-build, windows-content-check]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository == 'meserwinowski/website'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+      - name: Request the private publisher
+        env:
+          GH_TOKEN: ${{ secrets.WEBSITE_CONTENT_DISPATCH_TOKEN }}
+        run: node scripts/dispatch-private-deploy.mjs

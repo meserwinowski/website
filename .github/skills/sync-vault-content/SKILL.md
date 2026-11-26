@@ -31,5 +31,7 @@ Pull the latest Markdown content from the Obsidian vault into the site source, t
 - This does **not** build or deploy. When the user is happy with the preview, hand off to the `deploy-website` skill to ship it.
 - New project files need valid frontmatter (`title`, `description`, `status`, `tags`, `date`, optional `thumbnail`/`repo`). Only `completed` and `ongoing` projects render on main routes; `archived` entries render in the public unlisted archive. Draft-only assets are not assembled for production.
 - Sync does not commit or push. Hosted deployment requires reviewing, committing,
-  and pushing the private export. Public code-only releases use private workflow dispatch.
+  and pushing the private export. Passing public-main Linux/Windows CI requests
+  the same private publisher automatically; manual private dispatch remains for
+  retry/replay. There is no polling or automatic local commit/push.
 - If sync reports "no vault folder found", the vault path (`VAULT_SUBPATH` in `deploy.env`) is wrong or the vault moved — verify it points at the current vault location.

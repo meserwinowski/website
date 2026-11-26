@@ -42,7 +42,11 @@ Ship the Astro site to production (nginx in Docker on the Synology NAS). The dep
 4. Verify the live site responds (ask the user for the URL if unknown), e.g. `curl -sS -L --fail --max-time 20 -o /dev/null -w '%{http_code}\n' https://<site>`. Inspect any nginx warnings: config/reload remains best-effort even when the site files published successfully.
 5. Check whether README or TODO need updating. Commit code only in the public
    repository; authored inputs belong in the private publishing repository.
-   Hosted Actions run privately on content pushes or explicit code-release dispatch.
+   Hosted Actions run privately on qualifying content/workflow pushes or the
+   post-success public-main CI request. Both triggers share one private publisher;
+   explicit private dispatch remains for retry/replay. Do not run a local deploy
+   concurrently with hosted publication or assume hosted release records describe
+   a later direct local deployment.
 
 ## Notes
 

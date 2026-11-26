@@ -63,24 +63,46 @@ a warning means the new config is active.
 ### Continuous Deployment (CI/CD)
 
 Public pushes and pull requests run [`deploy.yml`](.github/workflows/deploy.yml)
-as **fixture-only build/test CI**. They never receive private content or NAS
-credentials and do not deploy.
+as **fixture-only build/test CI**. After both Linux and Windows checks pass for
+a public `main` push, a separate job requests the private publisher. Public
+Actions never receives authored content or NAS/Tailscale credentials and never
+builds or publishes production itself. PRs and public manual fixture runs do
+not request publication.
 
 Production Actions live in the private `meserwinowski/website-content` repository.
 Pushes to its `main` branch deploy when they change `content/`, `assets/`,
 `site.json`, `manifest.json`, or the deployment workflow. Documentation-only and
-`archived-assets/` changes do not deploy. Code-only releases use:
+`archived-assets/` changes do not deploy. Both push paths use this same private
+workflow and production concurrency lock; there is no polling or idle runner.
+Manual retry or release replay remains available:
 
 ```bash
 gh workflow run deploy.yml --repo meserwinowski/website-content
 ```
 
-The private workflow checks out content and trusted public `main` separately,
-resolves their immutable SHAs, assembles production inputs, runs `npm test`, joins
-Tailscale, and publishes through the existing restricted NAS key. Logs and the
-successful release artifact stay private. Optional `code_sha` / `content_sha`
-dispatch inputs replay an earlier source pair; ordinary content pushes resolve
-current public main rather than reverting to an old code pointer.
+The private workflow validates successful Linux/Windows build jobs for the
+exact current public `main` SHA, pins code and current private content, assembles
+production inputs, runs `npm test`, joins Tailscale, and publishes through the
+existing restricted NAS key. A pending public build blocks a private content
+push; the subsequent public handoff includes the latest committed content.
+Optional `code_sha` / `content_sha` inputs replay an earlier source pair.
+
+Private GitHub Deployment records retain source SHAs, an export fingerprint,
+and the actual publication result. Duplicate inputs are skipped; failed or
+uncertain inputs are held until inputs change or a manual retry. Superseded
+automatic candidates are skipped before publishing, without canceling an
+active rsync. Dispatch acceptance is not deployment success: inspect the private
+run and release record. Logs and successful artifacts stay private.
+
+**Public handoff setup:** securely configure `WEBSITE_CONTENT_DISPATCH_TOKEN`
+in this repository's Actions secrets using an existing appropriately scoped
+fine-grained PAT. It needs access to `website-content` with **Actions: write**;
+do not grant private Contents write just to dispatch. Actions write also permits
+Actions management/read operations, so the token is confined to the trusted
+post-CI main job. The private publisher uses its own `GITHUB_TOKEN`
+(`contents: read`, `deployments: write`) and does not need a copy of this PAT.
+If the PAT expires or is revoked, rotate the secret and rerun the public request,
+or use a manual private dispatch. Never put token values in Git or vault notes.
 
 Do not run a direct local deployment concurrently with hosted publication.
 Local deployment remains available and does not implicitly commit or push.
@@ -330,6 +352,7 @@ Tests run against the built `dist/` output (static HTML files) using [Vitest](ht
 | `tests/reading-time.test.ts` | Reading-time estimation from Markdown body word count |
 | `tests/local-deploy.test.mjs` | Mocked deployment gates, private staging, ownership preservation, nginx validation/reload ordering, and cleanup |
 | `tests/content-pipeline.test.mjs` | Publication filtering, demo refusal, path/image validation, shared frontmatter schemas, export preservation and conversion-cache reuse |
+| `tests/deployment-dispatch.test.mjs` | Post-CI private handoff, trusted-main guards, exact source provenance, supersession and API/credential failures |
 
 On macOS/Linux, the deployment checks run Bash and, when `pwsh` is available, PowerShell
 with both standard and legacy native argument handling. Set `PWSH_BINARY` to use a portable
@@ -349,7 +372,7 @@ contact the NAS.
 - **Responsive design** — mobile hamburger menu, responsive grid layouts
 - **Obsidian vault sync** — edit content in Obsidian, sync to site at deploy time
 - **What I'm listening to** — About-page widgets showing my current/last Spotify track and my five most recently liked songs, served by a free Cloudflare Worker (see [`worker/README.md`](worker/README.md))
-- **CI/CD** — public fixture builds on code pushes; private content pushes or explicit dispatch deploy through Tailscale
+- **CI/CD** — passing public-main CI and qualifying private content pushes share one private, test-gated publisher through Tailscale
 - **SEO** — Open Graph, Twitter cards, canonical URLs, auto-generated sitemap
 - **Crawler & AI control** — `robots.txt` opt-out plus nginx User-Agent blocking + rate limiting
 - **Obsidian Markdown** — `![[...]]` image embeds and `[!type]` callouts render as web-native content
@@ -414,7 +437,7 @@ A project's `thumbnail` is any path served from `public/`. The convention is to 
 | `.site-content/` | Ignored site metadata, source provenance and thumbnail manifest (not served) |
 | `tests/fixtures/site/` | Original synthetic content/assets for independent public development and CI |
 | `public/` | Static assets served as-is, including images, favicon, robots.txt, and `.well-known/security.txt` |
-| `.github/workflows/deploy.yml` | Public fixture-only build/test CI; production Actions live privately |
+| `.github/workflows/deploy.yml` | Public fixture build/test CI plus post-success private deployment request; production Actions live privately |
 | `worker/` | Cloudflare Worker for the Spotify widgets (`/now-playing` + `/liked-songs`, self-contained: `src/index.ts`, `wrangler.toml`, `README.md`). Deployed separately via `npm run worker:deploy` |
 | `tests/` | Vitest test files (build verification + HTML assertions + Obsidian Markdown handling + reading-time utility coverage) |
 | `astro.config.mjs` | Astro framework configuration (Vite + Tailwind plugin + sitemap) |
@@ -423,6 +446,7 @@ A project's `thumbnail` is any path served from `public/`. The convention is to 
 | `nginx/default.conf` | nginx config (AI/scraper UA blocking + rate limiting); rsynced to the NAS by `deploy.sh` |
 | `scripts/run-local-script.mjs` | Cross-platform npm dispatcher that chooses PowerShell on Windows and Bash elsewhere |
 | `scripts/content-pipeline.mjs` | Shared vault export, explicit demo/production assembly, and production-mode gate |
+| `scripts/dispatch-private-deploy.mjs` | Requests private publication for the exact tested, still-current public main SHA |
 | `scripts/sync-obsidian-assets.mjs` | Shared embed/thumbnail asset resolution and incremental copying; the content pipeline supplies its private asset destination |
 | `scripts/generate-card-thumbnails.mjs` | Build-time (`prebuild`) step that emits small 16:9 `400w`/`800w` WebP derivatives + a manifest (srcset, dimensions, blur-up LQIP) so project cards don't download full-size thumbnails; derivatives are gitignored and regenerated each build |
 | `scripts/strip-image-metadata.mjs` | Strips EXIF/GPS metadata from raster images in `public/assets/`, auto-orients them (baking in EXIF rotation), downscales any image over a 2048px longest edge, re-encodes each to match its file extension (repairing mislabeled formats), and converts `.heic`/`.heif` to `.webp` (via `sips` on macOS, since sharp can't decode HEIC) so the photos render fast in browsers |
